@@ -1,7 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { z } from "zod";
 import { allowedSceneActions, hasModel, isKnownEquipment, isKnownProcess } from "./data.js";
 import { responseJsonSchema, sanitizeResponse, type AgentResponse, type Dropped } from "./output.js";
@@ -12,7 +11,7 @@ const MODEL = "claude-opus-5-5";
 const MAX_TOOL_ROUNDS = 8;
 
 const SYSTEM_PROMPT = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "..", "prompts", "system_prompt.md"),
+  join(process.cwd(), "prompts", "system_prompt.md"),
   "utf8",
 );
 
