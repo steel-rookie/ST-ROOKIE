@@ -1,8 +1,7 @@
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT = process.cwd();
 
 function loadJson<T>(relativePath: string): T {
   return JSON.parse(readFileSync(join(ROOT, relativePath), "utf8")) as T;
