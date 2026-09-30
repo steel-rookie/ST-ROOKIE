@@ -1,0 +1,97 @@
+{
+  "notice": "포스코 홈페이지·포스코그룹 뉴스룸에서 공개한 자료만 정리했습니다. 사내 자료나 현장 운전 지침이 아닙니다.",
+  "sources": [
+    {
+      "id": "posco-brochure-2015",
+      "title": "POSCO 2015 회사 소개 자료 — 일반 탄소강 제조 공정",
+      "date": "2015",
+      "date_type": "발행연도",
+      "url": "https://www.posco.co.kr/homepage/docs/kor5/dn/prcenter/data/2015_brochure_kor.pdf",
+      "publisher": "포스코",
+      "route": "고로",
+      "topics": ["제선의 목적", "철광석", "코크스", "고로", "용선", "용강", "제강 연결"],
+      "notes": [
+        "제선은 철광석에서 쇳물인 용선을 만드는 공정이다.",
+        "이 자료의 일반 탄소강 제조 공정은 철광석을 소결광으로, 석탄을 코크스로 만들어 고로에 넣는 경로를 설명한다.",
+        "고로에서는 코크스가 산화하며 철광석의 산소를 떼어내는 환원과 용융이 일어나 용선이 된다.",
+        "고로에서 나온 용선은 제강의 전로로 이어지고, 탄소와 불순물을 줄여 용강을 만든다."
+      ]
+    },
+    {
+      "id": "posco-automotive-steel-catalog",
+      "title": "POSCO Automotive Steel 자동차 강판 — 제조공정",
+      "date": "2026-09-30",
+      "date_type": "확인일",
+      "url": "https://posco.co.kr/homepage/docs/kor5/dn/product/info/k_car_pdf_2014.pdf",
+      "publisher": "포스코",
+      "route": "고로",
+      "topics": ["소결", "화성", "코크스", "고로", "용선", "제강 연결"],
+      "notes": [
+        "공개 자동차 강판 제품 자료의 제조공정 부분은 소결, 코크스 제조, 고로를 구분해 설명한다.",
+        "고로 경로에서 소결은 분철광석 등으로 소결광을 만들고, 화성의 코크스 제조는 원료탄으로 고로용 코크스를 만든다.",
+        "자료는 고로용 코크스에서 통기성과 반응성을 고려한다고 설명한다.",
+        "고로에서 소결광을 환원해 용선을 생산하고, 다음 제강의 전로에서 용선의 불순물을 줄여 용강으로 만든다."
+      ]
+    },
+    {
+      "id": "posco-newsroom-fe-2019",
+      "title": "Fe의 여행 I am a butter‘Fe’ly",
+      "date": "2019-07-04",
+      "date_type": "발행일",
+      "url": "https://newsroom.posco.com/kr/용광로-해부학-fe의-여행-i-am-a-butterfely/",
+      "publisher": "포스코그룹 뉴스룸",
+      "route": "고로",
+      "topics": ["소결", "철광석", "고로", "코크스", "환원"],
+      "notes": [
+        "이 기사에서 소결은 철광석을 고로에 사용하기 좋은 소결광으로 만드는 전처리 공정으로 소개된다.",
+        "고로 원료는 소결광만이 아니라 정립광, 펠렛, 석회석 등도 포함될 수 있다.",
+        "고로에서 코크스가 열풍과 반응해 일산화탄소를 만들고, 일산화탄소는 철광석에서 산소를 떼어내는 환원에 관여한다."
+      ]
+    },
+    {
+      "id": "posco-newsroom-job-2015",
+      "title": "[2015 알아보JOB] 1편. 생산기술(제선)-제선부 김영현 매니저&화성부 신현준 매니저",
+      "date": "2015-08-11",
+      "date_type": "발행일",
+      "url": "https://newsroom.posco.com/kr/2015-알아보job-1편-생산기술제선-제선부-김영현-매니저/",
+      "publisher": "포스코그룹 뉴스룸",
+      "route": "고로",
+      "topics": ["화성", "코크스", "제선의 목적", "제강 연결"],
+      "notes": [
+        "화성 공정은 석탄을 원료로 코크스를 생산하는 단계로 설명된다.",
+        "코크스는 고로에서 쇳물 생산에 중요한 탄소질 연료다.",
+        "제선부가 원료·소결·고로를 거쳐 용선을 만들며, 용선 품질은 다음 제강 공정과 연결된다."
+      ]
+    },
+    {
+      "id": "posco-newsroom-finex-2017",
+      "title": "Discover the Technology that is Making Steel Production More Sustainable",
+      "date": "2017-06-05",
+      "date_type": "발행일",
+      "url": "https://newsroom.posco.com/en/discover-the-tech-making-steel-more-sustainable-finex/",
+      "publisher": "포스코그룹 뉴스룸",
+      "route": "FINEX",
+      "topics": ["FINEX", "분철광석", "석탄", "소결", "화성"],
+      "notes": [
+        "FINEX는 기존 고로 경로와 다른 제선 방식이다.",
+        "분철광석과 비점결탄을 직접 활용해 고로 경로의 소결·코크스 제조 단계를 생략할 수 있다고 설명한다.",
+        "고로의 소결광·코크스 투입 원리를 FINEX의 원리로 설명하면 안 된다."
+      ]
+    },
+    {
+      "id": "posco-newsroom-routes-2021",
+      "title": "[Exploring Hydrogen with POSCO #3] The Future of Steel — Hydrogen-based Steelmaking",
+      "date": "2021-03-03",
+      "date_type": "발행일",
+      "url": "https://newsroom.posco.com/en/exploring-hydrogen-with-posco-3-the-future-of-steel-hydrogen-based-steelmaking/",
+      "publisher": "포스코그룹 뉴스룸",
+      "route": "비교",
+      "topics": ["고로와 FINEX 구분", "FINEX", "유동환원로", "용선", "제강 연결"],
+      "notes": [
+        "고로 경로는 철광석과 석탄을 각각 소결·코크스 공정으로 전처리해 고로에서 용선을 만든다.",
+        "FINEX 경로는 고로 대신 분철광석을 유동환원로에서 환원하고, 환원된 철을 용융로에서 녹여 용선을 만든다.",
+        "두 경로 모두 이 기사에서는 용선이 전로로 이동해 용강으로 이어진다고 설명한다."
+      ]
+    }
+  ]
+}
