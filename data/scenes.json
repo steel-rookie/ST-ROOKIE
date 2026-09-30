@@ -1,0 +1,38 @@
+{
+  "_note": "3D 화면에 등록된 동작 목록입니다. 프론트엔드에 실제로 구현된 ID만 남기세요.",
+  "processes": {
+    "ironmaking": {
+      "has_3d_model": true,
+      "actions": [
+        { "type": "highlight", "target_id": "blast_furnace" },
+        { "type": "highlight", "target_id": "sinter_plant" },
+        { "type": "highlight", "target_id": "coke_oven" },
+        { "type": "focus", "target_id": "blast_furnace" },
+        { "type": "play_animation", "target_id": "anim_bf_charging" },
+        { "type": "play_animation", "target_id": "anim_bf_tapping" }
+      ]
+    },
+    "steelmaking": {
+      "has_3d_model": true,
+      "actions": [
+        { "type": "highlight", "target_id": "bof_converter" },
+        { "type": "highlight", "target_id": "secondary_refining" },
+        { "type": "focus", "target_id": "bof_converter" },
+        { "type": "play_animation", "target_id": "anim_bof_blowing" }
+      ]
+    },
+    "continuous_casting": {
+      "has_3d_model": true,
+      "actions": [
+        { "type": "highlight", "target_id": "tundish" },
+        { "type": "highlight", "target_id": "cc_mold" },
+        { "type": "focus", "target_id": "cc_mold" }
+      ]
+    },
+    "rolling": {
+      "has_3d_model": false,
+      "actions": []
+    }
+  },
+  "navigation": ["ironmaking", "steelmaking", "continuous_casting", "rolling"]
+}
