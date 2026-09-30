@@ -1,0 +1,16 @@
+{
+  "ironmaking": {
+    "scale": 0.32,
+    "offset": [0, -0.32, 0],
+    "ringScale": 2.2,
+    "home": { "yaw": -0.7, "pitch": 0.42, "dist": 62, "target": [-2, 6, -4] },
+    "anchors": {
+      "sinter_plant":  { "label": [-30, 15, -35], "focus": [-30, 5, -35], "dist": 60, "interior": { "center": [-30, -35], "y0": 14, "y1": 20, "r": 5 } },
+      "coke_oven":     { "label": [-50, 6, -23],  "focus": [-50, 2, -25], "dist": 60, "interior": { "center": [-50, -23], "y0": 1.2, "y1": 8, "r": 3.4 } },
+      "hot_stove":     { "label": [-8, 37, 19],   "focus": [-8, 14, 19],  "dist": 90, "interior": { "center": [-8, 19], "y0": 2, "y1": 31, "r": 4.6 } },
+      "blast_furnace": { "label": [-5, 52, -5],   "focus": [-5, 22, -5],  "dist": 130,
+                         "interior": { "center": [-5, -5], "y0": 10, "y1": 47, "r": 6.6 } }
+    },
+    "flow": [[-56, 3, -35], [-30, 14, -35], [-50, 5, -23], [-22, 4, -33], [-7, 44, -7], [4, 11, -5], [26, 9, -5]]
+  }
+}
