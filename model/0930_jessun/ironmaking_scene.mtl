@@ -1,0 +1,103 @@
+# POSCO Ironmaking diorama materials
+newmtl Base_Mint
+Kd 0.894 0.949 0.902
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+Ns 19
+Pr 0.9
+Pm 0.0
+d 1.0
+illum 2
+
+newmtl Base_Rim
+Kd 0.369 0.443 0.525
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+Ns 19
+Pr 0.9
+Pm 0.0
+d 1.0
+illum 2
+
+newmtl Steel_Matte
+Kd 0.550 0.570 0.590
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+Ns 80
+Pr 0.6
+Pm 0.3
+d 1.0
+illum 2
+
+newmtl Steel_Dark
+Kd 0.330 0.350 0.370
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+Ns 80
+Pr 0.6
+Pm 0.3
+d 1.0
+illum 2
+
+newmtl Refractory
+Kd 0.620 0.550 0.450
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+Ns 30
+Pr 0.85
+Pm 0.0
+d 1.0
+illum 2
+
+newmtl Rail
+Kd 0.220 0.220 0.230
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+Ns 100
+Pr 0.5
+Pm 0.5
+d 1.0
+illum 2
+
+newmtl Ore
+Kd 0.560 0.290 0.170
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+Ns 0
+Pr 1.0
+Pm 0.0
+d 1.0
+illum 2
+
+newmtl Coal
+Kd 0.160 0.160 0.160
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+Ns 0
+Pr 1.0
+Pm 0.0
+d 1.0
+illum 2
+
+newmtl Molten_Iron
+Kd 1.000 0.420 0.000
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+Ke 1.000 0.420 0.000
+Ns 140
+Pr 0.3
+Pm 0.0
+d 1.0
+illum 2
+
+newmtl Molten_Hot
+Kd 1.000 0.700 0.280
+Ka 0 0 0
+Ks 0.05 0.05 0.05
+Ke 1.000 0.700 0.280
+Ns 140
+Pr 0.3
+Pm 0.0
+d 1.0
+illum 2
+
