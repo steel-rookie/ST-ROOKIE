@@ -2,16 +2,16 @@ import Anthropic from "@anthropic-ai/sdk";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
-import { allowedSceneActions, hasModel, isKnownEquipment, isKnownProcess } from "./data.js";
-import { responseJsonSchema, sanitizeResponse, type AgentResponse, type Dropped } from "./output.js";
-import type { Session } from "./session.js";
+import { allowedSceneActions, hasModel, isKnownEquipment, isKnownProcess } from "../../backend/src/data.js";
+import { responseJsonSchema, sanitizeResponse, type AgentResponse, type Dropped } from "../../backend/src/output.js";
+import type { Session } from "../../backend/src/session.js";
 import { executeTool, toolDefinitions } from "./tools.js";
 
 const MODEL = "claude-opus-5-5";
 const MAX_TOOL_ROUNDS = 8;
 
 const SYSTEM_PROMPT = readFileSync(
-  join(process.cwd(), "prompts", "system_prompt.md"),
+  join(process.cwd(), "llm", "prompts", "system_prompt.md"),
   "utf8",
 );
 

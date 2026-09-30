@@ -1,7 +1,7 @@
 // 프론트엔드 없이 터미널에서 에이전트를 시험하는 도구.
 // 화면 동작은 모두 성공했다고 가정하고 다음 턴에 결과를 돌려준다.
 import { createInterface } from "node:readline/promises";
-import { runTurn, ScreenInput } from "./agent.js";
+import { runTurn, ScreenInput } from "../../llm/src/agent.js";
 import { createSession } from "./session.js";
 
 const HELP = `명령어:

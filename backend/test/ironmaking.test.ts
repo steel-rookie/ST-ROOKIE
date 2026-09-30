@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { answerQuestion, DEFAULT_GEMINI_MODEL, normalizeModelAnswer } from "../src/ironmaking-agent.js";
-import { publicSources, getPublicSources } from "../src/ironmaking-sources.js";
+import { answerQuestion, DEFAULT_GEMINI_MODEL, normalizeModelAnswer } from "../../llm/src/ironmaking-agent.js";
+import { publicSources, getPublicSources } from "../../llm/src/ironmaking-sources.js";
 
 test("공개 자료 목록은 제선 필수 주제를 포함하고 공식 주소만 사용한다", () => {
   const topics = new Set(publicSources.flatMap((source) => source.topics));

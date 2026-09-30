@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const ROOT = process.cwd();
+const ROOT = join(process.cwd(), "backend");
 
 function loadJson<T>(relativePath: string): T {
   return JSON.parse(readFileSync(join(ROOT, relativePath), "utf8")) as T;

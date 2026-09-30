@@ -13,7 +13,7 @@ export interface PublicSource {
   notes: string[];
 }
 
-const path = join(process.cwd(), "data", "ironmaking-sources.json");
+const path = join(process.cwd(), "backend", "data", "ironmaking-sources.json");
 const catalog = JSON.parse(readFileSync(path, "utf8")) as {
   notice: string;
   sources: PublicSource[];

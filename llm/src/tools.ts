@@ -6,8 +6,8 @@ import {
   processes,
   quizzes,
   type MaterialDocument,
-} from "./data.js";
-import type { Session } from "./session.js";
+} from "../../backend/src/data.js";
+import type { Session } from "../../backend/src/session.js";
 
 // 도구 정의는 이름순으로 고정해 둔다. 순서가 바뀌면 프롬프트 캐시가 깨진다.
 export const toolDefinitions: Anthropic.Beta.BetaTool[] = [

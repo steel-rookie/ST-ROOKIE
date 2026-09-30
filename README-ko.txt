@@ -17,14 +17,25 @@ Windows PowerShell에서 npm 스크립트 실행이 막히면 npm.cmd ci, npm.cm
 
 구성
 
-- web/: 한국어 단일 화면. 질문 입력, 대화, 예시 질문, 상태와 출처 링크를 표시합니다.
-- src/ironmaking-server.ts: 질문 API와 대화 세션. POST /api/chat, GET /api/status를 제공합니다.
-- src/ironmaking-agent.ts: 소량의 공개 자료 메모를 프롬프트에 제공하고 Gemini GenerateContent API를 호출합니다.
-- src/ironmaking-sources.ts, data/ironmaking-sources.json: 공식 자료 목록과 주제별 정리입니다. 자료를 늘린 뒤 검색 기능을 붙이기 쉽도록 분리했습니다.
+package.json, tsconfig.json은 루트에 두고 npm 명령은 모두 루트에서 실행합니다.
+
+- backend/: 서버, 세션, 공정 데이터, 테스트
+  - backend/src/ironmaking-server.ts: 질문 API와 대화 세션. POST /api/chat, GET /api/status를 제공합니다.
+  - backend/src/server.ts, cli.ts, session.ts, data.ts, output.ts: 기존 Claude 교육 에이전트 백엔드(start:legacy, chat).
+  - backend/data/: 공정·설비·자료·퀴즈·장면 JSON과 제선 공개 자료 목록(ironmaking-sources.json).
+  - backend/test/: npm test로 실행하는 테스트.
+- llm/: LLM 호출 코드와 프롬프트
+  - llm/src/ironmaking-agent.ts: 소량의 공개 자료 메모를 프롬프트에 제공하고 Gemini GenerateContent API를 호출합니다.
+  - llm/src/ironmaking-sources.ts: 공식 자료 목록을 읽어 프롬프트용으로 정리합니다. 자료를 늘린 뒤 검색 기능을 붙이기 쉽도록 분리했습니다.
+  - llm/src/agent.ts, tools.ts, llm/prompts/system_prompt.md: 기존 Claude 에이전트와 도구, 시스템 프롬프트.
+- frontend/: 화면
+  - frontend/web/: 한국어 단일 화면. 질문 입력, 대화, 예시 질문, 상태와 출처 링크를 표시합니다.
+  - frontend/steel-academy/, frontend/steel-academy.html: 기존 3D 열연 교육 데모(단독 실행).
+- models/: 3D 모델 파일(hot-rolling-education.glb).
 
 자료 범위
 
-자료는 포스코 홈페이지와 포스코그룹 뉴스룸의 공개 공식 자료입니다. 사내 자료에 접근하거나 확인한 것으로 표현하지 않습니다. data/ironmaking-sources.json에 각 자료의 제목, 발행일/연도, URL, 관련 주제와 요약을 기록했습니다. 고로와 FINEX 경로를 별도로 설명하고, 특정 제철소의 실제 운전 조건이나 작업 절차는 제공하지 않습니다. 현재 운영 상태와 자료에 없는 내용은 미확인으로 남깁니다.
+자료는 포스코 홈페이지와 포스코그룹 뉴스룸의 공개 공식 자료입니다. 사내 자료에 접근하거나 확인한 것으로 표현하지 않습니다. backend/data/ironmaking-sources.json에 각 자료의 제목, 발행일/연도, URL, 관련 주제와 요약을 기록했습니다. 고로와 FINEX 경로를 별도로 설명하고, 특정 제철소의 실제 운전 조건이나 작업 절차는 제공하지 않습니다. 현재 운영 상태와 자료에 없는 내용은 미확인으로 남깁니다.
 
 API 예시
 

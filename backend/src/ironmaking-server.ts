@@ -2,13 +2,13 @@ import express from "express";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { z } from "zod";
-import { answerQuestion, DEFAULT_GEMINI_MODEL, GeminiApiError, type ChatTurn } from "./ironmaking-agent.js";
+import { answerQuestion, DEFAULT_GEMINI_MODEL, GeminiApiError, type ChatTurn } from "../../llm/src/ironmaking-agent.js";
 
 const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "16kb" }));
 
-const webRoot = join(process.cwd(), "web");
+const webRoot = join(process.cwd(), "frontend", "web");
 app.use(express.static(webRoot));
 
 const sessions = new Map<string, { turns: ChatTurn[]; touched: number }>();

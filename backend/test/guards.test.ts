@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { allowedSceneActions } from "../src/data.js";
 import { sanitizeResponse } from "../src/output.js";
 import { createSession } from "../src/session.js";
-import { executeTool, searchMaterials } from "../src/tools.js";
+import { executeTool, searchMaterials } from "../../llm/src/tools.js";
 
 const ctx = (latestUserText: string) => ({ latestUserText });
 

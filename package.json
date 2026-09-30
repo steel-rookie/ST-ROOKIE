@@ -7,11 +7,11 @@
   "scripts": {
     "dev": "npm run start",
     "build": "tsc --noEmit false --outDir .build",
-    "start": "npm run build && node --env-file-if-exists=.env .build/src/ironmaking-server.js",
-    "start:legacy": "npm run build && node .build/src/server.js",
-    "chat": "npm run build && node .build/src/cli.js",
+    "start": "npm run build && node --env-file-if-exists=.env .build/backend/src/ironmaking-server.js",
+    "start:legacy": "npm run build && node .build/backend/src/server.js",
+    "chat": "npm run build && node .build/backend/src/cli.js",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && node --test .build/test/*.test.js"
+    "test": "npm run build && node --test .build/backend/test/*.test.js"
   },
   "repository": {
     "type": "git",

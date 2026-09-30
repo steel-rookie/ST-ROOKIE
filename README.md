@@ -12,4 +12,4 @@ npm.cmd start
 
 브라우저에서 <http://localhost:3000>을 엽니다. `.env`는 서버 시작 시 읽으며 Git에서 제외됩니다. Gemini API 키가 없으면 미연결 상태를 표시하고 답변을 생성하지 않습니다.
 
-공개 공식 자료 목록: [data/ironmaking-sources.json](data/ironmaking-sources.json). 기존 3D 데모는 이 화면과 연결되지 않습니다.
+공개 공식 자료 목록: [backend/data/ironmaking-sources.json](backend/data/ironmaking-sources.json). 기존 3D 데모는 이 화면과 연결되지 않습니다.

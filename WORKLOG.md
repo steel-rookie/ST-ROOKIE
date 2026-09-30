@@ -2,6 +2,18 @@
 
 커밋 본문의 "왜"는 이 파일의 문제/해결에서 가져온다. 새 작업을 하면 위에 추가한다.
 
+## 2026-09-30 팀 폴더 구성에 맞춰 파일 재배치
+
+### 문제
+
+- 팀에서 `backend/`, `frontend/`, `llm/`, `models/` 폴더 구성을 정해 두었지만, 지금까지 작업물은 루트의 `src/`, `web/`, `source/`, `data/`, `prompts/`에 흩어져 있었다.
+
+### 해결
+
+- 서버·세션·데이터·테스트는 `backend/`, LLM 호출 코드와 프롬프트는 `llm/`, 화면은 `frontend/`(`web/`, 3D 데모는 `steel-academy/`), `.glb`는 `models/`로 옮겼다.
+- `package.json`, `tsconfig.json`은 루트에 두어 `npm start`, `npm test`를 그대로 루트에서 실행한다. 빌드 결과는 `.build/backend/...`, `.build/llm/...`로 나온다.
+- `process.cwd()` 기준 경로를 새 위치(`backend/data`, `llm/prompts`, `frontend/web`)로 바꿨다.
+
 ## 2026-09-30 제선 공정 질문형 임시 MVP
 
 ### 문제
