@@ -93,6 +93,17 @@
           "type": "string",
           "minLength": 1
         },
+        "answer_terms": {
+          "description": "튜터 질문에 쓰면 안 되는 정답 용어(선택). 용어집 동의어도 함께 막는다. 개념 이름에 든 말은 제외된다.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "fallback_question": {
+          "description": "생성한 질문이 유출 검사에 두 번 걸리면 쓰는 고정 질문(선택). 정답 용어와 근거 문장 표현이 없어야 한다.",
+          "type": "string",
+          "minLength": 1
+        },
         "source": {
           "description": "quote를 가져온 문서.",
           "type": "object",

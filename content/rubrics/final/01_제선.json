@@ -19,6 +19,8 @@
       "correct": "소결이 철광석을 고로용 소결광으로 만드는 전처리라는 점을 설명한다.",
       "partial": "철광석을 가공한다는 것은 알지만, 고로에 넣기 위한 전처리라는 목적을 말하지 못한다.",
       "wrong": "소결을 철광석을 녹여 쇳물을 만드는 공정이나 석탄을 코크스로 만드는 공정으로 설명한다.",
+      "answer_terms": ["소결광", "전처리"],
+      "fallback_question": "철광석을 가루 상태 그대로 쓰지 않고 소결 공정을 거치는 이유를 설명해 주세요.",
       "source": {
         "file": "backend/data/ironmaking-sources.json",
         "ref": "posco-newsroom-fe-2019"
@@ -40,6 +42,8 @@
       "correct": "코크스가 일산화탄소를 만들고, 그것이 철광석의 산소를 떼어내는 환원에 쓰인다는 두 요소를 모두 설명한다.",
       "partial": "두 요소 중 하나만 설명하거나, '연료' 수준으로만 설명한다.",
       "wrong": "코크스가 용선의 탄소나 불순물을 제거한다고 설명한다(제강 전로의 역할과 혼동).",
+      "answer_terms": ["일산화탄소", "환원"],
+      "fallback_question": "고로 안에서 코크스는 철광석이 철이 되는 데 어떤 역할을 하나요?",
       "source": {
         "file": "backend/data/ironmaking-sources.json",
         "ref": "posco-newsroom-fe-2019"
@@ -61,6 +65,8 @@
       "correct": "고로에서 환원과 용융으로 용선이 만들어지고, 용선이 제강 전로로 이어진다는 점을 설명한다.",
       "partial": "용선이 만들어진다는 것은 알지만 환원·용융 과정이나 다음 공정과의 연결 중 하나를 빠뜨린다.",
       "wrong": "고로에서 바로 용강이나 제품이 나온다고 설명한다.",
+      "answer_terms": ["환원", "용융", "전로", "제강", "용강"],
+      "fallback_question": "고로 안에서 철광석은 어떤 변화를 거쳐 쇳물로 바뀌고, 그 쇳물은 다음에 어느 공정으로 가나요?",
       "source": {
         "file": "backend/data/ironmaking-sources.json",
         "ref": "posco-brochure-2015"

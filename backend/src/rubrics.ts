@@ -11,6 +11,10 @@ export interface RubricConcept {
   partial: string;
   wrong: string;
   source: { file: string; ref?: string };
+  /** 튜터 질문에 쓰면 안 되는 정답 용어(선택). */
+  answer_terms?: string[];
+  /** 질문 유출 검사에 두 번 걸리면 쓰는 고정 질문(선택). */
+  fallback_question?: string;
 }
 
 export interface GlossaryEntry {
