@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "content/rubrics/schema.json",
+  "title": "섹션 루브릭",
+  "description": "체크포인트 평가자가 읽는 섹션별 루브릭. 파일 하나가 섹션 하나다.",
+  "type": "object",
+  "required": ["section", "reviewed", "concepts"],
+  "additionalProperties": false,
+  "properties": {
+    "reviewed": {
+      "description": "팀 검수를 마쳤는지. false인 루브릭을 로드하면 경고 로그를 남긴다.",
+      "type": "boolean"
+    },
+    "section": {
+      "description": "섹션(공정) id. frontend/3d-demo/data.js의 PROCESSES[].id와 같다.",
+      "enum": ["ironmaking", "steelmaking", "continuous_casting", "rolling"]
+    },
+    "concepts": {
+      "description": "체크포인트에서 묻는 순서대로 나열한다.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/concept" }
+    }
+  },
+  "$defs": {
+    "concept": {
+      "type": "object",
+      "required": ["concept_id", "name", "key_points", "correct", "partial", "wrong", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "concept_id": {
+          "description": "개념 id. DB의 점수·오개념 기록이 참조하므로 한 번 정하면 바꾸지 않는다.",
+          "type": "string",
+          "pattern": "^[a-z0-9]+(_[a-z0-9]+)*$"
+        },
+        "name": {
+          "description": "화면과 튜터 발화에 쓰는 개념 이름.",
+          "type": "string",
+          "minLength": 1
+        },
+        "key_points": {
+          "description": "정답에 들어가야 할 핵심 요소.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["point", "quote"],
+            "additionalProperties": false,
+            "properties": {
+              "point": {
+                "description": "핵심 요소를 한 문장으로.",
+                "type": "string",
+                "minLength": 1
+              },
+              "quote": {
+                "description": "source 문서에서 그대로 옮긴 근거 문장.",
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "correct": {
+          "description": "correct 판정 기준.",
+          "type": "string",
+          "minLength": 1
+        },
+        "partial": {
+          "description": "partial 판정 기준.",
+          "type": "string",
+          "minLength": 1
+        },
+        "wrong": {
+          "description": "wrong 판정 기준. 대표적인 오개념을 함께 적는다.",
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "description": "quote를 가져온 문서.",
+          "type": "object",
+          "required": ["file"],
+          "additionalProperties": false,
+          "properties": {
+            "file": {
+              "description": "저장소 루트 기준 경로. 보통 content/materials/{섹션}/section.md.",
+              "type": "string",
+              "minLength": 1
+            },
+            "ref": {
+              "description": "문서 안의 위치(제목, 자료 id 등).",
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

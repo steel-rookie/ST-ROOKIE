@@ -1,0 +1,45 @@
+// 루브릭 파일 로드. 서버 실행 중에도 content/rubrics/schema.json으로 검증한다.
+import { Ajv2020 } from "ajv/dist/2020.js";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+export interface RubricConcept {
+  concept_id: string;
+  name: string;
+  key_points: { point: string; quote: string }[];
+  correct: string;
+  partial: string;
+  wrong: string;
+  source: { file: string; ref?: string };
+}
+
+export interface Rubric {
+  section: "ironmaking" | "steelmaking" | "continuous_casting" | "rolling";
+  reviewed: boolean;
+  concepts: RubricConcept[];
+}
+
+const RUBRIC_ROOT = join(process.cwd(), "content", "rubrics");
+
+const readJson = (path: string): unknown => JSON.parse(readFileSync(path, "utf8"));
+
+const validate = new Ajv2020({ allErrors: true }).compile<Rubric>(readJson(join(RUBRIC_ROOT, "schema.json")) as object);
+
+/** 루브릭을 읽고 검증한다. 형식이 틀리면 예외를 던지고, 팀 검수 전(reviewed: false)이면 경고를 남긴다. */
+export function loadRubric(path: string): Rubric {
+  const rubric = readJson(path);
+  if (!validate(rubric)) {
+    const errors = (validate.errors ?? []).map((e) => `${e.instancePath || "/"} ${e.message}`).join("; ");
+    throw new Error(`루브릭 형식 오류: ${path}: ${errors}`);
+  }
+  const ids = rubric.concepts.map((c) => c.concept_id);
+  const duplicated = ids.filter((id, i) => ids.indexOf(id) !== i);
+  if (duplicated.length) throw new Error(`루브릭 concept_id 중복: ${path}: ${[...new Set(duplicated)].join(", ")}`);
+  if (rubric.reviewed !== true) console.warn(`검수 전 루브릭을 사용합니다: ${path} (section=${rubric.section})`);
+  return rubric;
+}
+
+/** 평가자가 읽는 final/ 루브릭을 모두 읽는다. 서버 시작 시 호출해 잘못된 파일이 있으면 시작을 멈춘다. */
+export function loadFinalRubrics(dir = join(RUBRIC_ROOT, "final")): Rubric[] {
+  return readdirSync(dir).filter((name) => name.endsWith(".json")).sort().map((name) => loadRubric(join(dir, name)));
+}
