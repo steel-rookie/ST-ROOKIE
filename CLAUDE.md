@@ -108,6 +108,7 @@ content/
 - `section.md`가 교육 내용의 단일 기준이다. 다른 곳에 교육 내용을 중복해서 만들지 않는다.
 - 루브릭은 `draft/` → 팀 검수 → `final/` 순서로만 옮긴다. 검수 없이 `final/`에 쓰지 않는다.
 - 루브릭 형식은 `content/rubrics/schema.json`. 최상위 `reviewed`는 팀 검수 여부이고, `false`인 루브릭을 로드하면 경고 로그를 남긴다(`backend/src/rubrics.ts`의 `loadRubric`). 스키마 검증은 서버 실행 중에도 `ajv`로 한다.
+- 루브릭 최상위의 선택 필드 `glossary: [{term, aliases}]`는 섹션 단위 용어집이다(예: 용선 = 쇳물). 평가자 프롬프트에 들어가 동의어를 같은 말로 본다.
 - 현재 `final/01_제선.json`은 `reviewed: false`인 임시 루브릭이다. `section.md`가 생기면 그 문서를 근거로 다시 만든다.
 
 ## 튜토리얼
@@ -156,4 +157,6 @@ content/
 
 - `npm test`: 빌드 후 `backend/test/*.test.ts`를 `node:test`로 실행한다.
 - `npm run typecheck`: 타입 검사.
+- `npm run eval:evaluator`: 실제 Gemini로 평가자 정확도를 잰다(`llm/eval/{섹션}.jsonl`, 일치율·혼동 표·틀린 케이스). 비용과 요청 제한 때문에 `npm test`에는 넣지 않는다. 케이스 사이 대기는 `EVAL_DELAY_MS`(기본 1000).
+- 평가자·튜터 프롬프트는 `llm/prompts/`에 있다. 평가자 프롬프트를 바꾸면 `eval:evaluator`로 일치율을 다시 확인한다.
 - 소스를 지우거나 옮긴 뒤 테스트가 이상하면 `.build/`를 지우고 다시 실행한다(이전 빌드 결과가 남는다).

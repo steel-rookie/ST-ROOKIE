@@ -13,9 +13,16 @@ export interface RubricConcept {
   source: { file: string; ref?: string };
 }
 
+export interface GlossaryEntry {
+  term: string;
+  aliases: string[];
+}
+
 export interface Rubric {
   section: "ironmaking" | "steelmaking" | "continuous_casting" | "rolling";
   reviewed: boolean;
+  /** 섹션 단위 용어집(선택). 평가자 프롬프트에 들어간다. */
+  glossary?: GlossaryEntry[];
   concepts: RubricConcept[];
 }
 

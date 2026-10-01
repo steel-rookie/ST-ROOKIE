@@ -1,6 +1,11 @@
 {
   "section": "ironmaking",
   "reviewed": false,
+  "glossary": [
+    { "term": "용선", "aliases": ["쇳물"] },
+    { "term": "고로", "aliases": ["용광로"] },
+    { "term": "일산화탄소", "aliases": ["CO"] }
+  ],
   "concepts": [
     {
       "concept_id": "sinter_purpose",
