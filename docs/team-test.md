@@ -51,6 +51,13 @@ npm run tunnel
 - 서버는 이 컴퓨터(localhost)에서만 접속을 받고, 터널이 외부 요청을 넘겨줍니다.
 - 주소는 터널을 켤 때마다 바뀝니다.
 
+**공유하기 전에 확인하세요.** 터널을 연 뒤 1~2분 기다렸다가(새 주소가 퍼지는 시간), 비밀번호 없이 API를 불러 401이 나오는지 봅니다.
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://xxxx-xxxx.trycloudflare.com/api/sections/ironmaking/progress
+# 401이면 정상. 200이면 TEST_PASSCODE가 적용되지 않은 것이니 공유하지 말고 .env와 서버를 확인하세요.
+```
+
 ### 3. 공유
 
 - 팀원마다 `?user=` 뒤에 서로 다른 이름을 붙여 보냅니다. 예: `.../?user=민수`. 이름이 같으면 기록이 섞입니다.

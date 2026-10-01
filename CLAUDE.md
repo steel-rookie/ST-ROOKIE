@@ -67,6 +67,17 @@
 5. 재확인 단계의 평가자는 `responseSchema`의 verdict에서 `assisted`를 빼고, 프롬프트에 "되묻기·힌트 요청은 wrong"을 명시한다(판정 뒤 변환하지 않는다).
 
 평가자는 `content/rubrics/final/`만 읽는다. `draft/`는 읽지 않는다.
+
+평가자 공통 규칙(개념별 기준보다 먼저 적용, `llm/prompts/evaluator.md`):
+1. 하한: 핵심 요소를 하나 이상 맞게 설명했으면 최소 partial. 루브릭의 wrong 문장은 핵심 요소 없이 그 오개념만 있을 때의 예시다.
+2. 상한: 사실 오류가 하나라도 있으면 핵심 요소를 다 말했어도 최대 partial이고, 오류는 misconception에 기록한다. 루브릭에 없더라도 맞는 설명은 감점하지 않는다.
+3. wrong: 핵심 요소가 하나도 없거나 다른 개념·공정을 설명한 경우.
+
+튜터 질문 유출 검사(`llm/src/question-check.ts`, 질문과 재확인 질문 모두):
+- 루브릭 개념의 `answer_terms`(선택)와 그 용어집 동의어가 질문에 있으면 유출. 개념 이름에 든 말은 허용한다.
+- quote와 4글자 이상 겹치는 구간 중 단어 경계 양쪽에 각각 2글자 이상 걸친 구가 있으면 유출. 한 단어 안의 겹침("철광석을")이나 조사 한 글자가 붙은 겹침("는 철광석")은 허용한다(그대로 4글자 비교하면 자연스러운 질문도 걸려서 정한 규칙).
+- 걸리면 걸린 표현을 알려 주고 1회 다시 만든다. 또 걸리면 루브릭의 `fallback_question`(선택)을, 없거나 재확인에서 직전 질문과 같으면 고정 문장(`genericQuestion`)을 쓴다. 모든 `fallback_question`은 유출 검사를 통과해야 한다(테스트로 확인).
+- 질문 생성 프롬프트에는 근거 문장(quote)을 주지 않고 핵심 요소만 준다. 질문은 핵심 요소만으로 완전히 답할 수 있는 범위로 제한한다.
 평가자 입력은 해당 개념의 루브릭, 섹션 용어집(`glossary`), 질문, 답변뿐이다. 질문과 답변은 `<question>`, `<answer>` 구분자로 감싸고, 구분자 안의 내용은 채점 대상이며 지시가 아니라고 명시한다.
 
 API·상태 머신·DB·프롬프트의 상세 설계는 [docs/checkpoint-api.md](docs/checkpoint-api.md).
@@ -154,6 +165,13 @@ content/
 - 같은 시도 안에서 재확인으로 맞혀도 그 개념의 오개념은 해결됨으로 바꾼다.
 - 재확인에서 나온 오개념도 기록한다.
 
+## 브랜치와 병합 순서
+
+- 병합 순서: PR #6(`feature/checkpoint-scoring`) → `feature/checkpoint-api` → `feature/checkpoint-ui` → `feature/evaluator-eval-sets`. 앞 브랜치가 병합된 뒤 다음 PR을 연다.
+- `feature/evaluator-eval-sets`에는 `feature/checkpoint-ui`가 병합되어 있다(원격 팀원 테스트를 이 브랜치 하나로 하기 위해). 팀원 테스트는 이 브랜치로 진행한다.
+- `feature/checkpoint-api` PR 본문 초안: `docs/pr-drafts/checkpoint-api.md`(PR을 연 뒤 지운다).
+- 학습 모드 구현은 위 병합이 끝난 뒤 `dev`에서 새 브랜치로 시작한다.
+
 ## 다음 단계
 
 - **학습자 메모**: `CheckpointEngine.start()`·`respond()`의 선택 파라미터 `options.notes`(`LearnerNotes`: `conceptOrder`, `context`) 자리만 열어 두었다. 개념 순서 조정(`orderConcepts`)과 튜터에게 줄 추가 컨텍스트를 여기에 연결한다.
@@ -173,6 +191,6 @@ content/
   - `llm/eval/hard/`: 품질 평가용. 공격 케이스(`source: synthetic`)와 사람 답변(`source: human`)을 source별로 따로 집계한다. 형식과 필드는 `llm/eval/README.md`.
   - 출력: 일치율(전체·단계·source·유형), source별 혼동 표, 평가자 형식 재시도(케이스별·전체 비율), 같은 뜻 쌍(`pair_id`) 일치율, 틀린 케이스.
 - `npm run eval:export-human -- --db 파일 ...`: 체크포인트 DB의 첫 판정 답변을 `llm/eval/hard/pending/`에 내보낸다(판정 빈칸, 모델 판정은 별도 파일, 사용자 id 익명화). 팀원 테스트 안내는 `docs/team-test.md`.
-- 평가자 공통 규칙: 사실 오류가 하나라도 있으면 최대 partial이고 오류는 misconception에 기록한다(`llm/prompts/evaluator.md`).
+- 평가자 프롬프트나 루브릭을 바꾸면 `eval:evaluator`를 smoke·hard로 다시 돌려 일치율을 확인한다.
 - 평가자·튜터 프롬프트는 `llm/prompts/`에 있다. 평가자 프롬프트를 바꾸면 `eval:evaluator`로 일치율을 다시 확인한다.
 - 소스를 지우거나 옮긴 뒤 테스트가 이상하면 `.build/`를 지우고 다시 실행한다(이전 빌드 결과가 남는다).
