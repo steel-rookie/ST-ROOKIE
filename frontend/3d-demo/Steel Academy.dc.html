@@ -32,6 +32,10 @@
             --accent-ink: oklch(0.18 0.05 45);
             --danger-bg: oklch(0.32 0.09 25);
             --danger: oklch(0.86 0.1 25);
+            --ok: oklch(0.8 0.14 150);
+            --ok-bg: oklch(0.3 0.06 150);
+            --warn: oklch(0.85 0.13 85);
+            --warn-bg: oklch(0.33 0.06 85);
             background: var(--bg);
             color: var(--text);
           }
@@ -46,6 +50,10 @@
             --accent-ink: oklch(0.99 0 0);
             --danger-bg: oklch(0.94 0.04 25);
             --danger: oklch(0.45 0.16 25);
+            --ok: oklch(0.48 0.13 150);
+            --ok-bg: oklch(0.93 0.05 150);
+            --warn: oklch(0.52 0.12 75);
+            --warn-bg: oklch(0.95 0.05 85);
           }
           a {
             color: var(--accent);
@@ -229,7 +237,7 @@
                   background: var(--accent);
                 "
               ></span
-              >AI 튜터
+              >{{ tutorBtnLabel }}
             </button>
             <button
               onClick="{{ toggleDev }}"
@@ -510,6 +518,18 @@
                   >
                 </button>
               </sc-for>
+              <button
+                onClick="{{ cpEntryClick }}"
+                title="{{ cpEntryTitle }}"
+                style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:none;width:88px;padding:6px 2px;background:transparent;color:{{ cpEntryColor }};border:none;cursor:{{ cpEntryCursor }};opacity:{{ cpEntryOpacity }};"
+              >
+                <span
+                  style="width:48px;height:48px;border-radius:24px;background:var(--panel);border:2px dashed {{ cpEntryBorder }};display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 8px 24px oklch(0 0 0 / .45);"
+                  >{{ cpEntryIcon }}</span
+                >
+                <span style="font-weight:600;font-size:11px;white-space:nowrap;text-shadow:0 1px 6px oklch(0 0 0 / 0.6);">이해도 확인</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);white-space:nowrap;">{{ cpEntryState }}</span>
+              </button>
             </div>
           </div>
           <div
@@ -873,14 +893,14 @@
                   min-width: 0;
                 "
               >
-                <span style="font-weight: 700; font-size: 14px">AI 튜터</span>
+                <span style="font-weight:700;font-size:14px;color:{{ tutorTitleColor }};">{{ tutorTitle }}</span>
                 <span
                   style="
                     font-family: &quot;IBM Plex Mono&quot;, monospace;
                     font-size: 10px;
                     color: var(--muted);
                   "
-                  >가짜 튜터(mockTutor) · 샘플 응답 · {{ ctxLabel }}</span
+                  >{{ tutorSub }}</span
                 >
               </div>
               <button
@@ -910,6 +930,7 @@
                 gap: 10px;
               "
             >
+              <sc-if value="{{ chatMode }}" hint-placeholder-val="{{ true }}">
               <sc-for list="{{ messages }}" as="m" hint-placeholder-count="0">
                 <sc-if
                   value="{{ m.isUser }}"
@@ -1065,6 +1086,68 @@
                   </div>
                 </sc-if>
               </sc-for>
+              </sc-if>
+              <sc-if value="{{ cpMode }}" hint-placeholder-val="{{ false }}">
+                <div style="position:sticky;top:-14px;z-index:1;display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);box-shadow:0 6px 12px -8px oklch(0 0 0 / .5);">
+                  <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);">
+                    <span style="font-family:'IBM Plex Mono',monospace;letter-spacing:.08em;">CHECKPOINT · {{ cpSectionEn }}</span>
+                    <span style="font-family:'IBM Plex Mono',monospace;">{{ cpCounter }}</span>
+                  </div>
+                  <div style="display:flex;gap:6px;">
+                    <sc-for list="{{ cpDots }}" as="d" hint-placeholder-count="3">
+                      <span title="{{ d.title }}" style="flex:1;height:6px;border-radius:3px;background:{{ d.bg }};box-shadow:{{ d.ring }};"></span>
+                    </sc-for>
+                  </div>
+                  <span style="font-size:12px;">{{ cpConceptLabel }}</span>
+                </div>
+                <sc-for list="{{ cpMsgs }}" as="m" hint-placeholder-count="0">
+                  <sc-if value="{{ m.isUser }}" hint-placeholder-val="{{ false }}">
+                    <div style="align-self:flex-end;max-width:85%;background:var(--accent);color:var(--accent-ink);padding:9px 12px;border-radius:10px 10px 2px 10px;font-size:13px;line-height:1.5;white-space:pre-line;">{{ m.text }}</div>
+                  </sc-if>
+                  <sc-if value="{{ m.isTutor }}" hint-placeholder-val="{{ false }}">
+                    <div style="align-self:flex-start;max-width:92%;display:flex;flex-direction:column;gap:4px;">
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:{{ m.labelColor }};padding-left:4px;">{{ m.label }}</span>
+                      <div style="background:{{ m.bg }};color:{{ m.color }};padding:10px 12px;border-radius:10px 10px 10px 2px;font-size:13px;line-height:1.55;white-space:pre-line;">{{ m.text }}</div>
+                    </div>
+                  </sc-if>
+                </sc-for>
+                <sc-if value="{{ cpDone }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;gap:12px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;">
+                      <span style="font-weight:700;font-size:13px;">전체 이해도</span>
+                      <span style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:{{ cpGaugeColor }};">{{ cpGaugeText }}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:3px;">
+                      <div style="position:relative;height:10px;border-radius:5px;background:var(--line);">
+                        <div style="height:100%;width:{{ cpGaugeWidth }};border-radius:5px;background:{{ cpGaugeColor }};"></div>
+                        <div style="position:absolute;top:-4px;bottom:-4px;left:80%;width:2px;margin-left:-1px;background:var(--text);"></div>
+                      </div>
+                      <div style="position:relative;height:14px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">
+                        <span style="position:absolute;left:80%;transform:translateX(-50%);white-space:nowrap;">기준 80%</span>
+                      </div>
+                    </div>
+                    <span style="align-self:flex-start;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:{{ cpPassBg }};color:{{ cpPassColor }};">{{ cpPassLabel }}</span>
+                    <div style="display:flex;flex-direction:column;gap:9px;">
+                      <sc-for list="{{ cpBars }}" as="b" hint-placeholder-count="3">
+                        <div style="display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center;font-size:12px;">
+                          <span>{{ b.name }}</span>
+                          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:{{ b.color }};">{{ b.label }}</span>
+                          <div style="grid-column:1 / -1;height:8px;border-radius:4px;background:var(--line);">
+                            <div style="height:100%;width:{{ b.width }};border-radius:4px;background:{{ b.color }};"></div>
+                          </div>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                      <button onClick="{{ onCpPrimary }}" style="background:var(--accent);color:var(--accent-ink);border:none;border-radius:7px;padding:9px 14px;font-weight:600;font-size:13px;cursor:pointer;">{{ cpPrimaryLabel }}</button>
+                      <button onClick="{{ onCpExit }}" style="background:transparent;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:9px 14px;font-size:13px;cursor:pointer;">학습 모드로 돌아가기</button>
+                    </div>
+                  </div>
+                </sc-if>
+              </sc-if>
+              <sc-if value="{{ cpHasNotice }}" hint-placeholder-val="{{ false }}">
+                <div style="align-self:stretch;background:var(--danger-bg);color:var(--danger);padding:9px 12px;border-radius:8px;font-size:12px;line-height:1.5;">{{ cpNotice }}</div>
+              </sc-if>
               <sc-if value="{{ pending }}" hint-placeholder-val="{{ false }}">
                 <div
                   style="
@@ -1115,6 +1198,13 @@
                 border-top: 1px solid var(--line);
               "
             >
+              <sc-if value="{{ cpReadyVisible }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ onCpReady }}" style="background:var(--accent);color:var(--accent-ink);border:none;border-radius:7px;padding:10px 14px;font-weight:600;font-size:13px;cursor:pointer;">준비됐어요</button>
+              </sc-if>
+              <sc-if value="{{ cpRetryVisible }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ onCpRetry }}" style="background:transparent;color:var(--text);border:1px solid var(--accent);border-radius:7px;padding:10px 14px;font-weight:600;font-size:13px;cursor:pointer;">다시 채점하기</button>
+              </sc-if>
+              <sc-if value="{{ chatMode }}" hint-placeholder-val="{{ true }}">
               <div style="display: flex; gap: 6px; flex-wrap: wrap">
                 <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
                   <button
@@ -1133,11 +1223,13 @@
                   </button>
                 </sc-for>
               </div>
+              </sc-if>
               <form onSubmit="{{ send }}" style="display: flex; gap: 8px">
                 <input
                   value="{{ input }}"
                   onChange="{{ onInput }}"
-                  placeholder="질문을 입력하세요"
+                  placeholder="{{ inputPlaceholder }}"
+                  disabled="{{ inputDisabled }}"
                   style="
                     flex: 1;
                     min-width: 0;
@@ -1152,6 +1244,7 @@
                 />
                 <button
                   type="submit"
+                  disabled="{{ inputDisabled }}"
                   style="
                     background: var(--accent);
                     color: var(--accent-ink);
@@ -1352,12 +1445,13 @@
 
         <!-- //브라우저도 이 블록을 직접 실행하지 않습니다. 대신 6번째 줄에서 불러오는 support.js가 data-dc-script 블록을 찾아 읽고 실행합니다. Claude Design에서 만든 .dc.html 컴포넌트 형식이라 이런 구조입니다. -->
       class Component extends DCLogic {
-        state = { ready: false, processId: 'ironmaking', selectedId: null, tutorOpen: false, devOpen: false, theme: null, speed: 1, messages: [], input: '', pending: false, lastReq: null, lastRes: null, lastResults: [], progress: 0, matLabel: '', playing: false };
+        state = { cp: null, cpMsgs: [], cpNotice: '', cpProgress: {}, ready: false, processId: 'ironmaking', selectedId: null, tutorOpen: false, devOpen: false, theme: null, speed: 1, messages: [], input: '', pending: false, lastReq: null, lastRes: null, lastResults: [], progress: 0, matLabel: '', playing: false };
         chatRef = React.createRef();
         async componentDidMount() {
           const [d, t] = await Promise.all([import('./data.js'), import('./tutor.js')]);
           this.data = d; this.mockTutor = t.mockTutor;
           this.setState({ ready: true, speed: this.props.flowSpeed ?? 1 });
+          this.refreshCheckpoint(this.state.processId, true);
           document.addEventListener('steel-select', e => { const id = e.detail.id; this.setState({ selectedId: id }); if (id) this.scene()?.focus(id); });
           document.addEventListener('steel-model', e => this.setState({ model: e.detail }));
           document.addEventListener('steel-progress', e => this.setState({ progress: e.detail.t, matLabel: e.detail.label, playing: e.detail.playing, touring: e.detail.touring, tourStep: e.detail.step }));
@@ -1369,7 +1463,80 @@
         theme() { return this.state.theme ?? this.props.theme ?? 'dark'; }
         process() { return this.data.findProcess(this.state.processId); }
         screenContext() { return { process_id: this.state.processId, equipment_id: this.state.selectedId, learning_mode: 'free_question', learning_step: null, last_scene_action_results: this.state.lastResults }; }
-        goProcess(id) { if (id !== this.state.processId) { this.setState({ processId: id, selectedId: null }); setTimeout(() => this.scene()?.reset(), 50); } }
+        goProcess(id) { if (id !== this.state.processId) { this.setState({ processId: id, selectedId: null }); setTimeout(() => this.scene()?.reset(), 50); this.refreshCheckpoint(id, true); } }
+        // --- 체크포인트 모드: 서버(/api/checkpoints)가 상태를 관리하고 화면은 상태와 튜터 발화만 그린다 ---
+        async cpApi(method, path, body) {
+          const res = await fetch(path, { method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) { const err = new Error(data.error || `요청에 실패했어요 (${res.status})`); err.status = res.status; throw err; }
+          return data;
+        }
+        cpActive() { return !!this.state.cp && this.state.cp.state !== 'completed'; }
+        async refreshCheckpoint(section, resume) {
+          try {
+            const progress = await this.cpApi('GET', `/api/sections/${section}/progress`);
+            this.setState(s => ({ cpProgress: { ...s.cpProgress, [section]: progress } }));
+            if (resume && progress.in_progress_attempt_id && !this.cpActive()) {
+              const view = await this.cpApi('GET', `/api/checkpoints/${progress.in_progress_attempt_id}`);
+              this.enterCheckpoint(view, view.history || []);
+            }
+          } catch (e) {
+            this.setState(s => ({ cpProgress: { ...s.cpProgress, [section]: { unavailable: true, status: e.status ?? 0 } } }));
+          }
+        }
+        enterCheckpoint(view, history) {
+          this.setState({ cp: view, cpMsgs: history.map(m => ({ role: m.role, type: m.type, text: m.text })), cpNotice: '', tutorOpen: true, devOpen: false });
+          this.scrollChat();
+        }
+        async startCheckpoint() {
+          if (this.cpActive()) { this.setState({ tutorOpen: true, devOpen: false }); return; }
+          if (this.state.pending) return;
+          this.setState({ pending: true, cpNotice: '' });
+          try {
+            const view = await this.cpApi('POST', '/api/checkpoints', { section: this.state.processId });
+            this.enterCheckpoint(view, view.history || view.tutor.map(u => ({ role: 'tutor', type: u.type, text: u.text })));
+          } catch (e) {
+            this.setState({ tutorOpen: true, devOpen: false, cpNotice: e.message });
+          } finally {
+            this.setState({ pending: false });
+          }
+        }
+        async cpCall(action, text) {
+          const cp = this.state.cp;
+          if (!cp || this.state.pending) return;
+          this.setState({ pending: true, cpNotice: '' }); this.scrollChat();
+          try {
+            const view = await this.cpApi('POST', `/api/checkpoints/${cp.attempt_id}/${action}`, text === undefined ? {} : { text });
+            // 서버가 저장한 뒤에만 사용자 메시지를 붙인다. 실패하면 입력이 그대로 남아 다시 보낼 수 있다.
+            this.setState(s => ({
+              cp: view,
+              input: text === undefined ? s.input : '',
+              cpMsgs: [...s.cpMsgs, ...(text === undefined ? [] : [{ role: 'user', type: null, text }]), ...view.tutor.map(u => ({ role: 'tutor', type: u.type, text: u.text }))],
+            }));
+            if (view.state === 'completed') this.refreshCheckpoint(view.section, false);
+          } catch (e) {
+            this.setState({ cpNotice: e.message });
+          } finally {
+            this.setState({ pending: false }); this.scrollChat();
+          }
+        }
+        cpSend(text) {
+          text = (text || '').trim();
+          if (text && ['awaiting_ready', 'awaiting_answer', 'awaiting_recheck'].includes(this.state.cp?.state)) this.cpCall('messages', text);
+        }
+        exitCheckpoint(goNext) {
+          const cp = this.state.cp;
+          this.setState({ cp: null, cpMsgs: [], cpNotice: '' });
+          if (!cp || cp.state !== 'completed') return;
+          const next = this.data.PROCESSES[this.data.PROCESSES.findIndex(x => x.id === cp.section) + 1];
+          if (goNext && cp.result?.unlocked && next) { this.goProcess(next.id); return; }
+          if (!cp.result?.unlocked) {
+            // 80% 미달: 섹션 첫 화면으로 돌아가 다시 살펴본다.
+            this.scene()?.stop?.();
+            this.setState({ processId: cp.section, selectedId: null, tutorOpen: false });
+            setTimeout(() => this.scene()?.reset(), 50);
+          }
+        }
         wait(ms) { return new Promise(r => setTimeout(r, ms)); }
         async runActions(actions) {
           const results = [];
@@ -1386,6 +1553,7 @@
           return results;
         }
         async ask(text) {
+          if (this.cpActive()) { this.setState({ tutorOpen: true, devOpen: false, cpNotice: '이해도 확인 중에는 자유 질문을 할 수 없어요. 확인을 마친 뒤 물어봐 주세요.' }); return; }
           text = (text || '').trim(); if (!text || this.state.pending) return;
           const req = { message: text, screen_context: this.screenContext() };
           this.setState(s => ({ messages: [...s.messages, { role: 'user', text }], input: '', pending: true, lastReq: req, tutorOpen: true, devOpen: false })); this.scrollChat();
@@ -1393,10 +1561,93 @@
           const results = await this.runActions(res.scene_actions);
           this.setState(s => ({ pending: false, lastRes: res, lastResults: results, messages: [...s.messages, { role: 'assistant', text: res.answer, mode: res.mode, evidence: res.evidence_status, citations: res.citations, followUp: res.follow_up_question }] })); this.scrollChat();
         }
+        checkpointVals(D, p) {
+          const S = this.state, cp = S.cp, active = this.cpActive();
+          const sectionName = cp ? (D.findProcess(cp.section)?.name ?? cp.section) : '';
+          // 섹션 마지막 '이해도 확인' 진입 버튼
+          const prog = S.cpProgress[p.id];
+          let entry;
+          if (active && cp.section === p.id) entry = { state: '진행 중', icon: '▶', enabled: true, title: '진행 중인 이해도 확인을 이어서 합니다' };
+          else if (!prog) entry = { state: '확인 중', icon: '…', enabled: false, title: '진행 상황을 불러오는 중입니다' };
+          else if (prog.unavailable) entry = prog.status === 404
+            ? { state: '준비 중', icon: '—', enabled: false, title: '이 섹션의 확인 문제는 아직 준비 중입니다' }
+            : { state: '연결 안 됨', icon: '!', enabled: false, title: '서버에 연결하지 못했습니다' };
+          else if (!prog.open) entry = { state: '잠김', icon: '—', enabled: false, title: '앞 섹션의 이해도 확인을 먼저 통과해야 합니다' };
+          else if (prog.unlocked) entry = { state: '통과', icon: '✓', enabled: false, pass: true, title: '이미 통과한 섹션입니다' };
+          else if (prog.in_progress_attempt_id) entry = { state: '이어서 하기', icon: '▶', enabled: true, title: '진행 중인 이해도 확인을 이어서 합니다' };
+          else if (prog.retry_concept_ids?.length) entry = { state: `재도전 ${prog.retry_concept_ids.length}개`, icon: '↻', enabled: true, title: '지난번에 어려웠던 개념만 다시 확인합니다' };
+          else entry = { state: '시작', icon: '▶', enabled: true, title: `${p.name} 섹션의 이해도를 확인합니다` };
+
+          const LABEL = { intro: '튜터', question: '질문', recheck_question: '다른 각도로 다시 물어볼게요', explanation: '설명', feedback: '확인', key_points: '핵심 정리', result: '결과', error: '채점 오류' };
+          const cpMsgs = S.cpMsgs.map(m => {
+            const isError = m.type === 'error';
+            return {
+              text: m.text, isUser: m.role === 'user', isTutor: m.role === 'tutor',
+              label: LABEL[m.type] || '튜터',
+              labelColor: m.type === 'question' || m.type === 'recheck_question' ? 'var(--accent)' : 'var(--muted)',
+              bg: isError ? 'var(--danger-bg)' : m.type === 'feedback' ? 'var(--ok-bg)' : 'var(--panel2)',
+              color: isError ? 'var(--danger)' : 'var(--text)',
+            };
+          });
+
+          const progress = cp?.progress ?? [];
+          const cpDots = progress.map((d, i) => ({
+            title: `개념 ${i + 1}: ${d.status === 'done' ? '완료' : d.status === 'current' ? '진행 중' : '대기'}`,
+            bg: d.status === 'done' ? 'var(--accent)' : d.status === 'current' ? 'var(--text)' : 'var(--line)',
+            ring: d.status === 'current' ? '0 0 0 2px var(--accent)' : 'none',
+          }));
+          const counter = !cp ? '' : cp.state === 'completed' ? '완료' : cp.concept ? `개념 ${cp.concept.index}/${cp.concept.total}` : `개념 ${progress.length}개`;
+          const conceptLabel = !cp ? '' : cp.state === 'awaiting_ready' ? (cp.kind === 'retry' ? '지난번에 어려웠던 개념만 다시 물어볼게요' : '준비되면 시작할게요')
+            : cp.state === 'completed' ? '모든 개념을 확인했어요' : cp.concept ? cp.concept.name : '';
+
+          const r = cp?.state === 'completed' ? cp.result : null;
+          const pct = r ? Math.round(r.understanding * 100) : 0;
+          const VERDICT = { correct: ['맞음', 'var(--ok)'], partial: ['부분', 'var(--warn)'], wrong: ['틀림', 'var(--danger)'] };
+          const next = cp ? D.PROCESSES[D.PROCESSES.findIndex(x => x.id === cp.section) + 1] : null;
+          const st = cp?.state;
+
+          return {
+            cpMode: !!cp, chatMode: !cp,
+            tutorBtnLabel: active ? '튜터 · 이해도 확인 중' : 'AI 튜터',
+            tutorTitle: cp ? `이해도 확인 · ${sectionName}` : 'AI 튜터',
+            tutorTitleColor: cp ? 'var(--accent)' : 'var(--text)',
+            tutorSub: cp ? '체크포인트 모드 · 자유 질문은 확인을 마친 뒤에 할 수 있어요' : `가짜 튜터(mockTutor) · 샘플 응답 · ${this.renderCtxLabel(D, p)}`,
+            cpEntryClick: () => entry.enabled && this.startCheckpoint(),
+            cpEntryTitle: entry.title, cpEntryState: entry.state, cpEntryIcon: entry.icon,
+            cpEntryColor: entry.pass ? 'var(--ok)' : 'var(--text)',
+            cpEntryBorder: entry.pass ? 'var(--ok)' : entry.enabled ? 'var(--accent)' : 'var(--line)',
+            cpEntryCursor: entry.enabled ? 'pointer' : 'default',
+            cpEntryOpacity: entry.enabled || entry.pass ? 1 : 0.55,
+            cpSectionEn: cp ? (D.findProcess(cp.section)?.en ?? '').toUpperCase() : '',
+            cpCounter: counter, cpConceptLabel: conceptLabel, cpDots, cpMsgs,
+            cpHasNotice: !!S.cpNotice, cpNotice: S.cpNotice,
+            cpReadyVisible: st === 'awaiting_ready' && !S.pending, onCpReady: () => this.cpSend('준비됐어요'),
+            cpRetryVisible: st === 'error' && !S.pending, onCpRetry: () => this.cpCall('retry-evaluation'),
+            cpDone: !!r,
+            cpGaugeText: `${pct}%`, cpGaugeWidth: `${pct}%`,
+            cpGaugeColor: r?.unlocked ? 'var(--ok)' : 'var(--warn)',
+            cpPassLabel: !r ? '' : r.unlocked ? (next ? `통과 · ${next.name} 섹션이 열렸어요` : '통과 · 모든 섹션을 마쳤어요') : '80% 미달 · 섹션을 다시 살펴본 뒤 재도전해요',
+            cpPassBg: r?.unlocked ? 'var(--ok-bg)' : 'var(--warn-bg)', cpPassColor: r?.unlocked ? 'var(--ok)' : 'var(--warn)',
+            cpBars: (r?.concepts ?? []).map(c => {
+              const [label, color] = VERDICT[c.final_verdict] ?? VERDICT.wrong;
+              return { name: c.name, label: `${label} · ${c.score}점`, color, width: `${Math.max(c.score * 100, 3)}%` };
+            }),
+            cpPrimaryLabel: r?.unlocked ? (next ? `${next.name} 섹션으로` : '확인') : '섹션 처음으로',
+            onCpPrimary: () => this.exitCheckpoint(true),
+            onCpExit: () => this.exitCheckpoint(false),
+            inputPlaceholder: !cp ? '질문을 입력하세요'
+              : st === 'awaiting_ready' ? '준비됐어요를 누르거나 입력하세요'
+              : st === 'error' ? '다시 채점하기를 눌러 주세요'
+              : st === 'completed' ? '결과를 확인한 뒤 학습 모드로 돌아가세요'
+              : '답변을 입력하세요',
+            inputDisabled: !!S.pending || st === 'error' || st === 'completed',
+          };
+        }
+        renderCtxLabel(D, p) { const eq = D.findEquipment(this.state.processId, this.state.selectedId); return eq ? `${p.name} · ${eq.name}` : p.name; }
         renderVals() {
           const S = this.state, theme = this.theme();
           if (document.body.dataset.theme !== theme) document.body.dataset.theme = theme;
-          if (!S.ready) return { theme, processId: S.processId, steps: [], eqList: [], speeds: [], chips: [], messages: [], progressPct: '0%', eq: {}, process: {} };
+          if (!S.ready) return { theme, processId: S.processId, steps: [], eqList: [], speeds: [], chips: [], messages: [], progressPct: '0%', eq: {}, process: {}, chatMode: true, cpMode: false, cpMsgs: [], cpDots: [], cpBars: [], tutorTitle: 'AI 튜터', tutorBtnLabel: 'AI 튜터', inputPlaceholder: '질문을 입력하세요' };
           const D = this.data, p = this.process(), eq = D.findEquipment(S.processId, S.selectedId), isDark = theme === 'dark';
           const k = eq ? p.equipment.indexOf(eq) : -1, pi = D.PROCESSES.indexOf(p), nextEq = p.equipment[k + 1], nextP = D.PROCESSES[pi + 1];
           const j = v => v ? JSON.stringify(v, null, 2) : '// 아직 없음';
@@ -1419,10 +1670,11 @@
             ctxLabel: eq ? `${p.name} · ${eq.name}` : p.name,
             messages: S.messages.map(m => ({ ...m, isUser: m.role === 'user', isSafety: m.role === 'assistant' && m.mode === 'safety_redirect', isAssistant: m.role === 'assistant' && m.mode !== 'safety_redirect', hasFollowUp: !!m.followUp, askFollowUp: () => this.ask(m.followUp) })),
             chatRef: this.chatRef, pending: S.pending, chips: D.SUGGESTED.map(text => ({ text, onClick: () => this.ask(text) })),
-            input: S.input, onInput: e => this.setState({ input: e.target.value }), send: e => { e.preventDefault(); this.ask(S.input); },
+            input: S.input, onInput: e => this.setState({ input: e.target.value }), send: e => { e.preventDefault(); if (S.cp) this.cpSend(S.input); else this.ask(S.input); },
             modelLabel: ({ loading: '불러오는 중…', glb: `GLB 로드됨 (${S.model?.mapped}개 노드 연결)`, 'glb-no-nodes': 'GLB 로드됨 · EQ_ 노드 없음 → 기본 도형', primitive: '기본 도형 (GLB 없음)' })[S.model?.status] || '기본 도형',
             modelPath: `models/${S.processId}.glb`, modelJson: j(S.model),
             screenContextJson: j(this.screenContext()), lastRequestJson: j(S.lastReq), lastResponseJson: j(S.lastRes),
+            ...this.checkpointVals(D, p),
           };
         }
       }

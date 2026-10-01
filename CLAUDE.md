@@ -23,6 +23,7 @@
   - `runActions(actions)`: `goto_process`, `highlight`, `focus`, `play_animation`을 실행한다.
   - `screenContext()`: 현재 공정·설비를 튜터 요청용으로 만든다.
   - `renderVals()`: 템플릿에 넘기는 값과 클릭 핸들러(공정 탭, 설비 목록, 재생 제어, 튜터 패널, 개발자 패널).
+  - 체크포인트 모드: 설비 목록 끝의 '이해도 확인' 버튼 → `startCheckpoint()` → `/api/checkpoints`. 응답은 `cpCall()`, 새로고침 복원은 `refreshCheckpoint()`(`/api/sections/:section/progress`의 진행 중 시도를 GET으로 연다), 화면 값은 `checkpointVals()`. 체크포인트 중에는 `ask()`(학습 모드 튜터)를 막는다.
 - `scene.js`: `<steel-scene>` 커스텀 엘리먼트(`SteelScene`). Three.js 뷰어 전체.
   - 공정 빌드 `_buildProcess`, GLB 로드 `_loadGLB`, 선택 표시 `_applySelection`, 내부 단면 `_showInterior`.
   - 클릭: `_bindPointer`에서 레이캐스트 → `_select(id)`가 `steel-select` 이벤트 발생.
@@ -147,7 +148,7 @@ content/
 ## 다음 단계
 
 - **학습자 메모**: `CheckpointEngine.start()`·`respond()`의 선택 파라미터 `options.notes`(`LearnerNotes`: `conceptOrder`, `context`) 자리만 열어 두었다. 개념 순서 조정(`orderConcepts`)과 튜터에게 줄 추가 컨텍스트를 여기에 연결한다.
-- 프론트 튜터 패널을 체크포인트 API에 연결한다(진행 중에는 입력을 `/api/checkpoints/:id/messages`로 보낸다).
+- 학습 모드 튜터 패널은 아직 `mockTutor`다. `/api/chat`(Gemini)에 연결한다.
 
 ## 미정 사항
 
