@@ -121,6 +121,15 @@ content/
 
 - SQLite로 시작한다(Node 내장 `node:sqlite`, 파일은 `DB_PATH`, 기본 `data/st-rookie.sqlite`). PostgreSQL로 옮길 수 있게 SQLite 전용 문법·타입에 의존하지 않고, SQL은 저장소 파일(`backend/src/checkpoint/repository.ts`)에만 둔다.
 - 로그인 전까지는 `X-User-Id` 헤더(없으면 `demo-user`)로 사용자를 구분한다.
+
+## 원격 팀원 테스트 (임시 장치, 로그인이 생기면 지운다)
+
+- 사용자: 프론트가 URL의 `?user=이름`을 `encodeURIComponent`로 `X-User-Id`에 담는다. 없으면 입장 화면에서 이름을 받는다(`backend/src/request-user.ts`).
+- 접속 비밀번호: `.env`의 `TEST_PASSCODE`가 있으면 `/api/access`를 뺀 모든 `/api` 요청에 `X-Test-Passcode`를 확인한다. 비어 있으면 검사하지 않는다(`backend/src/test-access.ts`).
+- 사용량: 사용자별 하루 LLM 호출 수를 `llm_usage`에 세고 `LLM_DAILY_LIMIT`(기본 150, 0 이하면 무제한)를 넘으면 429(`backend/src/usage.ts`). `GeminiClient`의 `beforeCall` 훅으로 센다.
+- 서버는 `127.0.0.1`에만 바인딩한다. 외부 공유는 `npm run tunnel`(cloudflared quick tunnel)로만 하고, `TEST_PASSCODE`가 없으면 터널이 열리지 않는다.
+- 앱 구성은 `backend/src/app.ts`의 `createApp()`, 실행은 `ironmaking-server.ts`.
+- 사용자 기록 삭제: `npm run db:reset-user -- 이름`. 진행 방법은 `docs/team-test.md`.
 - 사용자별 데이터(계정, 개념 점수, 판정 기록, 오개념, 진도, 튜토리얼 완료 여부)는 DB에 둔다.
 - 교육 내용과 루브릭은 DB가 아니라 `content/` 파일로 관리한다.
 

@@ -1,27 +1,19 @@
 import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import type { CheckpointEngine } from "./engine.js";
+import { userIdOf } from "../request-user.js";
+import { UsageLimitError } from "../usage.js";
 import { CheckpointError, LlmUnavailableError } from "./types.js";
-
-// 로그인 전까지는 X-User-Id 헤더로 사용자를 구분한다. 로그인(JWT)이 붙으면 이 함수만 바꾼다.
-const DEFAULT_USER_ID = "demo-user";
-const UserId = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/);
 
 const SectionParam = z.enum(["ironmaking", "steelmaking", "continuous_casting", "rolling"]);
 const StartRequest = z.object({ section: SectionParam });
 const MessageRequest = z.object({ text: z.string().trim().min(1).max(1000) });
 
-function userIdOf(req: Request): string {
-  const header = req.get("x-user-id");
-  if (header === undefined) return DEFAULT_USER_ID;
-  const parsed = UserId.safeParse(header);
-  if (!parsed.success) throw new CheckpointError(400, "X-User-Id 형식이 올바르지 않습니다.");
-  return parsed.data;
-}
-
 function sendError(res: Response, error: unknown): void {
   if (error instanceof CheckpointError) {
     res.status(error.status).json({ error: error.message });
+  } else if (error instanceof UsageLimitError) {
+    res.status(429).json({ error: `오늘 쓸 수 있는 튜터 호출(${error.limit}회)을 다 썼어요. 내일 다시 하거나 진행자에게 알려 주세요.`, code: "USAGE_LIMIT" });
   } else if (error instanceof LlmUnavailableError) {
     res.status(error.status).json({ error: "튜터에 연결하지 못했습니다. 잠시 후 같은 내용을 다시 보내 주세요.", code: "LLM_UNAVAILABLE" });
   } else {

@@ -69,9 +69,12 @@ export class FakeTutor implements Tutor {
   failNext = 0;
   /** 응답 지연(ms). 겹친 요청 테스트용. */
   delay = 0;
+  /** 호출 직전 훅(사용량 제한 테스트용). */
+  beforeCall?: () => void;
 
   private async step(kind: string, conceptId: string, text: string, extra?: unknown): Promise<string> {
     this.calls.push({ kind, conceptId, extra });
+    this.beforeCall?.();
     if (this.delay) await new Promise((r) => setTimeout(r, this.delay));
     if (this.failNext > 0) {
       this.failNext--;

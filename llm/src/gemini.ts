@@ -18,6 +18,8 @@ export interface GeminiOptions {
   model?: string;
   fetch?: typeof fetch;
   timeoutMs?: number;
+  /** 실제 호출 직전에 부른다(예: 사용자별 호출 수 제한). 예외를 던지면 호출하지 않는다. */
+  beforeCall?: () => void;
 }
 
 export class GeminiClient {
@@ -30,6 +32,7 @@ export class GeminiClient {
     if (!apiKey) throw new LlmUnavailableError("GEMINI_API_KEY가 설정되지 않았습니다.", 503);
     const model = this.options.model ?? (process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL);
     const doFetch = this.options.fetch ?? fetch;
+    this.options.beforeCall?.();
 
     let response: Response;
     try {

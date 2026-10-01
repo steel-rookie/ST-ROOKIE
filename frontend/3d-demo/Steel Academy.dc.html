@@ -1263,6 +1263,29 @@
           </aside>
         </sc-if>
 
+        <!-- [임시] 원격 팀원 테스트용 입장 화면(이름·접속 비밀번호). 로그인이 생기면 지운다. -->
+        <sc-if value="{{ gateOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:oklch(0 0 0 / .55);backdrop-filter:blur(6px);">
+            <form onSubmit="{{ submitGate }}" style="width:min(360px,100%);display:flex;flex-direction:column;gap:12px;padding:20px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;color:var(--text);">
+              <span style="font-weight:700;font-size:16px;">팀원 테스트 입장</span>
+              <span style="font-size:12px;color:var(--muted);line-height:1.5;">이름은 답변 기록을 구분하는 데만 씁니다. 로그인 기능이 생기면 없어지는 임시 화면입니다.</span>
+              <sc-if value="{{ gateAskName }}" hint-placeholder-val="{{ true }}">
+                <label for="gate-name" style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;">이름
+                  <input id="gate-name" value="{{ gateName }}" onChange="{{ onGateName }}" placeholder="예: 민수" autocomplete="off" style="background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:10px 12px;font-size:14px;font-weight:400;outline:none;" />
+                </label>
+              </sc-if>
+              <sc-if value="{{ gateAskPass }}" hint-placeholder-val="{{ false }}">
+                <label for="gate-pass" style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;">접속 비밀번호
+                  <input id="gate-pass" type="password" value="{{ gatePass }}" onChange="{{ onGatePass }}" autocomplete="off" style="background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:10px 12px;font-size:14px;font-weight:400;outline:none;" />
+                </label>
+              </sc-if>
+              <sc-if value="{{ gateHasError }}" hint-placeholder-val="{{ false }}">
+                <span style="color:var(--danger);font-size:12px;line-height:1.5;">{{ gateError }}</span>
+              </sc-if>
+              <button type="submit" style="background:var(--accent);color:var(--accent-ink);border:none;border-radius:7px;padding:11px 14px;font-weight:600;font-size:14px;cursor:pointer;">입장하기</button>
+            </form>
+          </div>
+        </sc-if>
         <sc-if value="{{ showDev }}" hint-placeholder-val="{{ false }}">
           <div
             style="
@@ -1445,13 +1468,13 @@
 
         <!-- //브라우저도 이 블록을 직접 실행하지 않습니다. 대신 6번째 줄에서 불러오는 support.js가 data-dc-script 블록을 찾아 읽고 실행합니다. Claude Design에서 만든 .dc.html 컴포넌트 형식이라 이런 구조입니다. -->
       class Component extends DCLogic {
-        state = { cp: null, cpMsgs: [], cpNotice: '', cpProgress: {}, ready: false, processId: 'ironmaking', selectedId: null, tutorOpen: false, devOpen: false, theme: null, speed: 1, messages: [], input: '', pending: false, lastReq: null, lastRes: null, lastResults: [], progress: 0, matLabel: '', playing: false };
+        state = { userName: '', passcode: '', gateOpen: false, gateAskName: false, gateAskPass: false, gateName: '', gatePass: '', gateError: '', cp: null, cpMsgs: [], cpNotice: '', cpProgress: {}, ready: false, processId: 'ironmaking', selectedId: null, tutorOpen: false, devOpen: false, theme: null, speed: 1, messages: [], input: '', pending: false, lastReq: null, lastRes: null, lastResults: [], progress: 0, matLabel: '', playing: false };
         chatRef = React.createRef();
         async componentDidMount() {
           const [d, t] = await Promise.all([import('./data.js'), import('./tutor.js')]);
           this.data = d; this.mockTutor = t.mockTutor;
           this.setState({ ready: true, speed: this.props.flowSpeed ?? 1 });
-          this.refreshCheckpoint(this.state.processId, true);
+          this.initAccess();
           document.addEventListener('steel-select', e => { const id = e.detail.id; this.setState({ selectedId: id }); if (id) this.scene()?.focus(id); });
           document.addEventListener('steel-model', e => this.setState({ model: e.detail }));
           document.addEventListener('steel-progress', e => this.setState({ progress: e.detail.t, matLabel: e.detail.label, playing: e.detail.playing, touring: e.detail.touring, tourStep: e.detail.step }));
@@ -1465,9 +1488,40 @@
         screenContext() { return { process_id: this.state.processId, equipment_id: this.state.selectedId, learning_mode: 'free_question', learning_step: null, last_scene_action_results: this.state.lastResults }; }
         goProcess(id) { if (id !== this.state.processId) { this.setState({ processId: id, selectedId: null }); setTimeout(() => this.scene()?.reset(), 50); this.refreshCheckpoint(id, true); } }
         // --- 체크포인트 모드: 서버(/api/checkpoints)가 상태를 관리하고 화면은 상태와 튜터 발화만 그린다 ---
+        // --- [임시] 원격 팀원 테스트용 사용자 구분·접속 비밀번호. 로그인(JWT)이 생기면 이 부분과 입장 화면, 두 헤더를 지운다. ---
+        // 사용자: URL의 ?user=이름 → X-User-Id 헤더. 비밀번호: 서버에 TEST_PASSCODE가 있을 때만 입력받아 X-Test-Passcode 헤더로 보낸다.
+        async initAccess() {
+          const user = (new URLSearchParams(location.search).get('user') || '').trim();
+          let saved = ''; try { saved = localStorage.getItem('st-rookie:passcode') || ''; } catch (e) {}
+          let required = false;
+          try { required = !!(await (await fetch('/api/access')).json()).passcode_required; } catch (e) {}
+          const passcode = required ? saved : '';
+          const open = !user || (required && !passcode);
+          this.setState({ userName: user, passcode, gateOpen: open, gateAskName: !user, gateAskPass: required, gateName: user, gatePass: '', gateError: '' });
+          if (!open) this.refreshCheckpoint(this.state.processId, true);
+        }
+        submitGate(e) {
+          e.preventDefault();
+          const S = this.state, name = (S.gateAskName ? S.gateName : S.userName).trim().normalize('NFC');
+          if (!/^[\p{L}\p{N}_-]{1,32}$/u.test(name)) { this.setState({ gateError: '이름은 한글·영문·숫자·_·-로 32자 이하로 써 주세요(띄어쓰기 없이).' }); return; }
+          if (S.gateAskPass && !S.gatePass) { this.setState({ gateError: '진행자에게 받은 접속 비밀번호를 입력해 주세요.' }); return; }
+          const passcode = S.gateAskPass ? S.gatePass : '';
+          try { if (passcode) localStorage.setItem('st-rookie:passcode', passcode); } catch (e2) {}
+          const url = new URL(location.href); url.searchParams.set('user', name); history.replaceState(null, '', url);
+          this.setState({ userName: name, passcode, gateOpen: false, gateAskName: false, gateError: '' });
+          setTimeout(() => this.refreshCheckpoint(this.state.processId, true), 0);
+        }
+        reopenGate(message) {
+          try { localStorage.removeItem('st-rookie:passcode'); } catch (e) {}
+          this.setState({ passcode: '', gateOpen: true, gateAskPass: true, gatePass: '', gateError: message });
+        }
         async cpApi(method, path, body) {
-          const res = await fetch(path, { method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
+          const headers = body ? { 'Content-Type': 'application/json' } : {};
+          if (this.state.userName) headers['X-User-Id'] = encodeURIComponent(this.state.userName);
+          if (this.state.passcode) headers['X-Test-Passcode'] = encodeURIComponent(this.state.passcode);
+          const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
           const data = await res.json().catch(() => ({}));
+          if (res.status === 401 && data.code === 'PASSCODE_REQUIRED') this.reopenGate('비밀번호가 맞지 않아요. 진행자에게 받은 비밀번호를 다시 입력해 주세요.');
           if (!res.ok) { const err = new Error(data.error || `요청에 실패했어요 (${res.status})`); err.status = res.status; throw err; }
           return data;
         }
@@ -1611,7 +1665,7 @@
             tutorBtnLabel: active ? '튜터 · 이해도 확인 중' : 'AI 튜터',
             tutorTitle: cp ? `이해도 확인 · ${sectionName}` : 'AI 튜터',
             tutorTitleColor: cp ? 'var(--accent)' : 'var(--text)',
-            tutorSub: cp ? '체크포인트 모드 · 자유 질문은 확인을 마친 뒤에 할 수 있어요' : `가짜 튜터(mockTutor) · 샘플 응답 · ${this.renderCtxLabel(D, p)}`,
+            tutorSub: cp ? `체크포인트 모드 · ${S.userName || '이름 없음'} · 자유 질문은 확인을 마친 뒤에 할 수 있어요` : `가짜 튜터(mockTutor) · 샘플 응답 · ${this.renderCtxLabel(D, p)}`,
             cpEntryClick: () => entry.enabled && this.startCheckpoint(),
             cpEntryTitle: entry.title, cpEntryState: entry.state, cpEntryIcon: entry.icon,
             cpEntryColor: entry.pass ? 'var(--ok)' : 'var(--text)',
@@ -1675,6 +1729,10 @@
             modelPath: `models/${S.processId}.glb`, modelJson: j(S.model),
             screenContextJson: j(this.screenContext()), lastRequestJson: j(S.lastReq), lastResponseJson: j(S.lastRes),
             ...this.checkpointVals(D, p),
+            gateOpen: S.gateOpen, gateAskName: S.gateAskName, gateAskPass: S.gateAskPass,
+            gateName: S.gateName, gatePass: S.gatePass, gateHasError: !!S.gateError, gateError: S.gateError,
+            onGateName: e => this.setState({ gateName: e.target.value }), onGatePass: e => this.setState({ gatePass: e.target.value }),
+            submitGate: e => this.submitGate(e),
           };
         }
       }
