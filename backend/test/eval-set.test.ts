@@ -44,9 +44,10 @@ test("smoke 세트: 개념당 8~10개, 판정 4종·동의어·인젝션·재확
   }
 });
 
-test("hard 세트: synthetic 15개가 6가지 유형을 모두 덮고, 같은 뜻 쌍은 조건이 같다", () => {
+test("hard 세트: synthetic 18개가 7가지 유형을 모두 덮고, 같은 뜻 쌍은 조건이 같다", () => {
   const synthetic = loadEvalSet("hard", "ironmaking").filter((c) => c.source === "synthetic");
-  assert.equal(synthetic.length, 15);
+  assert.equal(synthetic.length, 18);
+  assert.ok(synthetic.filter((c) => c.type === "out_of_rubric_fact").every((c) => c.expected_verdict === "correct"));
   for (const type of CASE_TYPES) assert.ok(synthetic.some((c) => c.type === type), `${type} 유형 없음`);
 
   const pairs = new Map<string, typeof synthetic>();

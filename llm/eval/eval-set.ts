@@ -7,7 +7,7 @@ import type { Verdict } from "../../backend/src/scoring.js";
 export const EVAL_SETS = ["smoke", "hard"] as const;
 export type EvalSetName = (typeof EVAL_SETS)[number];
 export const SOURCES = ["synthetic", "human"] as const;
-export const CASE_TYPES = ["paraphrase", "mixed", "noisy", "confusion", "injection", "pair"] as const;
+export const CASE_TYPES = ["paraphrase", "mixed", "noisy", "confusion", "injection", "pair", "out_of_rubric_fact"] as const;
 
 export interface EvalCase {
   file: string;
