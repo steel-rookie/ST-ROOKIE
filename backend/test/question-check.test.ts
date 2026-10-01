@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
-import type { Rubric } from "../src/rubrics.js";
+import { loadFinalRubrics, type Rubric } from "../src/rubrics.js";
 import { GeminiClient } from "../../llm/src/gemini.js";
-import { answerTerms, findLeaks, hasLeak } from "../../llm/src/question-check.js";
+import { answerTerms, answerTermsInName, findLeaks, hasLeak } from "../../llm/src/question-check.js";
 import { genericQuestion, GeminiTutor } from "../../llm/src/tutor.js";
 
 const rubric = JSON.parse(readFileSync(join(process.cwd(), "content", "rubrics", "final", "01_제선.json"), "utf8")) as Rubric;
@@ -28,6 +28,24 @@ test("근거 문장: 두 단어 이상에 걸친 4글자 이상 구는 막고, �
   const natural = "철광석을 가루 그대로 고로에 넣지 않는 이유는 무엇인가요?";
   assert.ok(!hasLeak(findLeaks(natural, rubric, sinter)));
   assert.ok(hasLeak(findLeaks(natural, rubric, sinter, { crossWordOnly: false })));
+});
+
+test("개념 이름: 질문 속 개념 이름과 그 바로 뒤 말에 걸친 구간은 유출로 보지 않는다", () => {
+  const c = { ...coke, key_points: [{ point: "예시", quote: "고로에서 코크스의 역할은 무엇보다 환원 반응에 있다." }] };
+  // 이름("고로에서 코크스의 역할") 뒤의 "은 무엇"만 겹친다. 이름을 지우지 않으면 "할은무엇"이 걸린다.
+  assert.ok(!hasLeak(findLeaks("고로에서 코크스의 역할은 무엇인가요?", rubric, c)));
+  // 이름 밖에서 겹치는 구는 그대로 잡는다.
+  const outside = findLeaks("고로에서 코크스의 역할은 무엇보다 환원 반응인가요?", rubric, c).phrases;
+  assert.ok(outside.includes("보다환원"), JSON.stringify(outside));
+  assert.ok(!outside.includes("할은무엇"), JSON.stringify(outside));
+});
+
+test("모든 final 루브릭: answer_terms(용어집 동의어 포함)에 개념 이름에 든 말이 없다", (t) => {
+  t.mock.method(console, "warn", () => {});
+  // 개념 이름에 든 말은 유출 검사에서 빠지므로, answer_terms에 있으면 검사하는 줄 알았던 말이 조용히 빠진다.
+  for (const r of loadFinalRubrics()) {
+    for (const c of r.concepts) assert.deepEqual(answerTermsInName(r, c), [], `${r.section}/${c.concept_id} (${c.name})`);
+  }
 });
 
 test("모든 fallback_question은 유출 검사를 통과한다", () => {

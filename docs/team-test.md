@@ -36,10 +36,12 @@ LLM_DAILY_LIMIT=150
 
 ```bash
 # 터미널 1
-npm start
+caffeinate -i npm start
 # 터미널 2
-npm run tunnel
+caffeinate -i npm run tunnel
 ```
+
+`caffeinate -i`(macOS)는 뒤의 명령이 끝날 때까지 컴퓨터가 절전에 들어가지 않게 합니다. 절전에 들어가면 터널이 끊겨 팀원이 접속할 수 없습니다. 화면 꺼짐은 막지 않으니 덮개를 닫지 말고 전원을 연결해 두세요.
 
 터미널 2에 공유 주소가 나옵니다.
 
@@ -68,6 +70,19 @@ curl -s -o /dev/null -w "%{http_code}\n" https://xxxx-xxxx.trycloudflare.com/api
 1. 터미널 2에서 `Ctrl+C`로 터널을 닫습니다. 이때부터 주소로 접속할 수 없습니다.
 2. `.env`의 `TEST_PASSCODE`를 다른 값으로 바꿉니다.
 3. 답변을 평가 세트로 꺼냅니다: `npm run eval:export-human` (자세한 흐름은 `llm/eval/README.md`).
+
+### 평가 다시 돌리기(긴 실제 Gemini 실행)
+
+모은 답변으로 평가자를 다시 채점하거나 튜터 질문 표본을 만들 때는 몇십 분 걸리므로 절전을 막고 돌립니다.
+
+```bash
+caffeinate -i npm run eval:evaluator -- --set hard | tee hard-report.txt
+caffeinate -i npm run eval:questions -- --count 10 --out questions.md
+```
+
+- 케이스마다 결과가 `llm/eval/results/`에 바로 기록됩니다. 중간에 끊기면 같은 명령에 `--resume`을 붙여 이어서 실행합니다(끝난 케이스는 건너뜀).
+- `--resume` 없이 다시 실행하면 기존 결과 파일을 덮어쓰지 않고 멈춥니다. 처음부터 하려면 결과 파일을 지웁니다.
+- 자세한 옵션은 `llm/eval/README.md`.
 
 ### 기록 관리
 

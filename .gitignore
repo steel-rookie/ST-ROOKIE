@@ -4,3 +4,4 @@ node_modules/
 *.log
 /data/
 /llm/eval/hard/pending/
+/llm/eval/results/
