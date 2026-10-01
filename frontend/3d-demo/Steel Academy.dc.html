@@ -1,1431 +1,316 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="./support.js"></script>
-  </head>
-  <body>
-    <x-dc>
-      <helmet>
-        <link
-          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
-          rel="stylesheet"
-        />
-        <script type="module" src="./scene.js"></script>
-        <style>
-          html,
-          body {
-            margin: 0;
-            height: 100%;
-            overflow: hidden;
-            font-family: "IBM Plex Sans KR", sans-serif;
-          }
-          body {
-            --bg: oklch(0.14 0.02 245);
-            --panel: oklch(0.16 0.02 245 / 0.78);
-            --panel2: oklch(0.27 0.022 245);
-            --line: oklch(1 0 0 / 0.14);
-            --text: oklch(0.96 0.006 240);
-            --muted: oklch(0.7 0.02 240);
-            --accent: oklch(0.74 0.19 45);
-            --accent-ink: oklch(0.18 0.05 45);
-            --danger-bg: oklch(0.32 0.09 25);
-            --danger: oklch(0.86 0.1 25);
-            background: var(--bg);
-            color: var(--text);
-          }
-          body[data-theme="light"] {
-            --bg: oklch(0.9 0.012 245);
-            --panel: oklch(1 0 0 / 0.84);
-            --panel2: oklch(0.93 0.01 245);
-            --line: oklch(0 0 0 / 0.1);
-            --text: oklch(0.22 0.02 245);
-            --muted: oklch(0.5 0.02 245);
-            --accent: oklch(0.66 0.19 45);
-            --accent-ink: oklch(0.99 0 0);
-            --danger-bg: oklch(0.94 0.04 25);
-            --danger: oklch(0.45 0.16 25);
-          }
-          a {
-            color: var(--accent);
-          }
-          a:hover {
-            color: var(--text);
-          }
-          button,
-          input {
-            font-family: inherit;
-          }
-          * {
-            box-sizing: border-box;
-          }
-          @keyframes blink {
-            0%,
-            100% {
-              opacity: 0.25;
-            }
-            50% {
-              opacity: 1;
-            }
-          }
-          @keyframes slideL {
-            from {
-              transform: translateX(-24px);
-              opacity: 0;
-            }
-            to {
-              transform: none;
-              opacity: 1;
-            }
-          }
-          @keyframes slideR {
-            from {
-              transform: translateX(24px);
-              opacity: 0;
-            }
-            to {
-              transform: none;
-              opacity: 1;
-            }
-          }
-        </style>
-      </helmet>
-      <div
-        style="
-          position: fixed;
-          inset: 0;
-          background: var(--bg);
-          color: var(--text);
-          font-family: &quot;IBM Plex Sans KR&quot;, sans-serif;
-          overflow: hidden;
-        "
-      >
-        <x-import
-          component-from-global-scope="steel-scene"
-          process="{{ processId }}"
-          selected="{{ selectedAttr }}"
-          theme="{{ theme }}"
-          hint-size="100%,100%"
-          style="position: absolute; inset: 0"
-        ></x-import>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet">
+  <script type="module" src="./scene.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; font-family: "IBM Plex Sans KR", sans-serif; }
+    body { --bg: oklch(0.14 0.02 245); --panel: oklch(0.15 0.015 245 / .92); --panel2: oklch(0.27 0.022 245); --line: oklch(1 0 0 / .18); --text: oklch(0.96 0.006 240); --muted: oklch(0.7 0.02 240); --accent: #1a9bd7; --accent-ink: #ffffff; --danger-bg: oklch(0.32 0.09 25); --danger: oklch(0.86 0.1 25); background: var(--bg); color: var(--text); }
+    body[data-theme="light"] { --bg: oklch(0.9 0.012 245); --panel: oklch(0.985 0.003 245 / .96); --panel2: oklch(0.93 0.01 245); --line: oklch(0 0 0 / .1); --text: oklch(0.22 0.02 245); --muted: oklch(0.5 0.02 245); --accent: #1a9bd7; --accent-ink: #ffffff; --danger-bg: oklch(0.94 0.04 25); --danger: oklch(0.45 0.16 25); }
+    a { color: var(--accent); } a:hover { color: var(--text); }
+    button, input { font-family: inherit; }
+    button { transition: background-color .18s ease, color .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease, opacity .18s ease; }
+    button:active { transform: scale(.96) !important; }
+    input { transition: border-color .18s ease, box-shadow .18s ease; }
+    button:hover > [data-tip] { opacity: 1 !important; transform: translateX(-50%) translateY(0) !important; }
+    button:hover > [data-tip][data-side="below"] { transform: translateY(0) !important; }
+    * { box-sizing: border-box; }
+    @keyframes blink { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+    @keyframes slideL { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideR { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</helmet>
+<div style="position:fixed;inset:0;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans KR',sans-serif;overflow:hidden;">
+  <x-import component-from-global-scope="steel-scene" process="{{ processId }}" selected="{{ selectedAttr }}" theme="{{ theme }}" hint-size="100%,100%" style="position:absolute;inset:0;"></x-import>
 
-        <div
-          style="
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding: 14px 22px;
-            pointer-events: none;
-            background: linear-gradient(oklch(0 0 0 / 0.5), transparent);
-          "
-        >
-          <div
-            style="
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              pointer-events: auto;
-            "
-          >
-            <span
-              style="
-                width: 34px;
-                height: 34px;
-                border-radius: 17px;
-                border: 2px solid var(--accent);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-weight: 700;
-                font-size: 14px;
-                color: var(--accent);
-              "
-              >S</span
-            >
-            <div
-              style="display: flex; flex-direction: column; line-height: 1.15"
-            >
-              <span
-                style="
-                  font-weight: 700;
-                  font-size: 16px;
-                  letter-spacing: 0.08em;
-                "
-                >STEEL ACADEMY</span
-              ><span
-                style="
-                  font-size: 11px;
-                  color: var(--muted);
-                  letter-spacing: 0.04em;
-                "
-                >EYES ON THE STEEL PLANT · 샘플</span
-              >
-            </div>
-          </div>
-          <nav
-            style="
-              display: flex;
-              gap: 2px;
-              padding: 3px;
-              border: 1px solid var(--line);
-              border-radius: 999px;
-              background: var(--panel);
-              backdrop-filter: blur(12px);
-              pointer-events: auto;
-            "
-          >
-            <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
-              <button
-                onClick="{{ s.onClick }}"
-                style="display:flex;align-items:center;gap:6px;padding:6px 13px;background:{{ s.bg }};color:{{ s.color }};border:none;border-radius:999px;cursor:pointer;"
-              >
-                <span
-                  style="
-                    font-family: &quot;IBM Plex Mono&quot;, monospace;
-                    font-size: 10px;
-                    opacity: 0.7;
-                  "
-                  >{{ s.num }}</span
-                ><span
-                  style="font-weight: 600; font-size: 13px; white-space: nowrap"
-                  >{{ s.name }}</span
-                >
+  <div style="position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:20px;padding:14px 22px;pointer-events:none;">
+    <div style="display:flex;align-items:center;gap:12px;pointer-events:auto;">
+      <span style="width:34px;height:34px;border-radius:2px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:var(--accent);">S</span>
+      <div style="display:flex;flex-direction:column;line-height:1.15;"><span style="font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:16px;letter-spacing:0.04em;color:var(--accent);">STEEL ACADEMY</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.08em;">제선 · 제강 · 연주 · 열간압연 / 교육용 샘플</span></div>
+    </div>
+
+    <div style="flex:1;"></div>
+    <div style="display:flex;gap:4px;pointer-events:auto;">
+      <button onClick="{{ resetView }}" title="전체 공정 보기" style="width:36px;height:36px;border-radius:2px;background:transparent;color:var(--text);border:1px solid var(--line);font-size:14px;cursor:pointer;" style-hover="background:var(--panel2);border-color:var(--accent);color:var(--accent);">⌂</button> 
+      <button onClick="{{ toggleTutor }}" title="AI 튜터" style="height:36px;border-radius:2px;padding:0 14px;display:flex;align-items:center;gap:7px;background:{{ tutorBtnBg }};color:{{ tutorBtnColor }};border:1px solid var(--line);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;" style-hover="background:var(--panel2);border-color:var(--accent);"><span style="width:7px;height:7px;border-radius:4px;background:var(--accent);"></span>AI 튜터</button>
+      <button onClick="{{ toggleDev }}" title="개발자" style="width:36px;height:36px;border-radius:2px;background:transparent;color:var(--text);border:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;" style-hover="background:var(--panel2);border-color:var(--accent);color:var(--accent);">{ }</button>
+      <button onClick="{{ toggleTheme }}" title="테마" style="width:36px;height:36px;border-radius:2px;background:transparent;color:var(--text);border:1px solid var(--line);font-size:13px;cursor:pointer;" style-hover="background:var(--panel2);border-color:var(--accent);color:var(--accent);">{{ themeLabel }}</button>
+    </div>
+  </div>
+
+  <nav style="position:absolute;left:22px;top:76px;max-height:calc(100vh - 240px);z-index:6;display:flex;flex-direction:column;gap:4px;padding:8px;width:236px;height:auto;overflow-x:hidden;overflow-y:auto;background:color-mix(in srgb, var(--panel) 55%, transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:22px;">
+    <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+      <div style="display:flex;flex-direction:column;">
+        <button onClick="{{ s.onClick }}" title="{{ s.io }}" style="position:relative;display:flex;align-items:center;gap:12px;padding:6px 14px 6px 6px;background:{{ s.bg }};color:{{ s.color }};border:none;border-radius:999px;cursor:pointer;text-align:left;" style-hover="background:var(--panel2);color:var(--text);">
+          <span style="width:36px;height:36px;border-radius:18px;flex:none;display:flex;align-items:center;justify-content:center;background:{{ s.iconBg }};color:{{ s.iconColor }};font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;">{{ s.num }}</span>
+          <span style="display:flex;flex-direction:column;gap:1px;min-width:0;"><span style="font-weight:{{ s.weight }};font-size:14px;white-space:nowrap;">{{ s.name }}</span><span style="font-size:10px;color:var(--muted);white-space:nowrap;">{{ s.en }}</span></span>
+        </button>
+        <sc-if value="{{ s.active }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;position:relative;margin:4px 0 8px 23px;padding-left:19px;border-left:1px dashed var(--line);">
+            <sc-for list="{{ eqList }}" as="e" hint-placeholder-count="4">
+              <button onClick="{{ e.onClick }}" title="{{ e.role }}" style="position:relative;display:flex;align-items:center;gap:10px;padding:5px 10px 5px 0;background:transparent;color:{{ e.color }};border:none;cursor:pointer;text-align:left;" style-hover="color:var(--text);">
+                <span style="position:absolute;left:-24px;top:50%;width:9px;height:9px;margin-top:-5px;border-radius:5px;background:{{ e.dotBg }};border:2px solid {{ e.dotBorder }};box-sizing:border-box;"></span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);width:18px;flex:none;">{{ e.num }}</span>
+                <span style="font-size:13px;font-weight:{{ e.weight }};white-space:nowrap;">{{ e.name }}</span>
               </button>
             </sc-for>
-          </nav>
-          <div style="flex: 1"></div>
-          <div style="display: flex; gap: 4px; pointer-events: auto">
-            <button
-              onClick="{{ resetView }}"
-              title="홈 시점"
-              style="
-                width: 36px;
-                height: 36px;
-                border-radius: 18px;
-                background: transparent;
-                color: var(--text);
-                border: 1px solid var(--line);
-                font-size: 14px;
-                cursor: pointer;
-              "
-            >
-              ⌂
-            </button>
-            <button
-              onClick="{{ toggleTutor }}"
-              title="AI 튜터"
-              style="height:36px;border-radius:18px;padding:0 14px;display:flex;align-items:center;gap:7px;background:{{ tutorBtnBg }};color:{{ tutorBtnColor }};border:1px solid var(--line);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;"
-            >
-              <span
-                style="
-                  width: 7px;
-                  height: 7px;
-                  border-radius: 4px;
-                  background: var(--accent);
-                "
-              ></span
-              >AI 튜터
-            </button>
-            <button
-              onClick="{{ toggleDev }}"
-              title="개발자"
-              style="
-                width: 36px;
-                height: 36px;
-                border-radius: 18px;
-                background: transparent;
-                color: var(--text);
-                border: 1px solid var(--line);
-                font-family: &quot;IBM Plex Mono&quot;, monospace;
-                font-size: 11px;
-                cursor: pointer;
-              "
-            >
-              { }
-            </button>
-            <button
-              onClick="{{ toggleTheme }}"
-              title="테마"
-              style="
-                width: 36px;
-                height: 36px;
-                border-radius: 18px;
-                background: transparent;
-                color: var(--text);
-                border: 1px solid var(--line);
-                font-size: 13px;
-                cursor: pointer;
-              "
-            >
-              {{ themeLabel }}
-            </button>
-          </div>
-        </div>
-
-        <div
-          style="
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            padding: 0 22px 16px;
-            display: flex;
-            align-items: flex-end;
-            gap: 24px;
-            pointer-events: none;
-            background: linear-gradient(transparent, oklch(0 0 0 / 0.6));
-          "
-        >
-          <div
-            style="
-              display: flex;
-              flex-direction: column;
-              gap: 10px;
-              flex: 1 1 220px;
-              max-width: 300px;
-              min-width: 0;
-              pointer-events: auto;
-            "
-          >
-            <sc-if value="{{ touring }}" hint-placeholder-val="{{ false }}">
-              <div
-                style="
-                  display: flex;
-                  flex-direction: column;
-                  gap: 6px;
-                  padding: 12px 14px;
-                  margin-bottom: 4px;
-                  background: var(--panel);
-                  border: 1px solid var(--line);
-                  border-left: 3px solid var(--accent);
-                  border-radius: 10px;
-                  backdrop-filter: blur(14px);
-                "
-              >
-                <div
-                  style="
-                    display: flex;
-                    justify-content: space-between;
-                    gap: 10px;
-                  "
-                >
-                  <span
-                    style="
-                      font-family: &quot;IBM Plex Mono&quot;, monospace;
-                      font-size: 10px;
-                      letter-spacing: 0.16em;
-                      color: var(--accent);
-                    "
-                    >AUTO TOUR</span
-                  ><span
-                    style="
-                      font-family: &quot;IBM Plex Mono&quot;, monospace;
-                      font-size: 10px;
-                      color: var(--muted);
-                    "
-                    >{{ tourCount }}</span
-                  >
-                </div>
-                <span
-                  style="
-                    font-size: 16px;
-                    font-weight: 700;
-                    letter-spacing: -0.01em;
-                    line-height: 1.25;
-                  "
-                  >{{ tourTitle }}</span
-                >
-                <span
-                  style="
-                    font-size: 12px;
-                    line-height: 1.55;
-                    color: var(--text);
-                    opacity: 0.85;
-                  "
-                  >{{ tourText }}</span
-                >
-              </div>
-            </sc-if>
-            <div style="display: flex; flex-direction: column; gap: 2px">
-              <span
-                style="
-                  font-family: &quot;IBM Plex Mono&quot;, monospace;
-                  font-size: 10px;
-                  letter-spacing: 0.16em;
-                  color: var(--muted);
-                "
-                >MATERIAL · {{ progressPct }}</span
-              >
-              <span
-                style="
-                  font-size: 15px;
-                  font-weight: 600;
-                  line-height: 1.35;
-                  text-shadow: 0 1px 8px oklch(0 0 0 / 0.6);
-                "
-                >{{ matLabel }}</span
-              >
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 5px">
-              <div style="position: relative; height: 6px">
-                <div
-                  style="
-                    position: absolute;
-                    inset: 2px 0;
-                    background: oklch(1 0 0 / 0.18);
-                    border-radius: 1px;
-                    overflow: hidden;
-                  "
-                >
-                  <div
-                    style="height:100%;width:{{ progressPct }};background:var(--accent);transition:width .12s linear;"
-                  ></div>
-                </div>
-                <sc-for
-                  list="{{ segments }}"
-                  as="sg"
-                  hint-placeholder-count="4"
-                >
-                  <span
-                    style="position:absolute;top:0;left:{{ sg.left }};width:2px;height:6px;margin-left:-1px;background:{{ sg.color }};transition:background .2s;"
-                  ></span>
-                </sc-for>
-              </div>
-              <div style="display: flex; position: relative; height: 14px">
-                <sc-for
-                  list="{{ segments }}"
-                  as="sg"
-                  hint-placeholder-count="4"
-                >
-                  <span
-                    style="position:absolute;left:{{ sg.left }};width:{{ sg.width }};padding-left:5px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:0.04em;white-space:nowrap;color:{{ sg.color }};transition:color .2s;"
-                    >{{ sg.num }}</span
-                  >
-                </sc-for>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px">
-              <button
-                onClick="{{ togglePlay }}"
-                style="
-                  width: 34px;
-                  height: 34px;
-                  border-radius: 17px;
-                  background: var(--accent);
-                  color: var(--accent-ink);
-                  border: none;
-                  font-size: 13px;
-                  cursor: pointer;
-                "
-              >
-                {{ playIcon }}
-              </button>
-              <button
-                onClick="{{ nextStep }}"
-                title="다음 단계"
-                style="
-                  width: 34px;
-                  height: 34px;
-                  border-radius: 17px;
-                  background: transparent;
-                  color: var(--text);
-                  border: 1px solid var(--line);
-                  font-size: 12px;
-                  cursor: pointer;
-                "
-              >
-                ⏭
-              </button>
-              <div
-                style="
-                  display: flex;
-                  gap: 1px;
-                  margin-left: 6px;
-                  border: 1px solid var(--line);
-                  border-radius: 17px;
-                  overflow: hidden;
-                "
-              >
-                <sc-for list="{{ speeds }}" as="sp" hint-placeholder-count="3">
-                  <button
-                    onClick="{{ sp.onClick }}"
-                    style="background:{{ sp.bg }};color:{{ sp.color }};border:none;padding:0 10px;height:32px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;"
-                  >
-                    {{ sp.label }}
-                  </button>
-                </sc-for>
-              </div>
-            </div>
-          </div>
-          <div
-            style="
-              flex: 0 0 auto;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              gap: 8px;
-              pointer-events: auto;
-            "
-          >
-            <span
-              style="
-                font-family: &quot;IBM Plex Mono&quot;, monospace;
-                font-size: 10px;
-                letter-spacing: 0.16em;
-                color: var(--muted);
-              "
-              >{{ processEn }} · {{ eqCount }} OBJECTS</span
-            >
-            <div
-              style="
-                display: flex;
-                align-items: flex-end;
-                justify-content: center;
-                gap: 4px;
-                padding: 6px 8px 2px;
-              "
-            >
-              <sc-for list="{{ eqList }}" as="e" hint-placeholder-count="4">
-                <button
-                  onClick="{{ e.onClick }}"
-                  style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:none;width:80px;padding:6px 2px;background:transparent;color:{{ e.color }};border:none;cursor:pointer;opacity:{{ e.opacity }};transition:opacity .2s, transform .2s;transform:{{ e.tf }};"
-                >
-                  <span
-                    style="width:48px;height:48px;border-radius:24px;background:{{ e.discBg }};border:2px solid {{ e.discBorder }};display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:13px;box-shadow:0 8px 24px oklch(0 0 0 / .45);"
-                    >{{ e.num }}</span
-                  >
-                  <span
-                    style="
-                      font-weight: 600;
-                      font-size: 11px;
-                      white-space: nowrap;
-                      text-shadow: 0 1px 6px oklch(0 0 0 / 0.6);
-                    "
-                    >{{ e.name }}</span
-                  >
-                </button>
-              </sc-for>
-            </div>
-          </div>
-          <div
-            style="
-              flex: 1 1 220px;
-              max-width: 300px;
-              display: flex;
-              justify-content: flex-end;
-              pointer-events: auto;
-            "
-          >
-            <div
-              style="
-                display: flex;
-                flex-direction: column;
-                align-items: flex-end;
-                gap: 4px;
-                text-align: right;
-              "
-            >
-              <span
-                style="font-size: 11px; color: var(--muted); line-height: 1.5"
-                >{{ playHint }}</span
-              >
-              <span
-                style="font-size: 11px; color: var(--muted); line-height: 1.5"
-                >드래그 회전 · 휠 확대 · 라벨/설비 클릭</span
-              >
-              <span
-                style="
-                  font-family: &quot;IBM Plex Mono&quot;, monospace;
-                  font-size: 10px;
-                  color: var(--muted);
-                  letter-spacing: 0.08em;
-                "
-                >MODEL · {{ modelPath }}</span
-              >
-              <span style="font-size: 11px; color: var(--accent)"
-                >{{ modelLabel }}</span
-              >
-            </div>
-          </div>
-        </div>
-
-        <sc-if value="{{ hasSelected }}" hint-placeholder-val="{{ false }}">
-          <aside
-            style="
-              position: absolute;
-              z-index: 4;
-              left: 22px;
-              top: 76px;
-              bottom: 196px;
-              width: min(360px, calc(100% - 44px));
-              display: flex;
-              flex-direction: column;
-              background: var(--panel);
-              border: 1px solid var(--line);
-              border-radius: 12px;
-              backdrop-filter: blur(18px);
-              overflow: hidden;
-              animation: slideL 0.25s ease-out;
-            "
-          >
-            <div
-              style="
-                display: flex;
-                align-items: flex-start;
-                gap: 10px;
-                padding: 18px 18px 14px;
-              "
-            >
-              <div
-                style="
-                  display: flex;
-                  flex-direction: column;
-                  gap: 4px;
-                  flex: 1;
-                  min-width: 0;
-                "
-              >
-                <span
-                  style="
-                    font-family: &quot;IBM Plex Mono&quot;, monospace;
-                    font-size: 10px;
-                    letter-spacing: 0.16em;
-                    color: var(--muted);
-                  "
-                  >{{ process.name }} · OBJECT {{ eqNum }} / {{ eqCount }}</span
-                >
-                <h2
-                  style="
-                    margin: 0;
-                    font-size: 30px;
-                    font-weight: 700;
-                    letter-spacing: -0.02em;
-                    line-height: 1.1;
-                  "
-                >
-                  {{ eq.name }}
-                </h2>
-                <span
-                  style="
-                    font-family: &quot;IBM Plex Mono&quot;, monospace;
-                    font-size: 11px;
-                    color: var(--accent);
-                  "
-                  >EQ_{{ eq.id }}</span
-                >
-              </div>
-              <button
-                onClick="{{ clearSelection }}"
-                style="
-                  background: transparent;
-                  color: var(--muted);
-                  border: none;
-                  font-size: 22px;
-                  line-height: 1;
-                  cursor: pointer;
-                  padding: 0 2px;
-                "
-              >
-                ×
-              </button>
-            </div>
-            <div
-              style="
-                display: flex;
-                gap: 8px;
-                padding: 0 18px 14px;
-                border-bottom: 1px solid var(--line);
-              "
-            >
-              <button
-                onClick="{{ focusSelected }}"
-                style="
-                  flex: 1;
-                  background: var(--accent);
-                  color: var(--accent-ink);
-                  border: none;
-                  border-radius: 8px;
-                  padding: 10px 14px;
-                  font-weight: 600;
-                  font-size: 13px;
-                  cursor: pointer;
-                "
-              >
-                ▸ 이동하기
-              </button>
-              <button
-                onClick="{{ askTutorAboutEq }}"
-                style="
-                  flex: 1;
-                  background: transparent;
-                  color: var(--text);
-                  border: 1px solid var(--line);
-                  border-radius: 8px;
-                  padding: 10px 14px;
-                  font-weight: 600;
-                  font-size: 13px;
-                  cursor: pointer;
-                "
-              >
-                튜터에게 묻기
-              </button>
-            </div>
-            <div
-              style="
-                flex: 1;
-                min-height: 0;
-                overflow: auto;
-                padding: 16px 18px;
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-              "
-            >
-              <p style="margin: 0; font-size: 14px; line-height: 1.65">
-                {{ eq.role }}
-              </p>
-              <div style="display: flex; flex-direction: column">
-                <div
-                  style="
-                    display: flex;
-                    justify-content: space-between;
-                    gap: 12px;
-                    padding: 10px 0;
-                    border-top: 1px solid var(--line);
-                    font-size: 13px;
-                  "
-                >
-                  <span style="color: var(--muted)">들어오는 소재</span
-                  ><span style="font-weight: 600; text-align: right"
-                    >{{ eq.input }}</span
-                  >
-                </div>
-                <div
-                  style="
-                    display: flex;
-                    justify-content: space-between;
-                    gap: 12px;
-                    padding: 10px 0;
-                    border-top: 1px solid var(--line);
-                    font-size: 13px;
-                  "
-                >
-                  <span style="color: var(--muted)">나가는 소재</span
-                  ><span style="font-weight: 600; text-align: right"
-                    >{{ eq.output }}</span
-                  >
-                </div>
-                <div
-                  style="
-                    display: flex;
-                    justify-content: space-between;
-                    gap: 12px;
-                    padding: 10px 0;
-                    border-top: 1px solid var(--line);
-                    border-bottom: 1px solid var(--line);
-                    font-size: 13px;
-                  "
-                >
-                  <span style="color: var(--muted)">다음 단계</span
-                  ><span style="font-weight: 600; text-align: right"
-                    >{{ nextName }}</span
-                  >
-                </div>
-              </div>
-              <sc-if value="{{ hasSteps }}" hint-placeholder-val="{{ false }}">
-                <div style="display: flex; flex-direction: column; gap: 10px">
-                  <span
-                    style="
-                      font-family: &quot;IBM Plex Mono&quot;, monospace;
-                      font-size: 10px;
-                      letter-spacing: 0.16em;
-                      color: var(--muted);
-                    "
-                    >INSIDE · 위에서 아래로</span
-                  >
-                  <div style="display: flex; flex-direction: column">
-                    <sc-for
-                      list="{{ eq.steps }}"
-                      as="st"
-                      hint-placeholder-count="0"
-                    >
-                      <div
-                        style="
-                          display: flex;
-                          gap: 12px;
-                          padding: 10px 0;
-                          border-top: 1px solid var(--line);
-                        "
-                      >
-                        <span
-                          style="
-                            width: 8px;
-                            height: 8px;
-                            border-radius: 4px;
-                            background: var(--accent);
-                            flex: none;
-                            margin-top: 5px;
-                          "
-                        ></span>
-                        <div
-                          style="
-                            display: flex;
-                            flex-direction: column;
-                            gap: 4px;
-                            min-width: 0;
-                          "
-                        >
-                          <div
-                            style="
-                              display: flex;
-                              justify-content: space-between;
-                              gap: 8px;
-                              flex-wrap: wrap;
-                            "
-                          >
-                            <span style="font-weight: 700; font-size: 13px"
-                              >{{ st.zone }}</span
-                            ><span
-                              style="
-                                font-family:
-                                  &quot;IBM Plex Mono&quot;, monospace;
-                                font-size: 11px;
-                                color: var(--accent);
-                              "
-                              >{{ st.temp }}</span
-                            >
-                          </div>
-                          <span style="font-size: 13px; line-height: 1.55"
-                            >{{ st.text }}</span
-                          >
-                        </div>
-                      </div>
-                    </sc-for>
-                  </div>
-                </div>
-              </sc-if>
-              <div style="display: flex; flex-direction: column; gap: 8px">
-                <span
-                  style="
-                    font-family: &quot;IBM Plex Mono&quot;, monospace;
-                    font-size: 10px;
-                    letter-spacing: 0.16em;
-                    color: var(--muted);
-                  "
-                  >DID YOU KNOW</span
-                >
-                <sc-for list="{{ eq.notes }}" as="n" hint-placeholder-count="2">
-                  <div
-                    style="
-                      display: flex;
-                      gap: 10px;
-                      font-size: 13px;
-                      line-height: 1.55;
-                    "
-                  >
-                    <span style="color: var(--accent); flex: none">—</span
-                    ><span>{{ n }}</span>
-                  </div>
-                </sc-for>
-              </div>
-            </div>
-          </aside>
-        </sc-if>
-
-        <sc-if value="{{ showTutor }}" hint-placeholder-val="{{ false }}">
-          <aside
-            style="
-              position: absolute;
-              z-index: 5;
-              right: 22px;
-              top: 76px;
-              bottom: 196px;
-              width: min(380px, calc(100% - 44px));
-              display: flex;
-              flex-direction: column;
-              background: var(--panel);
-              border: 1px solid var(--line);
-              border-radius: 12px;
-              backdrop-filter: blur(18px);
-              overflow: hidden;
-              animation: slideR 0.25s ease-out;
-            "
-          >
-            <div
-              style="
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 12px 16px;
-                border-bottom: 1px solid var(--line);
-              "
-            >
-              <div
-                style="
-                  display: flex;
-                  flex-direction: column;
-                  flex: 1;
-                  min-width: 0;
-                "
-              >
-                <span style="font-weight: 700; font-size: 14px">AI 튜터</span>
-                <span
-                  style="
-                    font-family: &quot;IBM Plex Mono&quot;, monospace;
-                    font-size: 10px;
-                    color: var(--muted);
-                  "
-                  >가짜 튜터(mockTutor) · 샘플 응답 · {{ ctxLabel }}</span
-                >
-              </div>
-              <button
-                onClick="{{ toggleTutor }}"
-                style="
-                  background: transparent;
-                  color: var(--muted);
-                  border: none;
-                  font-size: 22px;
-                  line-height: 1;
-                  cursor: pointer;
-                  padding: 0 2px;
-                "
-              >
-                ×
-              </button>
-            </div>
-            <div
-              ref="{{ chatRef }}"
-              style="
-                flex: 1;
-                min-height: 0;
-                overflow: auto;
-                padding: 14px 16px;
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-              "
-            >
-              <sc-for list="{{ messages }}" as="m" hint-placeholder-count="0">
-                <sc-if
-                  value="{{ m.isUser }}"
-                  hint-placeholder-val="{{ false }}"
-                >
-                  <div
-                    style="
-                      align-self: flex-end;
-                      max-width: 85%;
-                      background: var(--accent);
-                      color: var(--accent-ink);
-                      padding: 9px 12px;
-                      border-radius: 10px 10px 2px 10px;
-                      font-size: 13px;
-                      line-height: 1.5;
-                    "
-                  >
-                    {{ m.text }}
-                  </div>
-                </sc-if>
-                <sc-if
-                  value="{{ m.isSafety }}"
-                  hint-placeholder-val="{{ false }}"
-                >
-                  <div
-                    style="
-                      align-self: flex-start;
-                      max-width: 90%;
-                      display: flex;
-                      flex-direction: column;
-                      gap: 6px;
-                      background: var(--danger-bg);
-                      color: var(--danger);
-                      padding: 10px 12px;
-                      border-radius: 10px 10px 10px 2px;
-                      font-size: 13px;
-                      line-height: 1.5;
-                    "
-                  >
-                    <span style="font-weight: 600">{{ m.text }}</span
-                    ><span
-                      style="
-                        font-family: &quot;IBM Plex Mono&quot;, monospace;
-                        font-size: 10px;
-                      "
-                      >mode: safety_redirect</span
-                    >
-                  </div>
-                </sc-if>
-                <sc-if
-                  value="{{ m.isAssistant }}"
-                  hint-placeholder-val="{{ false }}"
-                >
-                  <div
-                    style="
-                      align-self: flex-start;
-                      max-width: 92%;
-                      display: flex;
-                      flex-direction: column;
-                      gap: 8px;
-                    "
-                  >
-                    <div
-                      style="
-                        background: var(--panel2);
-                        padding: 10px 12px;
-                        border-radius: 10px 10px 10px 2px;
-                        font-size: 13px;
-                        line-height: 1.55;
-                      "
-                    >
-                      {{ m.text }}
-                    </div>
-                    <div
-                      style="
-                        display: flex;
-                        gap: 6px;
-                        flex-wrap: wrap;
-                        align-items: center;
-                        padding-left: 4px;
-                      "
-                    >
-                      <span
-                        style="
-                          font-family: &quot;IBM Plex Mono&quot;, monospace;
-                          font-size: 10px;
-                          padding: 2px 7px;
-                          border-radius: 4px;
-                          border: 1px solid var(--line);
-                          color: var(--muted);
-                        "
-                        >{{ m.mode }}</span
-                      >
-                      <span
-                        style="
-                          font-family: &quot;IBM Plex Mono&quot;, monospace;
-                          font-size: 10px;
-                          padding: 2px 7px;
-                          border-radius: 4px;
-                          border: 1px solid var(--line);
-                          color: var(--muted);
-                        "
-                        >{{ m.evidence }}</span
-                      >
-                      <sc-for
-                        list="{{ m.citations }}"
-                        as="c"
-                        hint-placeholder-count="0"
-                      >
-                        <span style="font-size: 11px; color: var(--muted)"
-                          >근거: {{ c.title }}
-                          <span
-                            style="
-                              font-family: &quot;IBM Plex Mono&quot;, monospace;
-                              font-size: 10px;
-                            "
-                            >{{ c.document_id }}</span
-                          ></span
-                        >
-                      </sc-for>
-                    </div>
-                    <sc-if
-                      value="{{ m.hasFollowUp }}"
-                      hint-placeholder-val="{{ false }}"
-                    >
-                      <button
-                        onClick="{{ m.askFollowUp }}"
-                        style="
-                          text-align: left;
-                          display: flex;
-                          flex-direction: column;
-                          gap: 2px;
-                          background: transparent;
-                          border: 1px dashed var(--accent);
-                          border-radius: 8px;
-                          padding: 8px 12px;
-                          color: var(--text);
-                          cursor: pointer;
-                        "
-                      >
-                        <span
-                          style="
-                            font-size: 11px;
-                            color: var(--accent);
-                            font-weight: 600;
-                          "
-                          >생각해 보기</span
-                        ><span style="font-size: 13px; line-height: 1.5"
-                          >{{ m.followUp }}</span
-                        >
-                      </button>
-                    </sc-if>
-                  </div>
-                </sc-if>
-              </sc-for>
-              <sc-if value="{{ pending }}" hint-placeholder-val="{{ false }}">
-                <div
-                  style="
-                    align-self: flex-start;
-                    display: flex;
-                    gap: 4px;
-                    padding: 10px 12px;
-                    background: var(--panel2);
-                    border-radius: 10px;
-                  "
-                >
-                  <span
-                    style="
-                      width: 6px;
-                      height: 6px;
-                      border-radius: 3px;
-                      background: var(--muted);
-                      animation: blink 1s infinite;
-                    "
-                  ></span
-                  ><span
-                    style="
-                      width: 6px;
-                      height: 6px;
-                      border-radius: 3px;
-                      background: var(--muted);
-                      animation: blink 1s 0.2s infinite;
-                    "
-                  ></span
-                  ><span
-                    style="
-                      width: 6px;
-                      height: 6px;
-                      border-radius: 3px;
-                      background: var(--muted);
-                      animation: blink 1s 0.4s infinite;
-                    "
-                  ></span>
-                </div>
-              </sc-if>
-            </div>
-            <div
-              style="
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                padding: 12px 16px;
-                border-top: 1px solid var(--line);
-              "
-            >
-              <div style="display: flex; gap: 6px; flex-wrap: wrap">
-                <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
-                  <button
-                    onClick="{{ c.onClick }}"
-                    style="
-                      background: transparent;
-                      color: var(--text);
-                      border: 1px solid var(--line);
-                      border-radius: 999px;
-                      padding: 5px 11px;
-                      font-size: 12px;
-                      cursor: pointer;
-                    "
-                  >
-                    {{ c.text }}
-                  </button>
-                </sc-for>
-              </div>
-              <form onSubmit="{{ send }}" style="display: flex; gap: 8px">
-                <input
-                  value="{{ input }}"
-                  onChange="{{ onInput }}"
-                  placeholder="질문을 입력하세요"
-                  style="
-                    flex: 1;
-                    min-width: 0;
-                    background: var(--panel2);
-                    color: var(--text);
-                    border: 1px solid var(--line);
-                    border-radius: 7px;
-                    padding: 10px 12px;
-                    font-size: 13px;
-                    outline: none;
-                  "
-                />
-                <button
-                  type="submit"
-                  style="
-                    background: var(--accent);
-                    color: var(--accent-ink);
-                    border: none;
-                    border-radius: 7px;
-                    padding: 10px 14px;
-                    font-weight: 600;
-                    font-size: 13px;
-                    cursor: pointer;
-                  "
-                >
-                  전송
-                </button>
-              </form>
-            </div>
-          </aside>
-        </sc-if>
-
-        <sc-if value="{{ showDev }}" hint-placeholder-val="{{ false }}">
-          <div
-            style="
-              position: absolute;
-              z-index: 5;
-              right: 22px;
-              top: 76px;
-              bottom: 196px;
-              width: min(420px, calc(100% - 44px));
-              display: flex;
-              flex-direction: column;
-              background: var(--panel);
-              border: 1px solid var(--line);
-              border-radius: 12px;
-              backdrop-filter: blur(18px);
-              overflow: hidden;
-              animation: slideR 0.25s ease-out;
-            "
-          >
-            <div
-              style="
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 12px 16px;
-                border-bottom: 1px solid var(--line);
-              "
-            >
-              <span
-                style="
-                  font-family: &quot;IBM Plex Mono&quot;, monospace;
-                  font-size: 12px;
-                  font-weight: 600;
-                  flex: 1;
-                "
-                >개발자</span
-              >
-              <button
-                onClick="{{ toggleDev }}"
-                style="
-                  background: transparent;
-                  color: var(--muted);
-                  border: none;
-                  font-size: 22px;
-                  line-height: 1;
-                  cursor: pointer;
-                  padding: 0 2px;
-                "
-              >
-                ×
-              </button>
-            </div>
-            <div
-              style="
-                flex: 1;
-                min-height: 0;
-                overflow: auto;
-                padding: 14px 16px;
-                display: flex;
-                flex-direction: column;
-                gap: 14px;
-              "
-            >
-              <div style="display: flex; flex-direction: column; gap: 6px">
-                <span
-                  style="
-                    font-family: &quot;IBM Plex Mono&quot;, monospace;
-                    font-size: 11px;
-                    color: var(--muted);
-                  "
-                  >3D model · models/&lt;process_id&gt;.glb · 노드
-                  EQ_&lt;equipment_id&gt;</span
-                >
-                <pre
-                  style="
-                    margin: 0;
-                    padding: 12px;
-                    background: var(--panel2);
-                    border-radius: 8px;
-                    font-family: &quot;IBM Plex Mono&quot;, monospace;
-                    font-size: 11px;
-                    line-height: 1.5;
-                    overflow: auto;
-                    white-space: pre-wrap;
-                    word-break: break-all;
-                  "
-                >
-{{ modelJson }}</pre
-                >
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 6px">
-                <span
-                  style="
-                    font-family: &quot;IBM Plex Mono&quot;, monospace;
-                    font-size: 11px;
-                    color: var(--muted);
-                  "
-                  >screen_context</span
-                >
-                <pre
-                  style="
-                    margin: 0;
-                    padding: 12px;
-                    background: var(--panel2);
-                    border-radius: 8px;
-                    font-family: &quot;IBM Plex Mono&quot;, monospace;
-                    font-size: 11px;
-                    line-height: 1.5;
-                    overflow: auto;
-                    white-space: pre-wrap;
-                    word-break: break-all;
-                  "
-                >
-{{ screenContextJson }}</pre
-                >
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 6px">
-                <span
-                  style="
-                    font-family: &quot;IBM Plex Mono&quot;, monospace;
-                    font-size: 11px;
-                    color: var(--muted);
-                  "
-                  >last request → POST /sessions/:id/messages</span
-                >
-                <pre
-                  style="
-                    margin: 0;
-                    padding: 12px;
-                    background: var(--panel2);
-                    border-radius: 8px;
-                    font-family: &quot;IBM Plex Mono&quot;, monospace;
-                    font-size: 11px;
-                    line-height: 1.5;
-                    overflow: auto;
-                    white-space: pre-wrap;
-                    word-break: break-all;
-                  "
-                >
-{{ lastRequestJson }}</pre
-                >
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 6px">
-                <span
-                  style="
-                    font-family: &quot;IBM Plex Mono&quot;, monospace;
-                    font-size: 11px;
-                    color: var(--muted);
-                  "
-                  >last response</span
-                >
-                <pre
-                  style="
-                    margin: 0;
-                    padding: 12px;
-                    background: var(--panel2);
-                    border-radius: 8px;
-                    font-family: &quot;IBM Plex Mono&quot;, monospace;
-                    font-size: 11px;
-                    line-height: 1.5;
-                    overflow: auto;
-                    white-space: pre-wrap;
-                    word-break: break-all;
-                  "
-                >
-{{ lastResponseJson }}</pre
-                >
-              </div>
-            </div>
           </div>
         </sc-if>
       </div>
-    </x-dc>
-    <script
-      type="text/x-dc"
-      data-dc-script
-      data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark","tsType":"&apos;dark&apos; | &apos;light&apos;","section":"화면"},"flowSpeed":{"editor":"range","default":1,"min":0.5,"max":3,"step":0.5,"unit":"x","tsType":"number","section":"3D"},"autoPlay":{"editor":"boolean","default":false,"tsType":"boolean","section":"3D"}}'
-    >
+    </sc-for>
+  </nav>
 
 
-        <!-- //브라우저도 이 블록을 직접 실행하지 않습니다. 대신 6번째 줄에서 불러오는 support.js가 data-dc-script 블록을 찾아 읽고 실행합니다. Claude Design에서 만든 .dc.html 컴포넌트 형식이라 이런 구조입니다. -->
-      class Component extends DCLogic {
-        state = { ready: false, processId: 'ironmaking', selectedId: null, tutorOpen: false, devOpen: false, theme: null, speed: 1, messages: [], input: '', pending: false, lastReq: null, lastRes: null, lastResults: [], progress: 0, matLabel: '', playing: false };
-        chatRef = React.createRef();
-        async componentDidMount() {
-          const [d, t] = await Promise.all([import('./data.js'), import('./tutor.js')]);
-          this.data = d; this.mockTutor = t.mockTutor;
-          this.setState({ ready: true, speed: this.props.flowSpeed ?? 1 });
-          document.addEventListener('steel-select', e => { const id = e.detail.id; this.setState({ selectedId: id }); if (id) this.scene()?.focus(id); });
-          document.addEventListener('steel-model', e => this.setState({ model: e.detail }));
-          document.addEventListener('steel-progress', e => this.setState({ progress: e.detail.t, matLabel: e.detail.label, playing: e.detail.playing, touring: e.detail.touring, tourStep: e.detail.step }));
-          document.addEventListener('steel-tour-end', () => this.setState({ touring: false, tourStep: null }));
-          if (this.props.autoPlay) setTimeout(() => this.scene()?.play(this.state.speed), 800);
-        }
-        scrollChat() { [50, 250].forEach(ms => setTimeout(() => { const el = this.chatRef.current; if (el) el.scrollTop = el.scrollHeight; }, ms)); }
-        scene() { return document.querySelector('steel-scene'); }
-        theme() { return this.state.theme ?? this.props.theme ?? 'dark'; }
-        process() { return this.data.findProcess(this.state.processId); }
-        screenContext() { return { process_id: this.state.processId, equipment_id: this.state.selectedId, learning_mode: 'free_question', learning_step: null, last_scene_action_results: this.state.lastResults }; }
-        goProcess(id) { if (id !== this.state.processId) { this.setState({ processId: id, selectedId: null }); setTimeout(() => this.scene()?.reset(), 50); } }
-        wait(ms) { return new Promise(r => setTimeout(r, ms)); }
-        async runActions(actions) {
-          const results = [];
-          for (const a of actions || []) {
-            let ok = false;
-            try {
-              if (a.type === 'goto_process') { ok = !!this.data.findProcess(a.target_id); if (ok) { this.goProcess(a.target_id); await this.wait(150); } }
-              else if (a.type === 'highlight') { ok = !!this.data.findEquipment(this.state.processId, a.target_id); if (ok) this.setState({ selectedId: a.target_id }); }
-              else if (a.type === 'focus') { ok = !!this.scene()?.focus(a.target_id); }
-              else if (a.type === 'play_animation') { ok = !!this.scene()?.play(this.state.speed); }
-            } catch (e) { ok = false; }
-            results.push({ type: a.type, target_id: a.target_id, status: ok ? 'succeeded' : 'failed' });
-          }
-          return results;
-        }
-        async ask(text) {
-          text = (text || '').trim(); if (!text || this.state.pending) return;
-          const req = { message: text, screen_context: this.screenContext() };
-          this.setState(s => ({ messages: [...s.messages, { role: 'user', text }], input: '', pending: true, lastReq: req, tutorOpen: true, devOpen: false })); this.scrollChat();
-          const res = await this.mockTutor(req);
-          const results = await this.runActions(res.scene_actions);
-          this.setState(s => ({ pending: false, lastRes: res, lastResults: results, messages: [...s.messages, { role: 'assistant', text: res.answer, mode: res.mode, evidence: res.evidence_status, citations: res.citations, followUp: res.follow_up_question }] })); this.scrollChat();
-        }
-        renderVals() {
-          const S = this.state, theme = this.theme();
-          if (document.body.dataset.theme !== theme) document.body.dataset.theme = theme;
-          if (!S.ready) return { theme, processId: S.processId, steps: [], eqList: [], speeds: [], chips: [], messages: [], progressPct: '0%', eq: {}, process: {} };
-          const D = this.data, p = this.process(), eq = D.findEquipment(S.processId, S.selectedId), isDark = theme === 'dark';
-          const k = eq ? p.equipment.indexOf(eq) : -1, pi = D.PROCESSES.indexOf(p), nextEq = p.equipment[k + 1], nextP = D.PROCESSES[pi + 1];
-          const j = v => v ? JSON.stringify(v, null, 2) : '// 아직 없음';
-          return {
-            theme, themeLabel: isDark ? '☀' : '☾', toggleTheme: () => this.setState({ theme: isDark ? 'light' : 'dark' }),
-            processId: S.processId, selectedAttr: S.selectedId || '', process: p, processEn: p.en.toUpperCase(),
-            steps: D.PROCESSES.map(x => { const on = x.id === S.processId; return { ...x, onClick: () => this.goProcess(x.id), bg: on ? 'var(--accent)' : 'transparent', color: on ? 'var(--accent-ink)' : 'var(--muted)' }; }),
-            eqList: p.equipment.map((e, i) => { const on = e.id === S.selectedId; return { ...e, num: String(i + 1).padStart(2, '0'), onClick: () => { this.setState({ selectedId: e.id }); this.scene()?.focus(e.id); }, color: on ? 'var(--accent)' : 'var(--text)', opacity: !S.selectedId || on ? '1' : '0.55', tf: on ? 'translateY(-6px)' : 'none', discBg: on ? 'var(--accent)' : 'var(--panel)', discBorder: on ? 'var(--accent)' : 'var(--line)' }; }),
-            hasSelected: !!eq, eq: eq || {}, hasSteps: !!(eq && eq.steps), eqNum: String(k + 1).padStart(2, '0'), eqCount: String(p.equipment.length).padStart(2, '0'),
-            nextName: nextEq ? nextEq.name : (nextP ? `${nextP.name} 공정` : '출하'),
-            clearSelection: () => this.setState({ selectedId: null }), focusSelected: () => this.scene()?.focus(S.selectedId), askTutorAboutEq: () => this.ask('이 설비의 역할은?'),
-            resetView: () => this.scene()?.reset(), togglePlay: () => this.scene()?.toggle(S.speed), stopPlay: () => this.scene()?.stop(), nextStep: () => this.scene()?.next(), playIcon: S.playing ? '■' : '▶',
-            touring: !!S.touring, tourTitle: S.tourStep?.title || '', tourText: S.tourStep?.text || '', tourCount: S.tourStep ? `${String(S.tourStep.i).padStart(2, '0')} / ${String(S.tourStep.total).padStart(2, '0')}` : '',
-            playHint: S.touring ? '자동 시연 중 · ⏭ 다음 · ■ 정지' : '▶ 누르면 공정을 자동으로 시연합니다',
-            matLabel: S.matLabel || p.materialIn.label, progressPct: Math.round(S.progress * 100) + '%',
-            segments: (() => { const n = p.equipment.length, segs = n + 1; return p.equipment.map((e, i) => { const a = (i + 1) / segs, b = (i + 2) / segs, on = S.progress >= a - 0.5 / segs && S.progress < b - 0.5 / segs; return { num: String(i + 1).padStart(2, '0'), name: e.name, left: (a * 100) + '%', width: ((b - a) * 100) + '%', color: on ? 'var(--accent)' : (S.progress >= a ? 'var(--text)' : 'var(--muted)') }; }); })(),
-            speeds: [0.5, 1, 2].map(v => ({ label: v + '×', onClick: () => this.setState({ speed: v }), bg: S.speed === v ? 'var(--panel2)' : 'transparent', color: S.speed === v ? 'var(--text)' : 'var(--muted)' })),
-            showTutor: S.tutorOpen && !S.devOpen, toggleTutor: () => { this.setState(s => ({ tutorOpen: !s.tutorOpen, devOpen: false })); this.scrollChat(); }, tutorBtnBg: S.tutorOpen ? 'var(--panel2)' : 'transparent', tutorBtnColor: 'var(--text)',
-            showDev: S.devOpen, toggleDev: () => this.setState(s => ({ devOpen: !s.devOpen })),
-            ctxLabel: eq ? `${p.name} · ${eq.name}` : p.name,
-            messages: S.messages.map(m => ({ ...m, isUser: m.role === 'user', isSafety: m.role === 'assistant' && m.mode === 'safety_redirect', isAssistant: m.role === 'assistant' && m.mode !== 'safety_redirect', hasFollowUp: !!m.followUp, askFollowUp: () => this.ask(m.followUp) })),
-            chatRef: this.chatRef, pending: S.pending, chips: D.SUGGESTED.map(text => ({ text, onClick: () => this.ask(text) })),
-            input: S.input, onInput: e => this.setState({ input: e.target.value }), send: e => { e.preventDefault(); this.ask(S.input); },
-            modelLabel: ({ loading: '불러오는 중…', glb: `GLB 로드됨 (${S.model?.mapped}개 노드 연결)`, 'glb-no-nodes': 'GLB 로드됨 · EQ_ 노드 없음 → 기본 도형', primitive: '기본 도형 (GLB 없음)' })[S.model?.status] || '기본 도형',
-            modelPath: `models/${S.processId}.glb`, modelJson: j(S.model),
-            screenContextJson: j(this.screenContext()), lastRequestJson: j(S.lastReq), lastResponseJson: j(S.lastRes),
-          };
-        }
-      }
-    </script>
-  </body>
+  <sc-if value="{{ touring }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;right:22px;top:76px;width:min(340px, 38vw);display:flex;flex-direction:column;gap:6px;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;backdrop-filter:blur(14px);pointer-events:none;">
+      <div style="display:flex;justify-content:space-between;gap:10px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.16em;color:var(--accent);">자동 시연</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">{{ tourCount }}</span></div>
+      <span style="font-size:17px;font-weight:700;letter-spacing:-0.01em;line-height:1.25;">{{ tourTitle }}</span>
+      <span style="font-size:13px;line-height:1.6;color:var(--text);opacity:.85;">{{ tourText }}</span>
+    </div>
+  </sc-if>
+  <div style="position:absolute;left:0;right:0;bottom:0;padding:0 22px 16px;display:flex;align-items:flex-end;gap:24px;pointer-events:none;">
+    <div style="display:flex;flex-direction:column;gap:10px;flex:1 1 220px;max-width:300px;min-width:0;pointer-events:auto;">
+
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.16em;color:var(--muted);">소재 · {{ progressPct }}</span>
+        <span style="font-size:15px;font-weight:600;line-height:1.35;">{{ matLabel }}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <div style="position:relative;height:6px;">
+          <div style="position:absolute;inset:2px 0;background:oklch(1 0 0 / .18);border-radius:1px;overflow:hidden;"><div style="height:100%;width:{{ progressPct }};background:var(--accent);transition:width .12s linear;"></div></div>
+          <sc-for list="{{ segments }}" as="sg" hint-placeholder-count="4">
+            <span style="position:absolute;top:0;left:{{ sg.left }};width:2px;height:6px;margin-left:-1px;background:{{ sg.color }};transition:background .2s;"></span>
+          </sc-for>
+        </div>
+        <div style="display:flex;position:relative;height:14px;">
+          <sc-for list="{{ segments }}" as="sg" hint-placeholder-count="4">
+            <button onClick="{{ sg.onClick }}" title="{{ sg.name }}" style="position:absolute;left:{{ sg.left }};top:-12px;width:{{ sg.width }};height:28px;padding:12px 0 0 5px;margin:0;border:0;background:transparent;text-align:left;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:0.04em;white-space:nowrap;color:{{ sg.color }};transition:color .2s;" style-hover="color:var(--accent);">{{ sg.num }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button onClick="{{ togglePlay }}" style="width:34px;height:34px;border-radius:2px;background:var(--accent);color:var(--accent-ink);border:none;font-size:13px;cursor:pointer;" style-hover="filter:brightness(1.15);">{{ playIcon }}</button>
+        <button onClick="{{ nextStep }}" title="다음 단계" style="width:34px;height:34px;border-radius:2px;background:transparent;color:var(--text);border:1px solid var(--line);font-size:12px;cursor:pointer;" style-hover="background:var(--panel2);border-color:var(--accent);color:var(--accent);">⏭</button>
+        <div style="display:flex;gap:1px;margin-left:6px;border:1px solid var(--line);border-radius:2px;overflow:hidden;">
+          <sc-for list="{{ speeds }}" as="sp" hint-placeholder-count="3">
+            <button onClick="{{ sp.onClick }}" style="background:{{ sp.bg }};color:{{ sp.color }};border:none;padding:0 10px;height:32px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;" style-hover="color:var(--text);background:var(--panel2);">{{ sp.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1;"></div>
+
+  </div>
+
+  <sc-if value="{{ hasSelected }}" hint-placeholder-val="{{ false }}">
+    <aside style="position:absolute;z-index:4;right:22px;top:76px;bottom:150px;width:min(360px, calc(100% - 292px));display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:2px;overflow:hidden;animation:slideL .15s ease-out;">
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:18px 18px 14px;">
+        <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.16em;color:var(--muted);">{{ process.name }} · 설비 {{ eqNum }} / {{ eqCount }}</span>
+          <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:30px;font-weight:900;letter-spacing:-0.02em;line-height:1.1;">{{ eq.name }}</h2>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent);">EQ_{{ eq.id }}</span>
+        </div>
+        <button onClick="{{ clearSelection }}" style="background:transparent;color:var(--muted);border:none;font-size:22px;line-height:1;cursor:pointer;padding:0 2px;" style-hover="color:var(--text);">×</button>
+      </div>
+      <div style="display:flex;gap:8px;padding:0 18px 14px;border-bottom:1px solid var(--line);">
+        <button onClick="{{ focusSelected }}" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:2px;padding:10px 14px;font-weight:600;font-size:13px;cursor:pointer;" style-hover="filter:brightness(1.15);">카메라 이동</button>
+        <button onClick="{{ askTutorAboutEq }}" style="flex:1;background:transparent;color:var(--text);border:1px solid var(--line);border-radius:2px;padding:10px 14px;font-weight:600;font-size:13px;cursor:pointer;" style-hover="background:var(--panel2);border-color:var(--accent);color:var(--accent);">튜터에게 묻기</button>
+      </div>
+      <div style="flex:1;min-height:0;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:16px;">
+        <p style="margin:0;font-size:14px;line-height:1.65;">{{ eq.role }}</p>
+        <div style="display:flex;flex-direction:column;">
+          <div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:13px;"><span style="color:var(--muted);">들어오는 소재</span><span style="font-weight:600;text-align:right;">{{ eq.input }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);font-size:13px;"><span style="color:var(--muted);">나가는 소재</span><span style="font-weight:600;text-align:right;">{{ eq.output }}</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:13px;"><span style="color:var(--muted);">다음 단계</span><span style="font-weight:600;text-align:right;">{{ nextName }}</span></div>
+        </div>
+        <sc-if value="{{ hasSteps }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.16em;color:var(--muted);">INSIDE · 위에서 아래로</span>
+            <div style="display:flex;flex-direction:column;">
+              <sc-for list="{{ eq.steps }}" as="st" hint-placeholder-count="0">
+                <div style="display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line);">
+                  <span style="width:8px;height:8px;border-radius:4px;background:var(--accent);flex:none;margin-top:5px;"></span>
+                  <div style="display:flex;flex-direction:column;gap:4px;min-width:0;">
+                    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;"><span style="font-weight:700;font-size:13px;">{{ st.zone }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent);">{{ st.temp }}</span></div>
+                    <span style="font-size:13px;line-height:1.55;">{{ st.text }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.16em;color:var(--muted);">참고</span>
+          <sc-for list="{{ eq.notes }}" as="n" hint-placeholder-count="2">
+            <div style="display:flex;gap:10px;font-size:13px;line-height:1.55;"><span style="color:var(--accent);flex:none;">—</span><span>{{ n }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+    </aside>
+  </sc-if>
+
+  <sc-if value="{{ showTutor }}" hint-placeholder-val="{{ false }}">
+    <aside style="position:absolute;z-index:5;right:22px;top:76px;bottom:150px;width:min(380px, calc(100% - 44px));display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:2px;overflow:hidden;animation:slideR .15s ease-out;">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);">
+        <div style="display:flex;flex-direction:column;flex:1;min-width:0;">
+          <span style="font-weight:700;font-size:14px;">AI 튜터</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">가짜 튜터(mockTutor) · 샘플 응답 · {{ ctxLabel }}</span>
+        </div>
+        <button onClick="{{ toggleTutor }}" style="background:transparent;color:var(--muted);border:none;font-size:22px;line-height:1;cursor:pointer;padding:0 2px;" style-hover="color:var(--text);">×</button>
+      </div>
+      <div ref="{{ chatRef }}" style="flex:1;min-height:0;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+        <sc-for list="{{ messages }}" as="m" hint-placeholder-count="0">
+          <sc-if value="{{ m.isUser }}" hint-placeholder-val="{{ false }}">
+            <div style="align-self:flex-end;max-width:85%;background:var(--accent);color:var(--accent-ink);padding:9px 12px;border-radius:2px;font-size:13px;line-height:1.5;">{{ m.text }}</div>
+          </sc-if>
+          <sc-if value="{{ m.isSafety }}" hint-placeholder-val="{{ false }}">
+            <div style="align-self:flex-start;max-width:90%;display:flex;flex-direction:column;gap:6px;background:var(--danger-bg);color:var(--danger);padding:10px 12px;border-radius:2px;font-size:13px;line-height:1.5;">
+              <span style="font-weight:600;">{{ m.text }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;">mode: safety_redirect</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ m.isAssistant }}" hint-placeholder-val="{{ false }}">
+            <div style="align-self:flex-start;max-width:92%;display:flex;flex-direction:column;gap:8px;">
+              <div style="background:var(--panel2);padding:10px 12px;border-radius:2px;font-size:13px;line-height:1.55;">{{ m.text }}</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding-left:4px;">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--line);color:var(--muted);">{{ m.mode }}</span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--line);color:var(--muted);">{{ m.evidence }}</span>
+                <sc-for list="{{ m.citations }}" as="c" hint-placeholder-count="0">
+                  <span style="font-size:11px;color:var(--muted);">근거: {{ c.title }} <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;">{{ c.document_id }}</span></span>
+                </sc-for>
+              </div>
+              <sc-if value="{{ m.hasFollowUp }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ m.askFollowUp }}" style="text-align:left;display:flex;flex-direction:column;gap:2px;background:transparent;border:1px dashed var(--accent);border-radius:2px;padding:8px 12px;color:var(--text);cursor:pointer;" style-hover="background:color-mix(in oklch, var(--accent) 14%, transparent);border-style:solid;">
+                  <span style="font-size:11px;color:var(--accent);font-weight:600;">생각해 보기</span><span style="font-size:13px;line-height:1.5;">{{ m.followUp }}</span>
+                </button>
+              </sc-if>
+            </div>
+          </sc-if>
+        </sc-for>
+        <sc-if value="{{ pending }}" hint-placeholder-val="{{ false }}">
+          <div style="align-self:flex-start;display:flex;gap:4px;padding:10px 12px;background:var(--panel2);border-radius:2px;">
+            <span style="width:6px;height:6px;border-radius:3px;background:var(--muted);animation:blink 1s infinite;"></span><span style="width:6px;height:6px;border-radius:3px;background:var(--muted);animation:blink 1s .2s infinite;"></span><span style="width:6px;height:6px;border-radius:3px;background:var(--muted);animation:blink 1s .4s infinite;"></span>
+          </div>
+        </sc-if>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:12px 16px;border-top:1px solid var(--line);">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
+            <button onClick="{{ c.onClick }}" style="background:transparent;color:var(--text);border:1px solid var(--line);border-radius:2px;padding:5px 11px;font-size:12px;cursor:pointer;" style-hover="background:var(--accent);color:var(--accent-ink);border-color:var(--accent);">{{ c.text }}</button>
+          </sc-for>
+        </div>
+        <form onSubmit="{{ send }}" style="display:flex;gap:8px;">
+          <input value="{{ input }}" onChange="{{ onInput }}" placeholder="질문을 입력하세요" style="flex:1;min-width:0;background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:2px;padding:10px 12px;font-size:13px;outline:none;" style-focus="border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in oklch, var(--accent) 25%, transparent);">
+          <button type="submit" style="background:var(--accent);color:var(--accent-ink);border:none;border-radius:2px;padding:10px 14px;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap;flex:none;" style-hover="filter:brightness(1.15);">전송</button>
+        </form>
+      </div>
+    </aside>
+  </sc-if>
+
+  <sc-if value="{{ showDev }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;z-index:5;right:22px;top:76px;bottom:150px;width:min(420px, calc(100% - 44px));display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:2px;overflow:hidden;animation:slideR .15s ease-out;">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;flex:1;">개발자</span>
+        <button onClick="{{ toggleDev }}" style="background:transparent;color:var(--muted);border:none;font-size:22px;line-height:1;cursor:pointer;padding:0 2px;" style-hover="color:var(--text);">×</button>
+      </div>
+      <div style="flex:1;min-height:0;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;flex-direction:column;gap:6px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">3D model · models/&lt;process_id&gt;.glb · 노드 EQ_&lt;equipment_id&gt;</span><pre style="margin:0;padding:12px;background:var(--panel2);border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.5;overflow:auto;white-space:pre-wrap;word-break:break-all;">{{ modelJson }}</pre></div>
+        <div style="display:flex;flex-direction:column;gap:6px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">screen_context</span><pre style="margin:0;padding:12px;background:var(--panel2);border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.5;overflow:auto;white-space:pre-wrap;word-break:break-all;">{{ screenContextJson }}</pre></div>
+        <div style="display:flex;flex-direction:column;gap:6px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">last request → POST /sessions/:id/messages</span><pre style="margin:0;padding:12px;background:var(--panel2);border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.5;overflow:auto;white-space:pre-wrap;word-break:break-all;">{{ lastRequestJson }}</pre></div>
+        <div style="display:flex;flex-direction:column;gap:6px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">last response</span><pre style="margin:0;padding:12px;background:var(--panel2);border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.5;overflow:auto;white-space:pre-wrap;word-break:break-all;">{{ lastResponseJson }}</pre></div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;,&quot;section&quot;:&quot;화면&quot;},&quot;flowSpeed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0.5,&quot;max&quot;:3,&quot;step&quot;:0.5,&quot;unit&quot;:&quot;x&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;3D&quot;},&quot;autoPlay&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;3D&quot;}}">
+<!-- //브라우저도 이 블록을 직접 실행하지 않습니다. 대신 6번째 줄에서 불러오는 support.js가 data-dc-script 블록을 찾아 읽고 실행합니다. Claude Design에서 만든 .dc.html 컴포넌트 형식이라 이런 구조입니다. -->
+class Component extends DCLogic {
+  state = { ready: false, processId: 'site', selectedId: null, tutorOpen: false, devOpen: false, theme: null, speed: 1, messages: [], input: '', pending: false, lastReq: null, lastRes: null, lastResults: [], progress: 0, matLabel: '', playing: false };
+  chatRef = React.createRef();
+  async componentDidMount() {
+    const [d, t] = await Promise.all([import('./data.js'), import('./tutor.js')]);
+    this.data = d; this.mockTutor = t.mockTutor;
+    this.setState({ ready: true, speed: this.props.flowSpeed ?? 1 });
+    document.addEventListener('steel-select', e => { const id = e.detail.id; if (this.state.touring && e.detail.user) this.scene()?.stopTour(); this.setState({ selectedId: id }); if (id) this.scene()?.focus(id); });
+    document.addEventListener('steel-model', e => this.setState({ model: e.detail }));
+    document.addEventListener('steel-goto', e => { const id = e.detail.process ?? e.detail.id; if (id) this.goProcess(id); });
+    document.addEventListener('steel-overview', () => { if (this.state.selectedId) this.setState({ selectedId: null }); });
+    document.addEventListener('steel-layer', e => this.setState({ layerOpen: e.detail.layer !== null }));
+    document.addEventListener('steel-progress', e => this.setState({ progress: e.detail.t, matLabel: e.detail.label, playing: e.detail.playing, touring: e.detail.touring, tourStep: e.detail.step }));
+    
+    document.addEventListener('steel-tour-end', () => this.setState({ touring: false, tourStep: null }));
+    if (this.props.autoPlay) setTimeout(() => this.scene()?.play(this.state.speed), 800);
+  }
+  scrollChat() { [50, 250].forEach(ms => setTimeout(() => { const el = this.chatRef.current; if (el) el.scrollTop = el.scrollHeight; }, ms)); }
+  scene() { return document.querySelector('steel-scene'); }
+  componentDidUpdate(_, prev) { if (prev.selectedId !== this.state.selectedId) this.scene()?.setLeftLimit(this.state.selectedId ? 400 : 8); }
+  theme() { return this.state.theme ?? this.props.theme ?? 'dark'; }
+  process() { return this.data.findProcess(this.state.processId) || { id: 'site', num: '00', name: '제철소 전체', en: 'Site Overview', io: '원료 부두 → 제선 → 제강 → 연주 → 열간압연 → 제품 출하', summary: '항만을 감싸는 부지에 공정이 원료 입고부터 제품 출하까지 순서대로 배치되어 있습니다. 구역을 클릭해 들어가세요.', equipment: [], materialIn: { label: '구역을 클릭하면 해당 공정으로 들어갑니다' } }; }
+  screenContext() { return { process_id: this.state.processId, equipment_id: this.state.selectedId, learning_mode: 'free_question', learning_step: null, last_scene_action_results: this.state.lastResults }; }
+  goProcess(id) { if (id !== this.state.processId) this.setState({ processId: id, selectedId: null }); else { this.setState({ selectedId: null }); this.scene()?.reset(); } }
+  wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+  async runActions(actions) {
+    const results = [];
+    for (const a of actions || []) {
+      let ok = false;
+      try {
+        if (a.type === 'goto_process') { ok = !!this.data.findProcess(a.target_id); if (ok) { this.goProcess(a.target_id); await this.wait(150); } }
+        else if (a.type === 'highlight') { ok = !!this.data.findEquipment(this.state.processId, a.target_id); if (ok) this.setState({ selectedId: a.target_id }); }
+        else if (a.type === 'focus') { ok = !!this.scene()?.focus(a.target_id); }
+        else if (a.type === 'play_animation') { ok = !!this.scene()?.play(this.state.speed); }
+      } catch (e) { ok = false; }
+      results.push({ type: a.type, target_id: a.target_id, status: ok ? 'succeeded' : 'failed' });
+    }
+    return results;
+  }
+  async ask(text) {
+    text = (text || '').trim(); if (!text || this.state.pending) return;
+    const req = { message: text, screen_context: this.screenContext() };
+    this.setState(s => ({ messages: [...s.messages, { role: 'user', text }], input: '', pending: true, lastReq: req, tutorOpen: true, devOpen: false })); this.scrollChat();
+    const res = await this.mockTutor(req);
+    const results = await this.runActions(res.scene_actions);
+    this.setState(s => ({ pending: false, lastRes: res, lastResults: results, messages: [...s.messages, { role: 'assistant', text: res.answer, mode: res.mode, evidence: res.evidence_status, citations: res.citations, followUp: res.follow_up_question }] })); this.scrollChat();
+  }
+  renderVals() {
+    const S = this.state, theme = this.theme();
+    if (document.body.dataset.theme !== theme) document.body.dataset.theme = theme;
+    if (!S.ready) return { theme, processId: S.processId, steps: [], eqList: [], speeds: [], chips: [], messages: [], progressPct: '0%', eq: {}, process: {} };
+    const D = this.data, p = this.process(), eq = D.findEquipment(S.processId, S.selectedId), isDark = theme === 'dark';
+    const k = eq ? p.equipment.indexOf(eq) : -1, pi = D.PROCESSES.indexOf(p), nextEq = p.equipment[k + 1], nextP = D.PROCESSES[pi + 1];
+    const j = v => v ? JSON.stringify(v, null, 2) : '// 아직 없음';
+    return {
+      theme, themeLabel: isDark ? '☀' : '☾', toggleTheme: () => this.setState({ theme: isDark ? 'light' : 'dark' }),
+      processId: S.processId, selectedAttr: S.selectedId || '', process: p, processEn: p.en.toUpperCase(),
+      steps: D.PROCESSES.filter(x => !(S.playing || S.touring) || x.id === S.processId).map(x => { const on = x.id === S.processId; return { ...x, active: on, onClick: () => this.goProcess(x.id), bg: on ? 'var(--panel2)' : 'transparent', color: on ? 'var(--text)' : 'var(--muted)', iconBg: on ? 'var(--accent)' : 'var(--panel2)', iconColor: on ? 'var(--accent-ink)' : 'var(--muted)', weight: on ? '700' : '500' }; }),
+      eqList: p.equipment.map((e, i) => { const on = e.id === S.selectedId, passed = k >= 0 && i < k; return { ...e, num: String(i + 1).padStart(2, '0'), onClick: () => { this.setState({ selectedId: e.id }); this.scene()?.focus(e.id); }, color: on ? 'var(--accent)' : 'var(--text)', weight: on ? '700' : '500', dotBg: on ? 'var(--accent)' : (passed ? 'var(--muted)' : 'var(--panel)'), dotBorder: on ? 'var(--accent)' : (passed ? 'var(--muted)' : 'var(--line)') }; }),
+      hasSelected: !!eq && !S.touring && !S.tutorOpen && !S.devOpen && !S.layerOpen, eq: eq || {}, hasSteps: !!(eq && eq.steps), eqNum: String(k + 1).padStart(2, '0'), eqCount: String(p.equipment.length).padStart(2, '0'),
+      nextName: nextEq ? nextEq.name : (nextP ? `${nextP.name} 공정` : '출하'),
+      clearSelection: () => this.setState({ selectedId: null }), focusSelected: () => this.scene()?.focus(S.selectedId), askTutorAboutEq: () => this.ask('이 설비의 역할은?'),
+      resetView: () => { const sc = this.scene(); sc?.stop?.(); this.setState({ selectedId: null }); setTimeout(() => sc?.overview(), 0); }, togglePlay: () => this.scene()?.toggle(S.speed), stopPlay: () => this.scene()?.stop(), nextStep: () => this.scene()?.next(), playIcon: S.playing ? '■' : '▶',
+      touring: !!S.touring, tourTitle: S.tourStep?.title || '', tourText: S.tourStep?.text || '', tourCount: S.tourStep ? `${String(S.tourStep.i).padStart(2, '0')} / ${String(S.tourStep.total).padStart(2, '0')}` : '',
+      playHint: S.touring ? '자동 시연 중 · ⏭ 다음 · ■ 정지' : '▶ 누르면 공정을 자동으로 시연합니다',
+      matLabel: S.matLabel || p.materialIn.label, progressPct: Math.round(S.progress * 100) + '%',
+      segments: (() => { const n = p.equipment.length, segs = n + 1; return p.equipment.map((e, i) => { const onClick = () => this.scene()?.jumpTo(i, this.state.speed); const a = (i + 1) / segs, b = (i + 2) / segs, tid = S.touring && S.tourStep && S.tourStep.eq, on = tid ? tid === e.id : (S.progress >= a - 0.5 / segs && S.progress < b - 0.5 / segs); return { num: String(i + 1).padStart(2, '0'), name: e.name, left: (a * 100) + '%', width: ((b - a) * 100) + '%', color: on ? 'var(--accent)' : (S.progress >= a ? 'var(--text)' : 'var(--muted)'), onClick }; }); })(),
+      speeds: [0.5, 1, 2].map(v => ({ label: v + '×', onClick: () => this.setState({ speed: v }), bg: S.speed === v ? 'var(--panel2)' : 'transparent', color: S.speed === v ? 'var(--text)' : 'var(--muted)' })),
+      showTutor: S.tutorOpen && !S.devOpen && !S.touring, toggleTutor: () => { this.setState(s => ({ tutorOpen: !s.tutorOpen, devOpen: false })); this.scrollChat(); }, tutorBtnBg: S.tutorOpen ? 'var(--panel2)' : 'transparent', tutorBtnColor: 'var(--text)',
+      showDev: S.devOpen && !S.touring, toggleDev: () => this.setState(s => ({ devOpen: !s.devOpen })),
+      ctxLabel: eq ? `${p.name} · ${eq.name}` : p.name,
+      messages: S.messages.map(m => ({ ...m, isUser: m.role === 'user', isSafety: m.role === 'assistant' && m.mode === 'safety_redirect', isAssistant: m.role === 'assistant' && m.mode !== 'safety_redirect', hasFollowUp: !!m.followUp, askFollowUp: () => this.ask(m.followUp) })),
+      chatRef: this.chatRef, pending: S.pending, chips: D.SUGGESTED.map(text => ({ text, onClick: () => this.ask(text) })),
+      input: S.input, onInput: e => this.setState({ input: e.target.value }), send: e => { e.preventDefault(); this.ask(S.input); },
+      modelLabel: ({ loading: '불러오는 중…', glb: `GLB 로드됨 (${S.model?.mapped}개 노드 연결)`, 'glb-no-nodes': 'GLB 로드됨 · EQ_ 노드 없음 → 기본 도형', primitive: '기본 도형 (GLB 없음)' })[S.model?.status] || '기본 도형',
+      modelPath: `models/${S.processId}.glb`, modelJson: j(S.model),
+      screenContextJson: j(this.screenContext()), lastRequestJson: j(S.lastReq), lastResponseJson: j(S.lastRes),
+    };
+  }
+}
+</script>
+</body>
 </html>
