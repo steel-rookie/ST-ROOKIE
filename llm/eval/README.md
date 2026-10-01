@@ -26,6 +26,10 @@
 | `case_id` | | 내보낸 사람 답변의 id. 모델 판정 파일과 맞춰 볼 때 쓴다 |
 | `note` | | 기대 판정의 근거나 애매한 점 |
 
+## 튜터 질문 표본
+
+`npm run eval:questions -- --count 10 --out questions.md`로 개념마다 질문을 만들어 정답 유출 검사 결과를 표로 본다. '범위 초과' 열(핵심 요소만으로 답할 수 없는 질문인지)은 사람이 채운다.
+
 ## 사람 답변 모으기
 
 1. 팀원 테스트([docs/team-test.md](../../docs/team-test.md))로 각자의 `data/st-rookie.sqlite`를 받는다.
