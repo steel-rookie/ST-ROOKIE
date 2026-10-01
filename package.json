@@ -8,8 +8,6 @@
     "dev": "npm run start",
     "build": "tsc --noEmit false --outDir .build",
     "start": "npm run build && node --env-file-if-exists=.env .build/backend/src/ironmaking-server.js",
-    "start:legacy": "npm run build && node .build/backend/src/server.js",
-    "chat": "npm run build && node .build/backend/src/cli.js",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test .build/backend/test/*.test.js"
   },
@@ -18,7 +16,6 @@
     "url": "git+https://github.com/won2912/ST-ROOKIE.git"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.129.0",
     "express": "^5.2.1",
     "zod": "^4.6.5"
   },

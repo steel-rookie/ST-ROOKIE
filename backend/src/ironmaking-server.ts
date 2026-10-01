@@ -8,7 +8,7 @@ const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "16kb" }));
 
-const webRoot = join(process.cwd(), "frontend", "web");
+const webRoot = join(process.cwd(), "frontend", "3d-demo");
 app.use(express.static(webRoot));
 
 const sessions = new Map<string, { turns: ChatTurn[]; touched: number }>();
@@ -68,7 +68,7 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-app.get("/", (_req, res) => res.sendFile(join(webRoot, "index.html")));
+app.get("/", (_req, res) => res.sendFile(join(webRoot, "Steel Academy.dc.html")));
 
 const port = Number(process.env.PORT ?? 3000);
 app.listen(port, () => console.log(`제선 공정 알아보기: http://localhost:${port}`));

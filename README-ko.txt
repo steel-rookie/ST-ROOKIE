@@ -1,6 +1,6 @@
 제선 공정 질문형 교육 MVP
 
-포스코 제철소 신입사원을 위한 제선 기초 질문 화면입니다. 3D 모델, 퀴즈, 이수 관리, 실제 설비 제어는 포함하지 않습니다.
+포스코 제철소 신입사원을 위한 제선 기초 질문 화면입니다. 퀴즈, 이수 관리, 실제 설비 제어는 포함하지 않습니다.
 
 실행
 
@@ -21,15 +21,13 @@ package.json, tsconfig.json은 루트에 두고 npm 명령은 모두 루트에�
 
 - backend/: 서버, 세션, 공정 데이터, 테스트
   - backend/src/ironmaking-server.ts: 질문 API와 대화 세션. POST /api/chat, GET /api/status를 제공합니다.
-  - backend/src/server.ts, cli.ts, session.ts, data.ts, output.ts: 기존 Claude 교육 에이전트 백엔드(start:legacy, chat).
-  - backend/data/: 공정·설비·자료·퀴즈·장면 JSON과 제선 공개 자료 목록(ironmaking-sources.json).
+  - backend/data/: 제선 공개 자료 목록(ironmaking-sources.json).
   - backend/test/: npm test로 실행하는 테스트.
 - llm/: LLM 호출 코드와 프롬프트
   - llm/src/ironmaking-agent.ts: 소량의 공개 자료 메모를 프롬프트에 제공하고 Gemini GenerateContent API를 호출합니다.
   - llm/src/ironmaking-sources.ts: 공식 자료 목록을 읽어 프롬프트용으로 정리합니다. 자료를 늘린 뒤 검색 기능을 붙이기 쉽도록 분리했습니다.
-  - llm/src/agent.ts, tools.ts, llm/prompts/system_prompt.md: 기존 Claude 에이전트와 도구, 시스템 프롬프트.
 - frontend/: 화면
-  - frontend/web/: 한국어 단일 화면. 질문 입력, 대화, 예시 질문, 상태와 출처 링크를 표시합니다.
+  - frontend/3d-demo/: 서버 첫 화면(Steel Academy.dc.html). 4개 공정 3D 화면과 튜터 패널. 튜터는 아직 샘플 응답(mockTutor)을 사용합니다.
   - frontend/steel-academy/, frontend/steel-academy.html: 기존 3D 열연 교육 데모(단독 실행).
 - models/: 3D 모델 파일(hot-rolling-education.glb).
 
@@ -47,4 +45,4 @@ POST /api/chat
 
 검증: npm.cmd run typecheck / npm.cmd test
 
-기존 3D·퀴즈 데모 파일은 저장소에 남아 있지만 이 MVP 화면에서 사용하지 않습니다. 이전 API는 npm.cmd run start:legacy로 별도 실행할 수 있습니다.
+기존 3D 열연 데모(frontend/steel-academy)는 저장소에 남아 있지만 서버 화면과 연결되지 않습니다.
