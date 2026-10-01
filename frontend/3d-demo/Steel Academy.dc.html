@@ -48,14 +48,33 @@
 
   <div style="position:absolute;left:0;right:0;bottom:0;padding:0 22px 16px;display:flex;align-items:flex-end;gap:24px;pointer-events:none;background:linear-gradient(transparent, oklch(0 0 0 / .6));">
     <div style="display:flex;flex-direction:column;gap:10px;flex:1 1 220px;max-width:300px;min-width:0;pointer-events:auto;">
+      <sc-if value="{{ touring }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:6px;padding:12px 14px;margin-bottom:4px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;backdrop-filter:blur(14px);">
+          <div style="display:flex;justify-content:space-between;gap:10px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.16em;color:var(--accent);">AUTO TOUR</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">{{ tourCount }}</span></div>
+          <span style="font-size:16px;font-weight:700;letter-spacing:-0.01em;line-height:1.25;">{{ tourTitle }}</span>
+          <span style="font-size:12px;line-height:1.55;color:var(--text);opacity:.85;">{{ tourText }}</span>
+        </div>
+      </sc-if>
       <div style="display:flex;flex-direction:column;gap:2px;">
         <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.16em;color:var(--muted);">MATERIAL · {{ progressPct }}</span>
         <span style="font-size:15px;font-weight:600;line-height:1.35;text-shadow:0 1px 8px oklch(0 0 0 / .6);">{{ matLabel }}</span>
       </div>
-      <div style="height:2px;background:oklch(1 0 0 / .18);border-radius:1px;overflow:hidden;"><div style="height:100%;width:{{ progressPct }};background:var(--accent);transition:width .12s linear;"></div></div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <div style="position:relative;height:6px;">
+          <div style="position:absolute;inset:2px 0;background:oklch(1 0 0 / .18);border-radius:1px;overflow:hidden;"><div style="height:100%;width:{{ progressPct }};background:var(--accent);transition:width .12s linear;"></div></div>
+          <sc-for list="{{ segments }}" as="sg" hint-placeholder-count="4">
+            <span style="position:absolute;top:0;left:{{ sg.left }};width:2px;height:6px;margin-left:-1px;background:{{ sg.color }};transition:background .2s;"></span>
+          </sc-for>
+        </div>
+        <div style="display:flex;position:relative;height:14px;">
+          <sc-for list="{{ segments }}" as="sg" hint-placeholder-count="4">
+            <span style="position:absolute;left:{{ sg.left }};width:{{ sg.width }};padding-left:5px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:0.04em;white-space:nowrap;color:{{ sg.color }};transition:color .2s;">{{ sg.num }}</span>
+          </sc-for>
+        </div>
+      </div>
       <div style="display:flex;align-items:center;gap:6px;">
-        <button onClick="{{ stopPlay }}" title="처음으로" style="width:34px;height:34px;border-radius:17px;background:transparent;color:var(--text);border:1px solid var(--line);font-size:12px;cursor:pointer;">⏮</button>
         <button onClick="{{ togglePlay }}" style="width:34px;height:34px;border-radius:17px;background:var(--accent);color:var(--accent-ink);border:none;font-size:13px;cursor:pointer;">{{ playIcon }}</button>
+        <button onClick="{{ nextStep }}" title="다음 단계" style="width:34px;height:34px;border-radius:17px;background:transparent;color:var(--text);border:1px solid var(--line);font-size:12px;cursor:pointer;">⏭</button>
         <div style="display:flex;gap:1px;margin-left:6px;border:1px solid var(--line);border-radius:17px;overflow:hidden;">
           <sc-for list="{{ speeds }}" as="sp" hint-placeholder-count="3">
             <button onClick="{{ sp.onClick }}" style="background:{{ sp.bg }};color:{{ sp.color }};border:none;padding:0 10px;height:32px;font-family:'IBM Plex Mono',monospace;font-size:11px;cursor:pointer;">{{ sp.label }}</button>
@@ -76,6 +95,7 @@
     </div>
     <div style="flex:1 1 220px;max-width:300px;display:flex;justify-content:flex-end;pointer-events:auto;">
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right;">
+        <span style="font-size:11px;color:var(--muted);line-height:1.5;">{{ playHint }}</span>
         <span style="font-size:11px;color:var(--muted);line-height:1.5;">드래그 회전 · 휠 확대 · 라벨/설비 클릭</span>
         <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.08em;">MODEL · {{ modelPath }}</span>
         <span style="font-size:11px;color:var(--accent);">{{ modelLabel }}</span>
@@ -213,7 +233,8 @@ class Component extends DCLogic {
     this.setState({ ready: true, speed: this.props.flowSpeed ?? 1 });
     document.addEventListener('steel-select', e => { const id = e.detail.id; this.setState({ selectedId: id }); if (id) this.scene()?.focus(id); });
     document.addEventListener('steel-model', e => this.setState({ model: e.detail }));
-    document.addEventListener('steel-progress', e => this.setState({ progress: e.detail.t, matLabel: e.detail.label, playing: e.detail.playing }));
+    document.addEventListener('steel-progress', e => this.setState({ progress: e.detail.t, matLabel: e.detail.label, playing: e.detail.playing, touring: e.detail.touring, tourStep: e.detail.step }));
+    document.addEventListener('steel-tour-end', () => this.setState({ touring: false, tourStep: null }));
     if (this.props.autoPlay) setTimeout(() => this.scene()?.play(this.state.speed), 800);
   }
   scrollChat() { [50, 250].forEach(ms => setTimeout(() => { const el = this.chatRef.current; if (el) el.scrollTop = el.scrollHeight; }, ms)); }
@@ -260,8 +281,11 @@ class Component extends DCLogic {
       hasSelected: !!eq, eq: eq || {}, hasSteps: !!(eq && eq.steps), eqNum: String(k + 1).padStart(2, '0'), eqCount: String(p.equipment.length).padStart(2, '0'),
       nextName: nextEq ? nextEq.name : (nextP ? `${nextP.name} 공정` : '출하'),
       clearSelection: () => this.setState({ selectedId: null }), focusSelected: () => this.scene()?.focus(S.selectedId), askTutorAboutEq: () => this.ask('이 설비의 역할은?'),
-      resetView: () => this.scene()?.reset(), togglePlay: () => this.scene()?.toggle(S.speed), stopPlay: () => this.scene()?.stop(), playIcon: S.playing ? '❚❚' : '▶',
+      resetView: () => this.scene()?.reset(), togglePlay: () => this.scene()?.toggle(S.speed), stopPlay: () => this.scene()?.stop(), nextStep: () => this.scene()?.next(), playIcon: S.playing ? '■' : '▶',
+      touring: !!S.touring, tourTitle: S.tourStep?.title || '', tourText: S.tourStep?.text || '', tourCount: S.tourStep ? `${String(S.tourStep.i).padStart(2, '0')} / ${String(S.tourStep.total).padStart(2, '0')}` : '',
+      playHint: S.touring ? '자동 시연 중 · ⏭ 다음 · ■ 정지' : '▶ 누르면 공정을 자동으로 시연합니다',
       matLabel: S.matLabel || p.materialIn.label, progressPct: Math.round(S.progress * 100) + '%',
+      segments: (() => { const n = p.equipment.length, segs = n + 1; return p.equipment.map((e, i) => { const a = (i + 1) / segs, b = (i + 2) / segs, on = S.progress >= a - 0.5 / segs && S.progress < b - 0.5 / segs; return { num: String(i + 1).padStart(2, '0'), name: e.name, left: (a * 100) + '%', width: ((b - a) * 100) + '%', color: on ? 'var(--accent)' : (S.progress >= a ? 'var(--text)' : 'var(--muted)') }; }); })(),
       speeds: [0.5, 1, 2].map(v => ({ label: v + '×', onClick: () => this.setState({ speed: v }), bg: S.speed === v ? 'var(--panel2)' : 'transparent', color: S.speed === v ? 'var(--text)' : 'var(--muted)' })),
       showTutor: S.tutorOpen && !S.devOpen, toggleTutor: () => { this.setState(s => ({ tutorOpen: !s.tutorOpen, devOpen: false })); this.scrollChat(); }, tutorBtnBg: S.tutorOpen ? 'var(--panel2)' : 'transparent', tutorBtnColor: 'var(--text)',
       showDev: S.devOpen, toggleDev: () => this.setState(s => ({ devOpen: !s.devOpen })),

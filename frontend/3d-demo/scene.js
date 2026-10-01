@@ -81,7 +81,7 @@ class SteelScene extends HTMLElement {
     this.scene.add(this.skyline);
     const pl = new THREE.PointLight(0xff7a1a, 1.6, 40, 1.5); pl.position.set(0, 3, 4); this.scene.add(pl);
     this.ring.rotation.x = -Math.PI / 2; this.ring.position.y = 0.02; this.ring.visible = false; this.scene.add(this.ring);
-    this.ray = new THREE.Raycaster(); this.eqs = [];
+    this.ray = new THREE.Raycaster(); this.eqs = []; this._tourId = 0; this._tourWaits = [];
     this._bindPointer();
     new ResizeObserver(() => this._resize()).observe(this);
     this._resize();
@@ -122,6 +122,7 @@ class SteelScene extends HTMLElement {
     const p = findProcess(this.getAttribute('process')) ; if (!p) return;
     this.process = p;
     if (this.root) this.scene.remove(this.root);
+    if (this.touring) { this._tourId++; this._skip(); this.move = null; this.touring = false; this.tourStep = null; }
     this.labels.innerHTML = ''; this.eqs = []; this._showInterior(null);
     this.root = new THREE.Group(); this.root.name = `PROCESS_${p.id}`;
     const n = p.equipment.length;
@@ -280,7 +281,7 @@ class SteelScene extends HTMLElement {
     const e = this.eqs.find(q => q.id === this.getAttribute('selected'));
     this.layerItems.forEach(it => {
       const on = it.idx === this.activeLayer, none = this.activeLayer === null;
-      it.m.material.opacity = none || on ? 0.9 : 0.22;
+      const op = none || on ? 0.9 : 0.22; it.m.traverse(o => { if (o.isMesh) o.material.opacity = op; });
       it.tl.style.opacity = none || on ? '1' : '0.35';
       it.tl.style.transform = on ? 'translate(-50%,-50%) scale(1.15)' : 'translate(-50%,-50%)';
       it.tl.style.background = on ? it.L.color : 'rgba(8,12,18,.45)';
@@ -350,6 +351,16 @@ class SteelScene extends HTMLElement {
     const o = this.orbit;
     this.camera.position.set(o.target.x + o.dist * Math.sin(o.yaw) * Math.cos(o.pitch), o.target.y + o.dist * Math.sin(o.pitch), o.target.z + o.dist * Math.cos(o.yaw) * Math.cos(o.pitch));
     this.camera.lookAt(o.target);
+    if (this.move) {
+      const mv = this.move, k = Math.min(1, (now - mv.t0) / mv.dur), e = k * k * (3 - 2 * k);
+      const pos = new THREE.Vector3().lerpVectors(this.path[mv.from], this.path[mv.to], e);
+      if (mv.arc) pos.y += Math.sin(e * Math.PI) * mv.arc;
+      this._setMaterial(k > 0.5 ? mv.state : mv.prevState, pos);
+      if (this.material) this.material.rotation.y += 0.02;
+      this.t = (mv.from + e) / (this.path.length - 1);
+      if (now - (this.lastEmit || 0) > 120 || k >= 1) { this.lastEmit = now; this._emitProgress(); }
+      if (k >= 1) { this.move = null; mv.resolve(); }
+    }
     if (this.playing) {
       const t = Math.min(1, (now - this.playT0) / this.playDur); this.t = t;
       const segs = this.path.length - 1, f = t * segs, i = Math.min(segs - 1, Math.floor(f)), u = f - i;
@@ -365,11 +376,56 @@ class SteelScene extends HTMLElement {
     (this.interiorLabels || []).forEach(l => { if (!l._pos) return; if (l._card && l.style.display === 'none') return; v.copy(l._pos).project(this.camera); const vis = v.z < 1; l.style.display = vis ? 'flex' : 'none'; if (vis) { let px = (v.x + 1) / 2 * w; if (l._card && l._up) { const cw = l.offsetWidth || 260; px = Math.min(Math.max(px - cw / 2, 8), w - cw - 8); l.style.transform = 'translate(0,-100%)'; } else if (l._card) { const cw = l.offsetWidth || 260; if (px + cw > w - 8) { const alt = l._posL.clone().project(this.camera); px = (alt.x + 1) / 2 * w; l.style.transform = 'translate(-100%,-50%)'; } else l.style.transform = 'translate(0,-50%)'; } l.style.left = px + 'px'; l.style.top = ((1 - v.y) / 2 * h) + 'px'; } });
     if (this.ring.visible) this.ring.rotation.z += 0.01;
   }
-  _emitProgress() { this.dispatchEvent(new CustomEvent('steel-progress', { detail: { t: this.t || 0, label: this.states[this.matIdx]?.label || '', playing: !!this.playing }, bubbles: true, composed: true })); }
+  _emitProgress() { this.dispatchEvent(new CustomEvent('steel-progress', { detail: { t: this.t || 0, label: this.states[this.matIdx]?.label || '', playing: !!this.playing || !!this.touring, touring: !!this.touring, step: this.tourStep || null }, bubbles: true, composed: true })); }
+  _emitTour(step) { this.tourStep = step; this.dispatchEvent(new CustomEvent('steel-tour', { detail: step, bubbles: true, composed: true })); this._emitProgress(); }
+  _moveMaterial(from, to, dur, state, arc) { return new Promise(resolve => { this.move = { from, to, t0: performance.now(), dur, state, prevState: this.matIdx < 0 ? 0 : this.matIdx, arc, resolve }; }); }
+  _wait(ms) { return new Promise((res) => { const tk = this._tourToken; const id = setTimeout(res, ms); this._tourWaits.push({ id, res }); }); }
+  _skip() { (this._tourWaits || []).forEach(w => { clearTimeout(w.id); w.res(); }); this._tourWaits = []; if (this.move) { const mv = this.move; this.move = null; this._setMaterial(mv.state, this.path[mv.to]); mv.resolve(); } }
+  // 자동 시연: 설비마다 소재 이동 → 카메라 → 내부 층 순서대로 설명
+  async tour(speed = 1) {
+    if (this.touring) return false;
+    const token = ++this._tourId;
+    try { return await this._tourBody(token, speed); }
+    catch (err) { console.error('tour error', err); return false; }
+    finally { if (token === this._tourId) { this.touring = false; this.tourStep = null; this.move = null; this._emitProgress(); this.dispatchEvent(new CustomEvent('steel-tour-end', { bubbles: true, composed: true })); } }
+  }
+  async _tourBody(token, speed) {
+    this.touring = true; this._tourWaits = []; this.playing = false;
+    const sp = 1 / speed, total = this.eqs.reduce((n, e) => n + 1 + (e.interior && e.data.interior ? e.data.interior.length : 0), 0) + 2;
+    let step = 0;
+    this._select(null); this._setMaterial(0, this.path[0]); this.t = 0;
+    this._emitTour({ i: ++step, total, title: this.process.name + ' 공정 자동 시연', text: this.process.summary, eq: null });
+    this.reset(); await this._wait(4500 * sp); if (token !== this._tourId) return;
+    for (let k = 0; k < this.eqs.length; k++) {
+      const e = this.eqs[k];
+      this._emitTour({ i: ++step, total, title: `${String(k + 1).padStart(2, '0')} ${e.data.name}`, text: e.data.role, eq: e.id });
+      this._select(e.id); this.focus(e.id);
+      await this._moveMaterial(k, k + 1, 3200 * sp, k + 1, 1.5); if (token !== this._tourId) return;
+      await this._wait(3000 * sp); if (token !== this._tourId) return;
+      if (e.interior && e.data.interior && this.layerItems?.length) {
+        for (let L = 0; L < this.layerItems.length; L++) {
+          const it = this.layerItems[L];
+          this._emitTour({ i: ++step, total, title: it.L.temp ? `${e.data.name} · ${it.L.temp}` : `${e.data.name} · ${it.L.label}`, text: it.L.temp ? it.L.label : (e.data.steps?.[L]?.zone || ''), eq: e.id, layer: L });
+          this.activeLayer = null; this._focusLayer(L);
+          const ln = (it.L.label.length * 26) + ((e.data.steps?.[L]?.text || '').length * 12) + ((it.L.formula || '').length * 22);
+          await this._wait(Math.max(5000, 3500 + ln) * sp); if (token !== this._tourId) return;
+        }
+        this.activeLayer = null; this.layerItems.forEach(it => { it.m.traverse(o => { if (o.isMesh) o.material.opacity = 0.9; }); it.tl.style.opacity = '1'; it.card.style.display = 'none'; it.tl.style.background = 'rgba(8,12,18,.45)'; it.tl.style.color = '#fff'; it.tl.style.transform = 'translate(-50%,-50%)'; it.tl.style.borderColor = 'rgba(255,255,255,.35)'; });
+        this.focus(e.id); await this._wait(2200 * sp); if (token !== this._tourId) return;
+      }
+    }
+    this._emitTour({ i: ++step, total, title: '완료', text: this.states[this.states.length - 1].label + ' → 다음 공정으로', eq: null });
+    this._select(null); this.reset();
+    await this._moveMaterial(this.eqs.length, this.eqs.length + 1, 3200 * sp, this.states.length - 1, 0); if (token !== this._tourId) return;
+    await this._wait(3000 * sp);
+    return true;
+  }
+  next() { if (this.touring) this._skip(); }
+  stopTour() { if (!this.touring) return; this._tourId++; this._skip(); this.move = null; this.touring = false; this.tourStep = null; this._select(null); this.reset(); this.stop(); }
   // 공개 API
   play(speed = 1) { this.playing = true; this.t = 0; this.playT0 = performance.now(); this.playDur = (this.path.length - 1) * 2600 / speed; this._setMaterial(0, this.path[0]); this._emitProgress(); return true; }
-  stop() { this.playing = false; this.t = 0; this.matIdx = -1; this._emitProgress(); }
-  toggle(speed) { this.playing ? this.stop() : this.play(speed); }
+  stop() { if (this.touring) return this.stopTour(); this.playing = false; this.t = 0; this.matIdx = -1; this._emitProgress(); }
+  toggle(speed) { (this.playing || this.touring) ? this.stop() : this.tour(speed); }
   focus(id) { const e = this.eqs.find(q => q.id === id); if (!e) return false; const inner = !!e.interior; this._animateTo({ yaw: inner ? -0.25 : -0.5, pitch: inner ? 0.12 : 0.35, dist: inner ? e.dist * 0.75 : e.dist, target: inner ? new THREE.Vector3(e.interior.cx, (e.interior.y0 + e.interior.y1) / 2, e.interior.cz) : e.focus.clone() }); return true; }
   reset() { this._animateTo({ yaw: this.home.yaw, pitch: this.home.pitch, dist: this.home.dist, target: new THREE.Vector3().fromArray(this.home.target) }); }
   _animateTo(to) { this.anim = { t0: performance.now(), dur: 700, from: { yaw: this.orbit.yaw, pitch: this.orbit.pitch, dist: this.orbit.dist, target: this.orbit.target.clone() }, to }; }
