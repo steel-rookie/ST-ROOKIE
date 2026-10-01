@@ -22,6 +22,8 @@ export interface EvalCase {
   type?: (typeof CASE_TYPES)[number];
   pair_id?: string;
   question_id?: string;
+  respondent?: string;
+  case_id?: string;
   note?: string;
 }
 

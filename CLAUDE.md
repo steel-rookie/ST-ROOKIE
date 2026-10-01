@@ -161,5 +161,7 @@ content/
   - `llm/eval/smoke/`: 회귀 테스트용. 루브릭 표현을 따른 쉬운 케이스라 거의 100%가 정상이고, 평가자 품질의 근거로 쓰지 않는다.
   - `llm/eval/hard/`: 품질 평가용. 공격 케이스(`source: synthetic`)와 사람 답변(`source: human`)을 source별로 따로 집계한다. 형식과 필드는 `llm/eval/README.md`.
   - 출력: 일치율(전체·단계·source·유형), source별 혼동 표, 평가자 형식 재시도(케이스별·전체 비율), 같은 뜻 쌍(`pair_id`) 일치율, 틀린 케이스.
+- `npm run eval:export-human -- --db 파일 ...`: 체크포인트 DB의 첫 판정 답변을 `llm/eval/hard/pending/`에 내보낸다(판정 빈칸, 모델 판정은 별도 파일, 사용자 id 익명화). 팀원 테스트 안내는 `docs/team-test.md`.
+- 평가자 공통 규칙: 사실 오류가 하나라도 있으면 최대 partial이고 오류는 misconception에 기록한다(`llm/prompts/evaluator.md`).
 - 평가자·튜터 프롬프트는 `llm/prompts/`에 있다. 평가자 프롬프트를 바꾸면 `eval:evaluator`로 일치율을 다시 확인한다.
 - 소스를 지우거나 옮긴 뒤 테스트가 이상하면 `.build/`를 지우고 다시 실행한다(이전 빌드 결과가 남는다).
