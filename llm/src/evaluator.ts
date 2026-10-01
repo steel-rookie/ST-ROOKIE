@@ -86,10 +86,24 @@ export function parseEvaluation(raw: string, concept: RubricConcept, phase: Phas
   return e;
 }
 
+/** 평가 한 번의 상세 결과. formatProblems는 형식 검증에 실패한 시도의 이유(재시도 횟수 = 길이). */
+export interface DetailedEvaluation {
+  evaluation: Evaluation | null;
+  attempts: number;
+  formatProblems: string[];
+}
+
 export class GeminiEvaluator implements Evaluator {
   constructor(private readonly gemini: GeminiClient) {}
 
-  async evaluate({ rubric, concept, question, answer, phase }: EvaluateInput): Promise<Evaluation> {
+  async evaluate(input: EvaluateInput): Promise<Evaluation> {
+    const { evaluation, formatProblems } = await this.evaluateDetailed(input);
+    if (evaluation) return evaluation;
+    throw new EvaluationFormatError(`평가자 출력 형식 오류(${MAX_ATTEMPTS}회): ${formatProblems.join(" / ")}`);
+  }
+
+  /** 형식 재시도 기록까지 돌려준다. 끝까지 형식이 틀리면 evaluation이 null이다. */
+  async evaluateDetailed({ rubric, concept, question, answer, phase }: EvaluateInput): Promise<DetailedEvaluation> {
     const request = {
       system: evaluatorSystemPrompt(rubric, concept, phase),
       prompt: evaluatorUserPrompt(question, answer),
@@ -97,13 +111,13 @@ export class GeminiEvaluator implements Evaluator {
       maxOutputTokens: 512,
       responseSchema: evaluatorResponseSchema(phase),
     };
-    const problems: string[] = [];
-    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+    const formatProblems: string[] = [];
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       // LLM 연결 오류(LlmUnavailableError)는 재시도하지 않고 그대로 올린다.
       const result = parseEvaluation(await this.gemini.generate(request), concept, phase);
-      if (typeof result !== "string") return result;
-      problems.push(result);
+      if (typeof result !== "string") return { evaluation: result, attempts: attempt, formatProblems };
+      formatProblems.push(result);
     }
-    throw new EvaluationFormatError(`평가자 출력 형식 오류(${MAX_ATTEMPTS}회): ${problems.join(" / ")}`);
+    return { evaluation: null, attempts: MAX_ATTEMPTS, formatProblems };
   }
 }

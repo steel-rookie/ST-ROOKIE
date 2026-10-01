@@ -67,6 +67,22 @@ test("평가자: 형식이 틀리면 1회 재시도하고, 두 번째에 맞으�
   assert.equal(result.explain_from, 1);
 });
 
+test("평가자: evaluateDetailed는 형식 재시도 횟수와 이유를 기록한다", async () => {
+  const { client } = fakeGemini(["not json", ok({ verdict: "correct" }), "{}", "{}"]);
+  const evaluator = new GeminiEvaluator(client);
+  const input = { rubric, concept, phase: "initial" as const, question: "Q", answer: "A" };
+
+  const retried = await evaluator.evaluateDetailed(input);
+  assert.equal(retried.attempts, 2);
+  assert.deepEqual(retried.formatProblems, ["JSON이 아님"]);
+  assert.equal(retried.evaluation?.verdict, "correct");
+
+  const failed = await evaluator.evaluateDetailed(input);
+  assert.equal(failed.attempts, 2);
+  assert.equal(failed.formatProblems.length, 2);
+  assert.equal(failed.evaluation, null);
+});
+
 test("평가자: 두 번 모두 형식 오류면 EvaluationFormatError", async () => {
   const { sent, client } = fakeGemini([
     ok({ verdict: "correct", explain_from: 0 }),          // correct인데 explain_from

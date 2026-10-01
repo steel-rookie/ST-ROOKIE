@@ -157,6 +157,9 @@ content/
 
 - `npm test`: 빌드 후 `backend/test/*.test.ts`를 `node:test`로 실행한다.
 - `npm run typecheck`: 타입 검사.
-- `npm run eval:evaluator`: 실제 Gemini로 평가자 정확도를 잰다(`llm/eval/{섹션}.jsonl`, 일치율·혼동 표·틀린 케이스). 비용과 요청 제한 때문에 `npm test`에는 넣지 않는다. 케이스 사이 대기는 `EVAL_DELAY_MS`(기본 1000).
+- `npm run eval:evaluator -- --set smoke|hard`: 실제 Gemini로 평가자 정확도를 잰다(기본 smoke). 비용과 요청 제한 때문에 `npm test`에는 넣지 않는다. 케이스 사이 대기는 `EVAL_DELAY_MS`(기본 1000, 무료 등급은 5000 권장).
+  - `llm/eval/smoke/`: 회귀 테스트용. 루브릭 표현을 따른 쉬운 케이스라 거의 100%가 정상이고, 평가자 품질의 근거로 쓰지 않는다.
+  - `llm/eval/hard/`: 품질 평가용. 공격 케이스(`source: synthetic`)와 사람 답변(`source: human`)을 source별로 따로 집계한다. 형식과 필드는 `llm/eval/README.md`.
+  - 출력: 일치율(전체·단계·source·유형), source별 혼동 표, 평가자 형식 재시도(케이스별·전체 비율), 같은 뜻 쌍(`pair_id`) 일치율, 틀린 케이스.
 - 평가자·튜터 프롬프트는 `llm/prompts/`에 있다. 평가자 프롬프트를 바꾸면 `eval:evaluator`로 일치율을 다시 확인한다.
 - 소스를 지우거나 옮긴 뒤 테스트가 이상하면 `.build/`를 지우고 다시 실행한다(이전 빌드 결과가 남는다).
