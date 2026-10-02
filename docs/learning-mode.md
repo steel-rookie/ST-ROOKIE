@@ -48,6 +48,7 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
 - 안전 질문(`safety.ts`, mockTutor와 같은 키워드)은 튜터를 부르지 않고 `safety_redirect`로 저장한다.
 - 질문만으로 근거를 못 찾고 직전 대화가 있으면, 직전 질문·답변을 붙여 한 번 더 검색한다("그럼 그건요?" 같은 후속 질문).
 - 오류: 하루 한도 429, Gemini 키 없음 503, 연결·형식 오류 502. 오류 때는 대화를 저장하지 않는다.
+- 화면: `frontend/3d-demo/learning-chat.js`의 `ask()`가 `/api/chat`을 부른다. 같은 페이지에서는 `session_id`를 이어 쓰고, 서버에 없는 세션(404)이면 새 대화로 한 번 다시 묻는다. 전체 보기(`site`)에서는 `process_id`를 보내지 않는다(서버 기본: 제선). 사용자 구분은 체크포인트 테스트 페이지와 같이 `?user=`와 저장된 접속 비밀번호를 쓴다. `tutor_v2.js`(가짜 튜터)는 더 이상 부르지 않는다.
 
 ### 튜터 구현 (`llm/src/learning-agent.ts`)
 
