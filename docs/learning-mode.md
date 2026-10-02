@@ -6,9 +6,8 @@
 
 ## 현재 상태
 
-- 서버 `/api/chat`은 `ironmaking-agent.ts`가 공개 자료 메모(약 25문장)를 통째로 프롬프트에 넣어 Gemini를 1회 호출한다. 응답은 `{answer, status: grounded|unverified, sources, session_id}`, 대화는 서버 메모리에 6턴·2시간 보관한다.
+- 서버 `/api/chat`은 학습 모드 라우터(`backend/src/learning/routes.ts`)가 답한다. 예전 제선 Q&A(`ironmaking-agent.ts`, 공개 자료 메모를 통째로 프롬프트에 넣어 Gemini를 1회 호출하고 대화를 서버 메모리에 보관)는 지웠다. 기본 모델 상수 `DEFAULT_GEMINI_MODEL`은 `llm/src/gemini.ts`로 옮겼다.
 - 화면(최종 페이지 v2)의 학습 모드 입력은 `frontend/3d-demo/learning-chat.js`가 아직 가짜 튜터(`tutor_v2.js`의 `mockTutor`)로 보낸다.
-- `ironmaking-agent.ts`는 체크포인트용 `GeminiClient`(responseSchema, 오류 처리, 사용량 제한 훅)를 쓰지 않는 예전 호출 코드다.
 
 ## 결정 사항
 
@@ -42,7 +41,7 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
 
 ### 라우트 구현 (`backend/src/learning/routes.ts`)
 
-- `createLearningRouter({ repo, retriever, agent, rubrics })`를 `createApp({ learning })`에 넘긴다. `app.ts`는 이 라우터를 예전 제선 Q&A(`ironmaking-agent`)보다 먼저 등록하므로 `POST /api/chat`은 학습 모드가 답한다.
+- `createLearningRouter({ repo, retriever, agent, rubrics })`를 `createApp({ learning })`에 넘긴다. `POST /api/chat`은 학습 모드가 답한다(예전 제선 Q&A 핸들러는 지웠다).
 - 요청 `{ question, session_id?, screen?: { process_id, equipment_id } }`, 응답 `{ answer, status, sources, follow_up, session_id }`. `process_id`가 없으면 제선.
 - 세션은 DB(`learning_turns`)로 이어진다. 없는 세션·다른 사람의 세션은 404, 같은 세션에서 답변 중 다시 질문하면 409.
 - 안전 질문(`safety.ts`)은 튜터를 부르지 않고 `safety_redirect`로 저장한다. 조작 방법·허락("밸브를 열어도 돼요?", "정지시키는 방법")과 비상 대응("비상 정지 버튼")만 막고, "고로가 정지하면 어떻게 되나요?" 같은 교육 질문은 통과시킨다(단어 하나로 막지 않음).
@@ -127,7 +126,7 @@ CREATE TABLE learning_turns (
 
 | 파일 | 역할 |
 |---|---|
-| `llm/src/learning-agent.ts` | `ironmaking-agent.ts` 대체. `GeminiClient` 사용, `LearningAgent` 인터페이스(테스트용 가짜 구현) |
+| `llm/src/learning-agent.ts` | `ironmaking-agent.ts`(삭제) 대체. `GeminiClient` 사용, `LearningAgent` 인터페이스(테스트용 가짜 구현) |
 | `llm/src/retrieval.ts` | `retrieve()`: 섹션 문서 조각 나누기와 검색 |
 | `llm/prompts/learning.md` | 학습 모드 프롬프트 |
 | `backend/src/learning/` | 라우트, 안전 규칙, `buildLearnerNotes`(`notes.ts`, 시그니처 고정), 대화 저장소 |

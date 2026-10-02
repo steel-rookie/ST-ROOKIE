@@ -1,5 +1,5 @@
 // 학습 모드 튜터(Gemini): 근거 조각으로 자유 질문에 답하고, 학습자가 틀린 내용을 단정하면 오개념을 함께 알려 준다.
-// ironmaking-agent.ts(예전 /api/chat)를 대체한다. 설계는 docs/learning-mode.md '흐름'.
+// 예전 /api/chat(ironmaking-agent.ts, 지금은 삭제)을 대체했다. 설계는 docs/learning-mode.md '흐름'.
 // - 호출은 1회(temperature 0.3). responseSchema로 형식을 강제하고, 서버에서 한 번 더 검증해 실패하면 1회 다시 부른다.
 // - source_ids는 이번에 검색한 조각 id만, concept_id는 루브릭 개념만 남긴다.
 import { z } from "zod";
