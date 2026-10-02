@@ -85,12 +85,12 @@
     <header style="position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;padding:12px 24px;background:color-mix(in srgb, var(--bg) 85%, transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);">
       <div style="display:flex;align-items:center;gap:10px;">
         <span style="width:34px;height:34px;border-radius:7px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff;">S</span>
-        <div style="display:flex;flex-direction:column;gap:2px;line-height:1.15;"><span style="font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.05em;white-space:nowrap;">STEEL ACADEMY</span><span style="font-size:11px;color:var(--muted);">마이페이지</span></div>
+        <div style="display:flex;flex-direction:column;gap:2px;line-height:1.15;"><span style="font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.05em;white-space:nowrap;">STEEL ACADEMY</span><span style="font-size:{{ fs.xs }};color:var(--muted);">{{ headerSub }}</span></div>
       </div>
       <div style="flex:1;"></div>
-      <a href="../3d-demo/Steel%20Academy%20v2.dc.html" style="height:36px;display:flex;align-items:center;padding:0 14px;border-radius:8px;border:1px solid var(--line);font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;" style-hover="border-color:var(--accent);color:var(--accent);">← 3D 학습으로</a>
+      <a href="../3d-demo/Steel%20Academy%20v2.dc.html" style="height:36px;display:flex;align-items:center;padding:0 14px;border-radius:8px;border:1px solid var(--line);font-size:{{ fs.sm }};font-weight:600;color:var(--text);white-space:nowrap;" style-hover="border-color:var(--accent);color:var(--accent);">← 3D 학습으로</a>
       <button onClick="{{ toggleTheme }}" title="테마" style="width:36px;height:36px;border-radius:8px;background:transparent;color:var(--text);border:1px solid var(--line);font-size:15px;cursor:pointer;" style-hover="border-color:var(--accent);color:var(--accent);">{{ themeLabel }}</button>
-      <button onClick="{{ logout }}" style="height:36px;padding:0 12px;border-radius:8px;background:transparent;color:var(--muted);border:1px solid var(--line);font-size:12px;cursor:pointer;white-space:nowrap;flex:none;" style-hover="color:var(--text);border-color:var(--accent);">로그아웃</button>
+      <button onClick="{{ logout }}" style="height:36px;padding:0 12px;border-radius:8px;background:transparent;color:var(--muted);border:1px solid var(--line);font-size:{{ fs.sm }};cursor:pointer;white-space:nowrap;flex:none;" style-hover="color:var(--text);border-color:var(--accent);">로그아웃</button>
     </header>
 
     <main style="max-width:1180px;margin:0 auto;padding:28px 24px 64px;display:flex;flex-direction:column;gap:28px;">
@@ -100,16 +100,16 @@
           <span style="width:56px;height:56px;border-radius:28px;flex:none;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:20px;color:var(--accent);">{{ user.initial }}</span>
           <div style="display:flex;flex-direction:column;gap:4px;min-width:0;">
             <span style="font-family:'Noto Sans KR',sans-serif;font-size:22px;font-weight:900;letter-spacing:-0.02em;">{{ user.name }}</span>
-            <span style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid var(--line);">{{ user.provider }}</span>{{ user.email }}</span>
-            <span style="font-size:12px;color:var(--muted);">{{ user.cohort }} · <span style="white-space:nowrap;">마지막 학습 {{ user.lastSeen }}</span></span>
+            <span style="font-size:{{ fs.sm }};color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-family:'IBM Plex Mono',monospace;font-size:{{ fs.xs }};padding:2px 6px;border-radius:4px;border:1px solid var(--line);">{{ user.provider }}</span>{{ user.email }}</span>
+            <span style="font-size:{{ fs.sm }};color:var(--muted);">{{ user.cohort }} · <span style="white-space:nowrap;">마지막 학습 {{ user.lastSeen }}</span></span>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden;">
           <sc-for list="{{ stats }}" as="st" hint-placeholder-count="3">
             <button onClick="{{ st.onClick }}" style="display:flex;flex-direction:column;justify-content:center;gap:6px;padding:16px;background:var(--panel);border:none;color:var(--text);text-align:left;cursor:pointer;" style-hover="background:var(--panel2);">
-              <span style="font-size:11px;color:var(--muted);">{{ st.label }}</span>
+              <span style="font-size:{{ fs.xs }};color:var(--muted);">{{ st.label }}</span>
               <span style="font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;">{{ st.value }}</span>
-              <span style="font-size:11px;color:var(--muted);">{{ st.sub }}</span>
+              <span style="font-size:{{ fs.xs }};color:var(--muted);">{{ st.sub }}</span>
             </button>
           </sc-for>
         </div>
@@ -117,64 +117,85 @@
 
       <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
         <sc-if value="{{ adminNote }}" hint-placeholder-val="{{ false }}">
-          <span role="status" style="padding:12px 16px;border-radius:12px;border:1px dashed var(--line);font-size:12px;color:var(--muted);line-height:1.6;">{{ adminNote }}</span>
+          <span role="status" style="padding:12px 16px;border-radius:12px;border:1px dashed var(--line);font-size:14px;color:var(--muted);line-height:1.6;">{{ adminNote }}</span>
         </sc-if>
 
-        <section style="display:flex;flex-direction:column;gap:12px;">
+        <section style="display:flex;flex-direction:column;gap:14px;">
           <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-            <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:18px;font-weight:700;">섹션별 신입사원 현황</h2>
-            <span style="font-size:12px;color:var(--muted);text-wrap:pretty;">평균 이해도는 체크포인트를 끝낸 사람만 계산합니다 · 세로선은 통과 기준 80%</span>
+            <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:20px;font-weight:700;">신입사원별 통계</h2>
+            <span style="font-size:14px;color:var(--muted);">섹션에 마우스를 올리면 오른쪽 그래프가 바뀝니다</span>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;">
-            <sc-for list="{{ adminSections }}" as="as" hint-placeholder-count="4">
-              <div style="display:flex;flex-direction:column;gap:14px;padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:16px;">
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <span style="width:32px;height:32px;border-radius:16px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--panel2);font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;">{{ as.num }}</span>
-                  <span style="font-size:15px;font-weight:700;flex:1;">{{ as.name }}</span>
-                  <span style="font-size:11px;color:var(--muted);white-space:nowrap;">통과 <span style="font-family:'IBM Plex Mono',monospace;color:var(--text);">{{ as.passed }}</span> / 응시 {{ as.taken }}명</span>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:6px;">
-                  <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);"><span>평균 이해도</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--text);">{{ as.avgLabel }}</span></div>
-                  <div style="position:relative;height:6px;border-radius:3px;background:var(--panel2);">
-                    <div style="height:100%;width:{{ as.avgPct }};border-radius:3px;background:{{ as.barColor }};"></div>
-                    <span style="position:absolute;left:80%;top:-3px;width:2px;height:12px;background:var(--text);opacity:.5;"></span>
-                  </div>
-                </div>
-              </div>
-            </sc-for>
-          </div>
-        </section>
 
-        <section style="display:flex;flex-direction:column;gap:12px;">
-          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-            <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:18px;font-weight:700;">신입사원별 통계</h2>
-            <span style="font-size:12px;color:var(--muted);text-wrap:pretty;">섹션 칸은 마지막 체크포인트 이해도 · 오개념 내용은 본인만 볼 수 있어 개수만 표시합니다</span>
-          </div>
-          <div style="overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;">
-            <div style="min-width:760px;display:flex;flex-direction:column;">
-              <div style="display:grid;grid-template-columns:{{ adminCols }};gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:11px;color:var(--muted);">
-                <span>신입사원</span>
-                <sc-for list="{{ adminSections }}" as="h" hint-placeholder-count="4"><span style="text-align:center;">{{ h.name }}</span></sc-for>
-                <span style="text-align:center;">통과</span><span style="text-align:center;">미해결 오개념</span><span style="text-align:right;">마지막 학습</span>
-              </div>
-              <sc-for list="{{ adminRows }}" as="r" hint-placeholder-count="4">
-                <div style="display:grid;grid-template-columns:{{ adminCols }};gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);font-size:13px;">
-                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
-                    <span style="font-weight:700;">{{ r.name }}</span>
-                    <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">{{ r.username }} · {{ r.employeeNo }}</span>
-                  </div>
-                  <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="4">
-                    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-                      <span style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:{{ c.color }};">{{ c.label }}</span>
-                      <span style="font-size:10px;color:var(--muted);">{{ c.sub }}</span>
-                    </div>
-                  </sc-for>
-                  <span style="text-align:center;font-family:'IBM Plex Mono',monospace;">{{ r.passed }}</span>
-                  <span style="text-align:center;font-family:'IBM Plex Mono',monospace;color:{{ r.misColor }};">{{ r.misOpen }}<span style="font-size:10px;color:var(--muted);"> {{ r.misResolved }}</span></span>
-                  <span style="text-align:right;font-size:12px;color:var(--muted);">{{ r.last }}</span>
-                </div>
+          <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:stretch;">
+            <nav aria-label="섹션" style="flex:0 1 240px;min-width:220px;display:flex;flex-direction:column;gap:8px;">
+              <sc-for list="{{ adminSide }}" as="sd" hint-placeholder-count="4">
+                <button type="button" aria-pressed="{{ sd.on }}" onMouseEnter="{{ sd.pick }}" onFocus="{{ sd.pick }}" onClick="{{ sd.pick }}" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;border:1px solid {{ sd.border }};background:{{ sd.bg }};color:var(--text);text-align:left;cursor:pointer;box-shadow:inset 4px 0 0 {{ sd.bar }};transition:background .15s, border-color .15s;">
+                  <span style="width:36px;height:36px;border-radius:18px;flex:none;display:flex;align-items:center;justify-content:center;background:{{ sd.numBg }};color:{{ sd.numColor }};font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;transition:background .15s;">{{ sd.num }}</span>
+                  <span style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+                    <span style="font-size:16px;font-weight:700;">{{ sd.name }}</span>
+                    <span style="font-size:14px;color:var(--muted);white-space:nowrap;">{{ sd.key }}</span>
+                  </span>
+                </button>
               </sc-for>
-              <sc-if value="{{ adminEmpty }}" hint-placeholder-val="{{ false }}"><span style="padding:28px 0;text-align:center;font-size:13px;color:var(--muted);">가입한 신입사원이 없습니다.</span></sc-if>
+            </nav>
+
+            <div style="flex:1 1 440px;min-width:0;display:flex;flex-direction:column;gap:18px;padding:20px 22px;background:var(--panel);border:1px solid var(--line);border-radius:18px;">
+              <div style="display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;">
+                <span style="font-family:'Noto Sans KR',sans-serif;font-size:22px;font-weight:900;">{{ adminCur.name }}</span>
+                <sc-for list="{{ adminCur.chips }}" as="ch" hint-placeholder-count="3">
+                  <span style="font-size:14px;padding:4px 12px;border-radius:999px;background:var(--panel2);color:var(--muted);white-space:nowrap;">{{ ch.label }} <span style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--text);">{{ ch.value }}</span></span>
+                </sc-for>
+              </div>
+
+              <div role="img" aria-label="{{ adminCur.aria }}" style="position:relative;height:300px;padding-top:70px;">
+                <div style="position:relative;height:100%;border-bottom:1px solid var(--line);">
+                  <sc-if value="{{ adminCur.hasAvg }}" hint-placeholder-val="{{ true }}">
+                    <div style="position:absolute;left:0;right:0;bottom:{{ adminCur.avgPos }};border-top:2px dotted var(--muted);z-index:1;pointer-events:none;">
+                      <span style="position:absolute;left:0;top:-15px;padding:3px 10px;border-radius:999px;background:var(--text);color:var(--bg);font-size:14px;font-weight:600;white-space:nowrap;">평균 {{ adminCur.avgLabel }}</span>
+                    </div>
+                  </sc-if>
+                  <div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:space-around;gap:14px;padding:0 8px;">
+                    <sc-for list="{{ adminBars }}" as="b" hint-placeholder-count="4">
+                      <button type="button" aria-label="{{ b.aria }}" onMouseEnter="{{ b.enter }}" onMouseLeave="{{ b.leave }}" onFocus="{{ b.enter }}" onBlur="{{ b.leave }}" style="position:relative;flex:1 1 0;max-width:84px;height:100%;display:flex;align-items:flex-end;justify-content:center;padding:0;border:none;background:none;cursor:pointer;">
+                        <sc-if value="{{ b.hover }}" hint-placeholder-val="{{ false }}">
+                          <span style="position:absolute;left:50%;bottom:calc({{ b.h }} + 10px);transform:translateX(-50%);z-index:2;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);box-shadow:0 6px 18px rgb(0 0 0 / .25);white-space:nowrap;pointer-events:none;">
+                            <span style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:var(--text);">{{ b.value }}</span>
+                            <span style="font-size:14px;color:var(--muted);">{{ b.detail }}</span>
+                          </span>
+                        </sc-if>
+                        <span style="display:block;width:100%;height:{{ b.h }};min-height:8px;border-radius:14px 14px 6px 6px;background:{{ b.bg }};transition:background .15s, height .3s;"></span>
+                      </button>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;justify-content:space-around;gap:14px;padding:0 8px;">
+                <sc-for list="{{ adminBars }}" as="n" hint-placeholder-count="4">
+                  <span style="flex:1 1 0;max-width:84px;text-align:center;font-size:14px;font-weight:{{ n.nameWeight }};padding:4px 0;border-radius:999px;background:{{ n.nameBg }};color:{{ n.nameColor }};white-space:nowrap;transition:background .15s;">{{ n.name }}</span>
+                </sc-for>
+              </div>
+              <sc-if value="{{ adminEmpty }}" hint-placeholder-val="{{ false }}"><span style="text-align:center;font-size:14px;color:var(--muted);">가입한 신입사원이 없습니다.</span></sc-if>
+
+              <button type="button" onClick="{{ toggleAdminTable }}" aria-expanded="{{ adminTableOpen }}" style="align-self:flex-start;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:14px;cursor:pointer;" style-hover="color:var(--text);border-color:var(--accent);">{{ adminTableLabel }}</button>
+              <sc-if value="{{ adminTableOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="overflow-x:auto;">
+                  <div style="min-width:640px;display:flex;flex-direction:column;font-size:14px;">
+                    <div style="display:grid;grid-template-columns:minmax(120px,1.3fr) minmax(80px,1fr) minmax(90px,1fr) minmax(90px,1fr) minmax(90px,1fr);gap:8px;padding:10px 4px;border-bottom:1px solid var(--line);color:var(--muted);">
+                      <span>신입사원</span><span style="text-align:right;">이해도</span><span style="text-align:right;">결과</span><span style="text-align:right;">미해결 오개념</span><span style="text-align:right;">마지막 학습</span>
+                    </div>
+                    <sc-for list="{{ adminBars }}" as="t" hint-placeholder-count="4">
+                      <div style="display:grid;grid-template-columns:minmax(120px,1.3fr) minmax(80px,1fr) minmax(90px,1fr) minmax(90px,1fr) minmax(90px,1fr);gap:8px;padding:10px 4px;border-bottom:1px solid var(--line);">
+                        <span><b>{{ t.name }}</b> <span style="color:var(--muted);">{{ t.username }}</span></span>
+                        <span style="text-align:right;font-family:'IBM Plex Mono',monospace;">{{ t.value }}</span>
+                        <span style="text-align:right;color:var(--muted);">{{ t.result }}</span>
+                        <span style="text-align:right;font-family:'IBM Plex Mono',monospace;">{{ t.mis }}</span>
+                        <span style="text-align:right;color:var(--muted);">{{ t.last }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
             </div>
           </div>
         </section>
@@ -432,20 +453,41 @@ class Component extends DCLogic {
     const meta = id => P.find(p => p.id === id) || { num: '', name: id };
     const pct = x => Math.round(x * 1000) / 10;
     const date = iso => { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? '—' : `${d.getMonth() + 1}월 ${d.getDate()}일`; };
-    const sections = ids.map(id => {
+    const summary = id => {
       const done = rows.map(t => t.sections[id]).filter(Boolean);
       const avg = done.length ? done.reduce((a, s) => a + s.understanding, 0) / done.length : null;
-      return { num: meta(id).num, name: meta(id).name, taken: done.length, passed: done.filter(s => s.passed).length,
-        avgLabel: avg == null ? '—' : pct(avg) + '%', avgPct: avg == null ? '0%' : pct(avg) + '%', barColor: avg != null && avg >= 0.8 ? 'var(--ok)' : 'var(--accent)' };
-    });
+      return { taken: done.length, passed: done.filter(s => s.passed).length, avg };
+    };
+    const curId = ids.includes(this.state.adminSec) ? this.state.adminSec : ids[0];
+    const cur = summary(curId);
+    const hov = this.state.adminHover;
+    // 막대는 평소 무채색 빗금, 마우스를 올린 막대만 강조색으로 바꾼다.
+    const HATCH = 'repeating-linear-gradient(135deg, color-mix(in srgb, var(--muted) 28%, transparent) 0 2px, transparent 2px 9px)';
+    const BAR_IDLE = `${HATCH}, var(--panel2)`;
+    const BAR_HOVER = 'repeating-linear-gradient(135deg, rgb(255 255 255 / .16) 0 2px, transparent 2px 9px), linear-gradient(180deg, #6cc4f5, var(--accent))';
     const openTotal = rows.reduce((a, t) => a + t.misconceptions.open, 0);
     return {
-      adminSections: sections,
-      adminCols: `minmax(140px,1.4fr) repeat(${ids.length},minmax(64px,1fr)) minmax(48px,.6fr) minmax(80px,.8fr) minmax(80px,.8fr)`,
-      adminRows: rows.map(t => ({ name: t.name, username: t.username, employeeNo: t.employee_no, passed: `${t.passed_sections} / ${ids.length}`,
-        misOpen: String(t.misconceptions.open), misResolved: t.misconceptions.resolved ? `(해결 ${t.misconceptions.resolved})` : '', misColor: t.misconceptions.open ? 'var(--bad)' : 'var(--text)', last: date(t.last_activity),
-        cells: ids.map(id => { const s = t.sections[id];
-          return s ? { label: pct(s.understanding) + '%', sub: `${s.passed ? '통과' : '미통과'} · ${s.attempts}회`, color: s.passed ? 'var(--ok)' : 'var(--bad)' } : { label: '—', sub: '기록 없음', color: 'var(--muted)' }; }) })),
+      adminSide: ids.map(id => { const x = summary(id), on = id === curId;
+        return { num: meta(id).num, name: meta(id).name, on,
+          key: x.taken ? `평균 ${pct(x.avg)}% · 통과 ${x.passed}/${x.taken}명` : '응시 기록 없음',
+          bg: on ? 'var(--panel)' : 'transparent', border: on ? 'var(--accent)' : 'var(--line)', bar: on ? 'var(--accent)' : 'transparent',
+          numBg: on ? 'var(--accent)' : 'var(--panel2)', numColor: on ? '#fff' : 'var(--text)',
+          pick: () => { if (this.state.adminSec !== id) this.setState({ adminSec: id, adminHover: null }); } }; }),
+      adminCur: { name: meta(curId).name, hasAvg: cur.avg != null, avgLabel: cur.avg == null ? '' : pct(cur.avg) + '%', avgPos: cur.avg == null ? '0%' : pct(cur.avg) + '%',
+        chips: [{ label: '평균', value: cur.avg == null ? '—' : pct(cur.avg) + '%' }, { label: '통과', value: `${cur.passed} / ${cur.taken}명` }, { label: '기준', value: '80%' }],
+        aria: `${meta(curId).name} 신입사원별 마지막 체크포인트 이해도 막대그래프` },
+      adminBars: rows.map((t, i) => { const s = t.sections[curId], on = hov === i;
+        const value = s ? pct(s.understanding) + '%' : '기록 없음';
+        const result = s ? `${s.passed ? '통과' : '미통과'} · ${s.attempts}회` : '—';
+        return { name: t.name, username: t.username, value, result, last: date(t.last_activity),
+          mis: `${t.misconceptions.open} (해결 ${t.misconceptions.resolved})`,
+          detail: s ? `${result} · 미해결 오개념 ${t.misconceptions.open}` : '아직 응시하지 않음',
+          aria: `${t.name} ${value}${s ? ', ' + result : ''}`,
+          h: s ? pct(s.understanding) + '%' : '8px', bg: on ? BAR_HOVER : BAR_IDLE, hover: on,
+          nameBg: on ? 'color-mix(in srgb, var(--accent) 18%, transparent)' : 'transparent', nameColor: on ? 'var(--accent)' : 'var(--muted)', nameWeight: on ? 700 : 500,
+          enter: () => this.setState({ adminHover: i }), leave: () => { if (this.state.adminHover === i) this.setState({ adminHover: null }); } }; }),
+      adminTableOpen: !!this.state.adminTable, adminTableLabel: this.state.adminTable ? '표 닫기 ▴' : '표로 보기 ▾',
+      toggleAdminTable: () => this.setState({ adminTable: !this.state.adminTable }),
       adminEmpty: !!A && rows.length === 0,
       adminNote: this.state.adminErr ? `통계를 불러오지 못했어요: ${this.state.adminErr}` : !A ? '통계를 불러오는 중…' : A.checkpoint_data ? '' : '체크포인트 기록이 아직 연결되지 않아 계정 목록만 보입니다. 체크포인트 API가 dev에 들어오면 점수와 오개념 수가 자동으로 표시됩니다.',
       adminStats: [
@@ -558,6 +600,9 @@ class Component extends DCLogic {
       ...this.formVals(),
       logout: () => { tokenStore.clear(); this.setState({ loggedIn: false, user: null, admin: null, adminErr: null }); this.go('login'); },
       isAdmin, isTrainee: !isAdmin,
+      // 관리자 화면은 글자를 14px 이상으로 둔다.
+      fs: isAdmin ? { xs: '14px', sm: '14px' } : { xs: '11px', sm: '12px' },
+      headerSub: isAdmin ? '관리자 · 신입사원 통계' : '마이페이지',
       ...(isAdmin ? adminV : {}),
       toggleTheme: () => this.setState({ theme: S.theme === 'dark' ? 'light' : 'dark' }), themeLabel: S.theme === 'dark' ? '☀' : '☾',
       // 학습 기록(RECORDS·QA·MIS)은 아직 샘플이라 마지막 학습일도 샘플 값이다. 에디터 미리보기(로그인 없이)는 샘플 사용자로 보여 준다.
