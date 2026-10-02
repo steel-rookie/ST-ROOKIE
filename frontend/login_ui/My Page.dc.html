@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; min-height: 100%; font-family: "IBM Plex Sans KR", sans-serif; }
+    body { --bg: oklch(0.14 0.02 245); --panel: oklch(0.18 0.018 245); --panel2: oklch(0.24 0.022 245); --line: oklch(1 0 0 / .12); --text: oklch(0.96 0.006 240); --muted: oklch(0.7 0.02 240); --accent: #1a9bd7; --ok: oklch(0.74 0.15 155); --mid: oklch(0.82 0.14 80); --bad: oklch(0.68 0.18 25); background: var(--bg); color: var(--text); }
+    body[data-theme="light"] { --bg: oklch(0.95 0.008 245); --panel: oklch(0.995 0.002 245); --panel2: oklch(0.93 0.01 245); --line: oklch(0 0 0 / .09); --text: oklch(0.22 0.02 245); --muted: oklch(0.5 0.02 245); --ok: oklch(0.55 0.15 155); --mid: oklch(0.62 0.14 70); --bad: oklch(0.55 0.19 25); }
+    a { color: var(--accent); text-decoration: none; } a:hover { color: var(--text); }
+    button, input { font-family: inherit; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+<div style="min-height:100vh;background:var(--bg);color:var(--text);">
+
+  <sc-if value="{{ loggedOut }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100vh;display:grid;place-items:center;padding:24px;">
+      <div style="width:min(400px,100%);display:flex;flex-direction:column;gap:20px;padding:32px 28px;background:var(--panel);border:1px solid var(--line);border-radius:20px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="width:38px;height:38px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff;">S</span>
+          <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.05em;white-space:nowrap;">STEEL ACADEMY</span><span style="font-size:11px;color:var(--muted);">신입사원 기초교육</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <h1 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:26px;font-weight:900;letter-spacing:-0.02em;">로그인</h1>
+          <span style="font-size:13px;color:var(--muted);line-height:1.6;text-wrap:pretty;">학습 진도, 체크포인트 결과, 튜터와 나눈 질문이 계정에 저장됩니다.</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:14px;background:var(--panel2);border:1px solid var(--line);">
+          <div style="display:flex;align-items:baseline;gap:4px 8px;flex-wrap:wrap;flex:none;"><span style="font-size:13px;font-weight:700;white-space:nowrap;">데모 계정</span><span style="font-size:11px;color:var(--muted);white-space:nowrap;">누르면 아래 칸이 채워집니다</span></div>
+          <sc-for list="{{ accounts }}" as="a" hint-placeholder-count="2">
+            <button type="button" onClick="{{ a.pick }}" style="display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:8px;padding:11px 12px;border-radius:10px;border:1px solid {{ a.border }};background:var(--panel);color:var(--text);cursor:pointer;text-align:left;" style-hover="border-color:var(--accent);">
+              <span style="font-size:13px;font-weight:700;white-space:nowrap;">{{ a.role }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:2px 7px;border-radius:6px;background:var(--panel2);color:var(--accent);white-space:nowrap;">{{ a.id }}</span>
+              <span style="font-size:11px;color:var(--muted);text-align:right;line-height:1.4;">{{ a.desc }}</span>
+            </button>
+          </sc-for>
+          <span style="font-size:11px;color:var(--muted);line-height:1.6;">비밀번호는 둘 다 <span style="font-family:'IBM Plex Mono',monospace;color:var(--text);">steel-2026-demo</span> 입니다.</span>
+        </div>
+        <form onSubmit="{{ loginId }}" style="display:flex;flex-direction:column;gap:12px;">
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;">아이디
+            <input value="{{ idVal }}" onChange="{{ onId }}" autocomplete="username" style="height:44px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--text);padding:0 14px;font-size:14px;font-weight:400;outline:none;" style-focus="border-color:var(--accent);">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;">비밀번호
+            <input type="password" value="{{ pwVal }}" onChange="{{ onPw }}" autocomplete="current-password" style="height:44px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--text);padding:0 14px;font-size:14px;font-weight:400;outline:none;" style-focus="border-color:var(--accent);">
+          </label>
+          <sc-if value="{{ loginErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:var(--bad);">아이디 또는 비밀번호가 맞지 않습니다.</span></sc-if>
+          <button type="submit" style="height:48px;margin-top:4px;border-radius:999px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;" style-hover="filter:brightness(1.1);">로그인</button>
+        </form>
+        <span style="font-size:11px;color:var(--muted);line-height:1.6;">뷰어는 학습 기록 조회만, 에디터는 개념 노트·질문 답변 편집까지 가능합니다. 로그인 세션은 12시간 뒤 만료됩니다.</span>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ loggedIn }}" hint-placeholder-val="{{ true }}">
+    <header style="position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;padding:12px 24px;background:color-mix(in srgb, var(--bg) 85%, transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="width:34px;height:34px;border-radius:7px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff;">S</span>
+        <div style="display:flex;flex-direction:column;gap:2px;line-height:1.15;"><span style="font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.05em;white-space:nowrap;">STEEL ACADEMY</span><span style="font-size:11px;color:var(--muted);">마이페이지</span></div>
+      </div>
+      <div style="flex:1;"></div>
+      <a href="../3d-demo/Steel%20Academy%20v2.dc.html" style="height:36px;display:flex;align-items:center;padding:0 14px;border-radius:8px;border:1px solid var(--line);font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;" style-hover="border-color:var(--accent);color:var(--accent);">← 3D 학습으로</a>
+      <button onClick="{{ toggleTheme }}" title="테마" style="width:36px;height:36px;border-radius:8px;background:transparent;color:var(--text);border:1px solid var(--line);font-size:15px;cursor:pointer;" style-hover="border-color:var(--accent);color:var(--accent);">{{ themeLabel }}</button>
+      <button onClick="{{ logout }}" style="height:36px;padding:0 12px;border-radius:8px;background:transparent;color:var(--muted);border:1px solid var(--line);font-size:12px;cursor:pointer;white-space:nowrap;flex:none;" style-hover="color:var(--text);border-color:var(--accent);">로그아웃</button>
+    </header>
+
+    <main style="max-width:1180px;margin:0 auto;padding:28px 24px 64px;display:flex;flex-direction:column;gap:28px;">
+
+      <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px;">
+        <div style="display:flex;align-items:center;gap:16px;padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:16px;">
+          <span style="width:56px;height:56px;border-radius:28px;flex:none;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:20px;color:var(--accent);">{{ user.initial }}</span>
+          <div style="display:flex;flex-direction:column;gap:4px;min-width:0;">
+            <span style="font-family:'Noto Sans KR',sans-serif;font-size:22px;font-weight:900;letter-spacing:-0.02em;">{{ user.name }}</span>
+            <span style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid var(--line);">{{ user.provider }}</span>{{ user.email }}</span>
+            <span style="font-size:12px;color:var(--muted);">{{ user.cohort }} · <span style="white-space:nowrap;">마지막 학습 {{ user.lastSeen }}</span></span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden;">
+          <sc-for list="{{ stats }}" as="st" hint-placeholder-count="3">
+            <button onClick="{{ st.onClick }}" style="display:flex;flex-direction:column;justify-content:center;gap:6px;padding:16px;background:var(--panel);border:none;color:var(--text);text-align:left;cursor:pointer;" style-hover="background:var(--panel2);">
+              <span style="font-size:11px;color:var(--muted);">{{ st.label }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;">{{ st.value }}</span>
+              <span style="font-size:11px;color:var(--muted);">{{ st.sub }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:18px;font-weight:700;">섹션별 학습 진행</h2>
+          <span style="font-size:12px;color:var(--muted);text-wrap:pretty;">체크포인트 이해도 80% 이상이면 다음 섹션이 열립니다</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;">
+          <sc-for list="{{ sections }}" as="sc" hint-placeholder-count="4">
+            <button onClick="{{ sc.onClick }}" style="display:flex;flex-direction:column;gap:14px;padding:16px;background:var(--panel);border:1px solid {{ sc.border }};border-radius:16px;color:var(--text);text-align:left;cursor:pointer;opacity:{{ sc.opacity }};" style-hover="border-color:var(--accent);">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="width:32px;height:32px;border-radius:16px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--panel2);font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;">{{ sc.num }}</span>
+                <div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;"><span style="font-size:15px;font-weight:700;">{{ sc.name }}</span><span style="font-size:10px;color:var(--muted);">{{ sc.en }}</span></div>
+                <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;color:{{ sc.statusColor }};border:1px solid {{ sc.statusColor }};white-space:nowrap;">{{ sc.status }}</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);"><span>이해도</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--text);">{{ sc.pctLabel }}</span></div>
+                <div style="position:relative;height:6px;border-radius:3px;background:var(--panel2);">
+                  <div style="height:100%;width:{{ sc.pct }};border-radius:3px;background:{{ sc.barColor }};"></div>
+                  <span style="position:absolute;left:80%;top:-3px;width:2px;height:12px;background:var(--text);opacity:.5;"></span>
+                </div>
+                <span style="font-size:11px;color:var(--muted);">개념 {{ sc.confirmed }} / {{ sc.total }} 확정</span>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:20px;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap;">
+          <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:160px;">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.16em;color:var(--muted);">SECTION {{ cur.num }}</span>
+            <span style="font-family:'Noto Sans KR',sans-serif;font-size:20px;font-weight:900;letter-spacing:-0.02em;">{{ cur.name }} <span style="font-family:'IBM Plex Sans KR',sans-serif;font-size:13px;font-weight:500;color:var(--muted);">{{ cur.io }}</span></span>
+          </div>
+          <div style="display:flex;gap:4px;padding:4px;border-radius:10px;background:var(--panel2);flex-wrap:wrap;">
+            <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="4">
+              <button onClick="{{ tb.onClick }}" style="height:32px;padding:0 12px;border-radius:7px;border:none;background:{{ tb.bg }};color:{{ tb.color }};font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;flex:none;" style-hover="color:var(--text);">{{ tb.label }}<span style="font-family:'IBM Plex Mono',monospace;font-size:10px;opacity:.7;">{{ tb.count }}</span></button>
+            </sc-for>
+          </div>
+        </div>
+
+        <sc-if value="{{ curLocked }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--panel2);font-size:12px;color:var(--muted);">🔒 앞 섹션 체크포인트를 통과하면 열립니다. 개념은 미리 읽을 수 있어요.</div>
+        </sc-if>
+
+        <sc-if value="{{ tabConcepts }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));">
+            <div style="display:flex;flex-direction:column;gap:2px;padding:12px;border-right:1px solid var(--line);">
+              <sc-for list="{{ concepts }}" as="c" hint-placeholder-count="6">
+                <button onClick="{{ c.onClick }}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:none;background:{{ c.bg }};color:var(--text);text-align:left;cursor:pointer;" style-hover="background:var(--panel2);">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);width:18px;flex:none;">{{ c.num }}</span>
+                  <span style="flex:1;font-size:13px;font-weight:{{ c.weight }};">{{ c.name }}</span>
+                  <span style="width:8px;height:8px;border-radius:4px;flex:none;background:{{ c.color }};" title="{{ c.verdictLabel }}"></span>
+                </button>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:16px;padding:22px 24px;min-width:0;height:auto;">
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent);">EQ_{{ eq.id }}</span>
+                <h3 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:26px;font-weight:900;letter-spacing:-0.02em;">{{ eq.name }}</h3>
+                <p style="margin:0;font-size:14px;line-height:1.7;text-wrap:pretty;">{{ eq.role }}</p>
+              </div>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:var(--panel2);font-size:12px;">
+                <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:10px;color:var(--muted);">투입</span><span style="font-weight:600;">{{ eq.input }}</span></div>
+                <span style="color:var(--muted);">→</span>
+                <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:10px;color:var(--muted);">산출</span><span style="font-weight:600;">{{ eq.output }}</span></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <sc-for list="{{ eqNotes }}" as="n" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.6;flex:none;"><span style="color:var(--accent);flex:none;">•</span><span style="flex:1;min-width:0;">{{ n.text }}</span></div>
+                </sc-for>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);">
+                <span style="white-space:nowrap;">내 결과</span>
+                <span style="font-weight:600;padding:3px 8px;border-radius:999px;border:1px solid {{ eqRec.color }};color:{{ eqRec.color }};white-space:nowrap;">{{ eqRec.label }}</span>
+                <span style="flex:1 1 160px;min-width:0;">{{ eqRec.detail }}</span>
+                <a href="../3d-demo/Steel%20Academy%20v2.dc.html" style="font-weight:600;white-space:nowrap;">3D에서 보기 →</a>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ tabCheckpoint }}" hint-placeholder-val="{{ false }}">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:24px;padding:24px;">
+            <div style="display:flex;flex-direction:column;gap:14px;">
+              <span style="font-size:12px;color:var(--muted);">전체 이해도</span>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:48px;font-weight:600;line-height:1;color:{{ cur.barColor }};">{{ cur.pctLabel }}</span>
+              <div style="position:relative;height:12px;border-radius:6px;background:var(--panel2);">
+                <div style="height:100%;width:{{ cur.pct }};border-radius:6px;background:{{ cur.barColor }};"></div>
+                <span style="position:absolute;left:80%;top:-5px;width:2px;height:22px;background:var(--text);"></span>
+                <span style="position:absolute;left:80%;top:22px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">80%</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;margin-top:14px;font-size:12px;color:var(--muted);line-height:1.6;">
+                <span><b style="color:var(--text);">{{ cur.status }}</b> · 시도 {{ cur.attempts }}회</span>
+                <span>{{ cur.retryNote }}</span>
+              </div>
+              <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);">
+                <sc-for list="{{ legend }}" as="lg" hint-placeholder-count="4">
+                  <span style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:{{ lg.color }};"></span>{{ lg.label }}</span>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <sc-for list="{{ concepts }}" as="c" hint-placeholder-count="6">
+                <div style="display:grid;grid-template-columns:minmax(90px,140px) minmax(0,1fr) 36px;align-items:center;gap:12px;">
+                  <span style="font-size:12px;font-weight:600;">{{ c.name }}</span>
+                  <div style="display:flex;flex-direction:column;gap:4px;">
+                    <div style="height:10px;border-radius:5px;background:var(--panel2);overflow:hidden;"><div style="height:100%;width:{{ c.scorePct }};background:{{ c.color }};border-radius:5px;"></div></div>
+                    <span style="font-size:10px;color:var(--muted);">{{ c.trail }}</span>
+                  </div>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-align:right;">{{ c.scoreLabel }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ tabQa }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px;padding:20px;">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <sc-for list="{{ qaFilters }}" as="f" hint-placeholder-count="3">
+                <button onClick="{{ f.onClick }}" style="height:28px;padding:0 12px;border-radius:999px;border:1px solid {{ f.border }};background:transparent;color:{{ f.color }};font-size:11px;font-weight:600;cursor:pointer;">{{ f.label }}</button>
+              </sc-for>
+            </div>
+            <sc-if value="{{ qaEmpty }}" hint-placeholder-val="{{ false }}"><span style="padding:28px 0;text-align:center;font-size:13px;color:var(--muted);">이 섹션에서 남긴 질문이 없습니다.</span></sc-if>
+            <sc-for list="{{ qa }}" as="q" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;">
+                <button onClick="{{ q.onClick }}" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:none;background:transparent;color:var(--text);text-align:left;cursor:pointer;" style-hover="background:var(--panel2);">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--accent);flex:none;margin-top:1px;">Q</span>
+                  <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;">
+                    <span style="font-size:14px;font-weight:600;line-height:1.5;">{{ q.q }}</span>
+                    <span style="font-size:11px;color:var(--muted);">{{ q.mode }} · {{ q.eqName }} · {{ q.date }}</span>
+                  </div>
+                  <span style="font-size:12px;color:var(--muted);flex:none;">{{ q.chev }}</span>
+                </button>
+                <sc-if value="{{ q.open }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;gap:12px;padding:0 16px 16px;">
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--muted);flex:none;margin-top:2px;">A</span>
+                    <p style="margin:0;font-size:13px;line-height:1.7;text-wrap:pretty;">{{ q.a }}</p>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ tabMis }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px;padding:20px;">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+              <sc-for list="{{ misFilters }}" as="f" hint-placeholder-count="3">
+                <button onClick="{{ f.onClick }}" style="height:28px;padding:0 12px;border-radius:999px;border:1px solid {{ f.border }};background:transparent;color:{{ f.color }};font-size:11px;font-weight:600;cursor:pointer;">{{ f.label }}</button>
+              </sc-for>
+              <span style="margin-left:auto;font-size:11px;color:var(--muted);">본인 기록만 보입니다 · 같은 개념을 맞히면 해결됨으로 바뀝니다</span>
+            </div>
+            <sc-if value="{{ misEmpty }}" hint-placeholder-val="{{ false }}"><span style="padding:28px 0;text-align:center;font-size:13px;color:var(--muted);">기록된 오개념이 없습니다.</span></sc-if>
+            <sc-for list="{{ mis }}" as="m" hint-placeholder-count="2">
+              <div style="display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--line);border-radius:12px;">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;color:{{ m.statusColor }};border:1px solid {{ m.statusColor }};">{{ m.status }}</span>
+                  <span style="font-size:13px;font-weight:700;">{{ m.eqName }}</span>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">{{ m.concept }}</span>
+                  <span style="margin-left:auto;font-size:11px;color:var(--muted);">{{ m.mode }} · {{ m.date }}</span>
+                </div>
+                <span style="font-size:14px;line-height:1.6;">{{ m.text }}</span>
+                <span style="font-size:12px;line-height:1.6;color:var(--muted);padding:8px 12px;border-radius:8px;background:var(--panel2);">내 답변 “{{ m.answer }}”</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </section>
+    </main>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startLoggedOut&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark'|'light'&quot;}}">
+const V = {
+  correct: { label: '맞음', c: 'var(--ok)', s: 1 },
+  partial: { label: '부분', c: 'var(--mid)', s: 0.5 },
+  wrong: { label: '틀림', c: 'var(--bad)', s: 0 },
+  assisted: { label: '도움 받음', c: 'var(--mid)', s: 0 },
+  pending: { label: '미확정', c: 'var(--muted)', s: 0 },
+};
+// 사용자별 기록(실서비스에선 DB). first = 첫 판정, retry = 재확인 판정(개념당 1회)
+const RECORDS = {
+  ironmaking: { attempts: 2, c: { sinter_plant: { first: 'correct' }, coke_oven: { first: 'correct' }, blast_furnace: { first: 'partial', retry: 'correct' }, hot_stove: { first: 'wrong', retry: 'partial' }, taphole_casthouse: { first: 'correct' }, torpedo_car: { first: 'assisted', retry: 'correct' } } },
+  steelmaking: { attempts: 1, c: { hot_metal_pretreatment: { first: 'correct' }, bof_converter: { first: 'wrong', retry: 'partial' }, oxygen_lance_offgas: { first: 'partial' } } },
+  continuous_casting: { attempts: 0, c: {} },
+  rolling: { attempts: 0, c: {} },
+};
+const QA = [
+  { id: 1, p: 'ironmaking', eq: 'blast_furnace', mode: '학습', date: '09.28', q: '고로에 코크스를 넣는 이유가 열 때문만인가요?', a: '아니요. 코크스는 열원이면서 환원제입니다. 코크스가 타며 생긴 일산화탄소(CO)가 철광석의 산소를 떼어내 철로 바꿉니다.' },
+  { id: 2, p: 'ironmaking', eq: 'sinter_plant', mode: '학습', date: '09.28', q: '가루 철광석을 그냥 넣으면 안 되나요?', a: '가루 그대로는 고로 안에서 바람(열풍)이 통하지 않아 반응이 고르게 일어나지 않습니다. 그래서 소결기에서 구워 덩어리(소결광)로 만든 뒤 넣습니다.' },
+  { id: 3, p: 'ironmaking', eq: 'hot_stove', mode: '체크포인트', date: '09.29', q: '열풍로는 몇 대가 동시에 돌아가나요?', a: '여러 대가 번갈아 가열과 송풍을 반복합니다. 한쪽이 고로 가스로 벽돌을 데우는 동안 다른 쪽이 데워진 벽돌로 공기를 약 1,200℃까지 올려 풍구로 보냅니다.' },
+  { id: 4, p: 'steelmaking', eq: 'bof_converter', mode: '학습', date: '09.30', q: '전로에서 산소를 불면 철도 같이 타지 않나요?', a: '일부 철이 산화되어 슬래그로 가지만, 산소는 주로 탄소·규소·인 같은 불순물과 먼저 반응합니다. 탄소가 타며 나는 열로 온도가 스스로 올라가서 별도 연료 없이 약 1,650℃ 용강이 됩니다.' },
+  { id: 5, p: 'steelmaking', eq: 'oxygen_lance_offgas', mode: '학습', date: '10.01', q: '랜스는 쇳물 바로 위에 있는데 왜 안 녹나요?', a: '랜스는 3중 관 구조로 안쪽에 냉각수가 계속 흐르는 수냉식입니다. 그래서 쇳물 바로 위에서도 형태를 유지합니다.' },
+  { id: 6, p: 'steelmaking', eq: 'tapping_ladle_crane', mode: '학습', date: '10.01', q: '합금은 언제 넣나요?', a: '출강할 때 래들로 용강을 받으면서 Fe-Mn, Fe-Si, Al 같은 합금철을 함께 넣습니다. 세밀한 조정은 2차 정련(LF)에서 합니다.' },
+];
+const MIS = [
+  { id: 1, p: 'ironmaking', eq: 'hot_stove', mode: '체크포인트', date: '09.29', resolved: false, text: '열풍로가 쇳물을 직접 데운다고 이해함. 열풍로는 공기를 데워 풍구로 불어 넣는 설비.', answer: '열풍로에서 쇳물을 가열해서 고로로 보내요' },
+  { id: 2, p: 'ironmaking', eq: 'blast_furnace', mode: '체크포인트', date: '09.29', resolved: true, text: '코크스를 연료로만 보고 환원제 역할을 빠뜨림.', answer: '코크스는 불을 때는 연료입니다' },
+  { id: 3, p: 'steelmaking', eq: 'bof_converter', mode: '체크포인트', date: '09.30', resolved: false, text: '산소가 주로 철을 태운다고 이해함. 실제로는 탄소 등 불순물을 산화시키는 과정.', answer: '산소로 철을 태워서 온도를 올려요' },
+  { id: 4, p: 'steelmaking', eq: 'hot_metal_pretreatment', mode: '학습', date: '09.30', resolved: true, text: '용선 예비처리를 모든 공장에서 반드시 거친다고 이해함. 공장·제품에 따라 생략되기도 함.', answer: '예비처리는 항상 해야 하죠?' },
+];
+const fin = r => !r ? 'pending' : r.first === 'correct' ? 'correct' : (r.retry || 'pending');
+
+const ACCOUNTS = [
+  { key: 'viewer', role: '뷰어', id: 'demo_viewer', desc: '학습 진도·질문 답변 조회' },
+  { key: 'editor', role: '에디터', id: 'demo_editor', desc: '개념 노트·질문 답변 편집' },
+];
+class Component extends DCLogic {
+  state = { D: null, loggedIn: !(this.props.startLoggedOut ?? true), role: 'viewer', theme: this.props.theme ?? 'dark', sec: 'steelmaking', tab: 'concepts', eqSel: {}, qaOpen: { 5: true }, qaF: 'all', misF: 'open', id: '', pw: '', loginErr: false };
+  componentDidMount() {
+    import('../3d-demo/data_v2.js').then(D => this.setState({ D }));
+    document.body.dataset.theme = this.state.theme;
+  }
+  componentDidUpdate() { document.body.dataset.theme = this.state.theme; }
+  secInfo(p, prevPassed) {
+    const rec = RECORDS[p.id] || { attempts: 0, c: {} };
+    const vs = p.equipment.map(e => fin(rec.c[e.id]));
+    const total = vs.length, confirmed = vs.filter(v => v !== 'pending').length;
+    const sum2 = vs.reduce((a, v) => a + V[v].s * 2, 0); // 분수 계산: 0.5 단위를 정수로
+    const pass = confirmed === total && sum2 * 10 >= total * 2 * 8;
+    const locked = !prevPassed;
+    const status = locked ? '잠김' : pass ? '통과' : confirmed === total ? '재도전 필요' : rec.attempts || confirmed ? '진행 중' : '시작 전';
+    const statusColor = locked ? 'var(--muted)' : pass ? 'var(--ok)' : status === '재도전 필요' ? 'var(--bad)' : 'var(--accent)';
+    const pctN = total ? Math.round(sum2 / (total * 2) * 1000) / 10 : 0;
+    const retryList = p.equipment.filter((e, i) => vs[i] !== 'correct' && vs[i] !== 'pending').map(e => e.name);
+    return { rec, vs, total, confirmed, pass, locked, status, statusColor, pct: pctN + '%', pctLabel: (locked ? '—' : pctN.toFixed(pctN % 1 ? 1 : 0) + '%'), barColor: pass ? 'var(--ok)' : 'var(--accent)', attempts: rec.attempts,
+      retryNote: locked ? '앞 섹션을 통과하면 체크포인트를 볼 수 있습니다.' : pass ? (retryList.length ? `만점이 아닌 개념: ${retryList.join(', ')}` : '모든 개념 만점') : confirmed < total ? `미확정 개념 ${total - confirmed}개가 남았습니다. 미확정 개념은 0점으로 계산됩니다.` : `재도전 때 다시 묻는 개념: ${retryList.join(', ')}` };
+  }
+  renderVals() {
+    const S = this.state, D = S.D, P = D ? D.PROCESSES : [];
+    const set = o => () => this.setState(o);
+    let prev = true;
+    const infos = P.map(p => { const i = this.secInfo(p, prev); prev = i.pass; return { p, ...i }; });
+    const curI = infos.find(x => x.p.id === S.sec) || infos[0];
+    const cp = curI ? curI.p : { equipment: [] };
+    const eqId = S.eqSel[cp.id] || (cp.equipment[0] || {}).id;
+    const eq = cp.equipment.find(e => e.id === eqId) || {};
+    const eqV = curI ? curI.vs[cp.equipment.indexOf(eq)] || 'pending' : 'pending';
+    const r = curI && curI.rec.c[eq.id];
+    const qaAll = QA.filter(q => q.p === cp.id), qa = qaAll.filter(q => S.qaF === 'all' || q.mode === S.qaF);
+    const misAll = MIS.filter(m => m.p === cp.id), mis = misAll.filter(m => S.misF === 'all' || (S.misF === 'open' ? !m.resolved : m.resolved));
+    const eqName = (pid, id) => ((P.find(x => x.id === pid) || { equipment: [] }).equipment.find(e => e.id === id) || {}).name || id;
+    const allConcepts = infos.reduce((a, x) => a + x.total, 0), allConfirmed = infos.reduce((a, x) => a + (x.locked ? 0 : x.confirmed), 0);
+    const pill = (on) => ({ border: on ? 'var(--accent)' : 'var(--line)', color: on ? 'var(--accent)' : 'var(--muted)' });
+    return {
+      loggedIn: S.loggedIn, loggedOut: !S.loggedIn,
+      accounts: ACCOUNTS.map(a => ({ ...a, border: S.id === a.id ? 'var(--accent)' : 'var(--line)', pick: () => this.setState({ id: a.id, pw: 'steel-2026-demo', loginErr: false }) })),
+      loginId: e => { e.preventDefault(); const a = ACCOUNTS.find(x => x.id === S.id.trim()); if (!a || S.pw !== 'steel-2026-demo') return this.setState({ loginErr: true }); this.setState({ loggedIn: true, role: a.key, loginErr: false, pw: '' }); },
+      idVal: S.id, pwVal: S.pw, onId: e => this.setState({ id: e.target.value }), onPw: e => this.setState({ pw: e.target.value }), loginErr: S.loginErr,
+      logout: set({ loggedIn: false }),
+      toggleTheme: () => this.setState({ theme: S.theme === 'dark' ? 'light' : 'dark' }), themeLabel: S.theme === 'dark' ? '☀' : '☾',
+      user: { name: '김신입', initial: '김', email: 'rookie.kim@gmail.com', provider: (ACCOUNTS.find(a => a.key === S.role) || ACCOUNTS[0]).role.toUpperCase(), cohort: '2026 하반기 신입 · 제강부', lastSeen: '10월 1일' },
+      stats: [
+        { label: '섹션 통과', value: `${infos.filter(x => x.pass).length} / ${infos.length || 4}`, sub: '체크포인트 80% 이상', onClick: set({ tab: 'checkpoint' }) },
+        { label: '확정된 개념', value: `${allConfirmed} / ${allConcepts || 24}`, sub: '첫 판정 맞음 또는 재확인 완료', onClick: set({ tab: 'concepts' }) },
+        { label: '미해결 오개념', value: String(MIS.filter(m => !m.resolved).length), sub: `질문 ${QA.length}개 남김`, onClick: set({ tab: 'mis', misF: 'open' }) },
+      ],
+      sections: infos.map(x => ({ num: x.p.num, name: x.p.name, en: x.p.en, status: x.status, statusColor: x.statusColor, pct: x.locked ? '0%' : x.pct, pctLabel: x.pctLabel, barColor: x.barColor, confirmed: x.locked ? 0 : x.confirmed, total: x.total,
+        border: x.p.id === S.sec ? 'var(--accent)' : 'var(--line)', opacity: x.locked ? 0.6 : 1, onClick: set({ sec: x.p.id }) })),
+      cur: curI ? { num: cp.num, name: cp.name, io: cp.io, pct: curI.locked ? '0%' : curI.pct, pctLabel: curI.pctLabel, barColor: curI.barColor, status: curI.status, attempts: curI.attempts, retryNote: curI.retryNote } : {},
+      curLocked: !!(curI && curI.locked),
+      tabs: [['concepts', '개념 보기', cp.equipment.length], ['checkpoint', '체크포인트 결과', ''], ['qa', '질문 · 답변', qaAll.length], ['mis', '오개념', misAll.filter(m => !m.resolved).length || '']].map(([k, label, count]) => ({ label, count, bg: S.tab === k ? 'var(--panel)' : 'transparent', color: S.tab === k ? 'var(--text)' : 'var(--muted)', onClick: set({ tab: k }) })),
+      tabConcepts: S.tab === 'concepts', tabCheckpoint: S.tab === 'checkpoint', tabQa: S.tab === 'qa', tabMis: S.tab === 'mis',
+      concepts: cp.equipment.map((e, i) => { const v = curI.locked ? 'pending' : curI.vs[i], rr = curI.rec.c[e.id];
+        return { num: String(i + 1).padStart(2, '0'), name: e.name, color: V[v].c, verdictLabel: V[v].label, bg: e.id === eqId ? 'var(--panel2)' : 'transparent', weight: e.id === eqId ? 700 : 500,
+          scorePct: (V[v].s * 100) + '%', scoreLabel: v === 'pending' ? '—' : String(V[v].s), trail: !rr ? '아직 묻지 않음' : rr.first === 'correct' ? '첫 판정 맞음' : `첫 판정 ${V[rr.first].label} → ${rr.retry ? '재확인 ' + V[rr.retry].label : '재확인 전'}`,
+          onClick: () => this.setState({ eqSel: { ...S.eqSel, [cp.id]: e.id } }) }; }),
+      eq: { id: eq.id || '', name: eq.name || '', role: eq.role || '', input: eq.input || '', output: eq.output || '' },
+      eqNotes: (eq.notes || []).map(text => ({ text })),
+      eqRec: { label: V[eqV].label, color: V[eqV].c, detail: !r ? '체크포인트에서 아직 묻지 않았습니다' : r.first === 'correct' ? '첫 판정에서 맞혔습니다' : `첫 판정 ${V[r.first].label}${r.retry ? ` → 재확인 ${V[r.retry].label}` : ' · 재확인 대기'}` },
+      legend: ['correct', 'partial', 'wrong', 'pending'].map(k => ({ label: V[k].label + (k === 'pending' ? ' (0점)' : ''), color: V[k].c })),
+      qaFilters: [['all', '전체'], ['학습', '학습 모드'], ['체크포인트', '체크포인트']].map(([k, label]) => ({ label, ...pill(S.qaF === k), onClick: set({ qaF: k }) })),
+      qa: qa.map(q => ({ ...q, eqName: eqName(q.p, q.eq), open: !!S.qaOpen[q.id], chev: S.qaOpen[q.id] ? '▴' : '▾', onClick: () => this.setState({ qaOpen: { ...S.qaOpen, [q.id]: !S.qaOpen[q.id] } }) })),
+      qaEmpty: !qa.length,
+      misFilters: [['open', '미해결'], ['done', '해결됨'], ['all', '전체']].map(([k, label]) => ({ label, ...pill(S.misF === k), onClick: set({ misF: k }) })),
+      mis: mis.map(m => ({ ...m, eqName: eqName(m.p, m.eq), concept: m.eq, status: m.resolved ? '해결됨' : '미해결', statusColor: m.resolved ? 'var(--ok)' : 'var(--bad)' })),
+      misEmpty: !mis.length,
+    };
+  }
+}
+</script>
+</body>
+</html>
