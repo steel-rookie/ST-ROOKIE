@@ -99,14 +99,14 @@
         </sc-if>
       </section>
 
-      <section style="flex:1 1 340px;min-width:0;display:flex;flex-direction:column;gap:18px;padding:22px;background:var(--panel);border:1px solid var(--line);border-radius:18px;">
-        <div style="display:flex;flex-direction:column;gap:12px;">
+      <!-- 오른쪽 칸은 왼쪽 "오답률 높은 개념" 높이를 따르고, 두 목록이 그 안에서 각자 스크롤한다. -->
+      <section style="flex:1 1 340px;min-width:0;contain:size;min-height:480px;display:flex;flex-direction:column;gap:18px;padding:22px;background:var(--panel);border:1px solid var(--line);border-radius:18px;">
+        <div style="flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:12px;">
           <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;">
             <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:18px;font-weight:700;">전 과정 수료</h2>
             <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ok);">{{ doneCount }}</span>
           </div>
-          <!-- 수료자가 많으면 이 칸만 세로로 스크롤한다(약 4명분 높이). -->
-          <div style="display:flex;flex-direction:column;max-height:264px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent;padding-right:4px;">
+          <div style="display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent;padding-right:4px;">
             <sc-for list="{{ doneList }}" as="d" hint-placeholder-count="3">
               <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);">
                 <span style="width:32px;height:32px;border-radius:16px;flex:none;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb, var(--ok) 18%, transparent);color:var(--ok);font-size:13px;font-weight:700;">{{ d.initial }}</span>
@@ -120,12 +120,12 @@
             <sc-if value="{{ doneEmpty }}" hint-placeholder-val="{{ false }}"><span style="padding:10px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted);">아직 수료한 사람이 없습니다.</span></sc-if>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="flex:1 1 0;min-height:0;display:flex;flex-direction:column;gap:12px;">
           <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;">
             <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:18px;font-weight:700;">확인이 필요한 사람</h2>
             <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--bad);">{{ watchCount }}</span>
           </div>
-          <div style="display:flex;flex-direction:column;">
+          <div style="display:flex;flex-direction:column;flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent;padding-right:4px;">
             <sc-for list="{{ watchList }}" as="w" hint-placeholder-count="3">
               <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);">
                 <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
