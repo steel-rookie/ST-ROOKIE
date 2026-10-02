@@ -1,7 +1,7 @@
 # 관리자 대시보드
 
 신입사원 학습 현황을 조회하는 관리자 전용 화면. **조회만** 한다(수정·삭제·응시 없음).
-신입사원 통계와 오답률 높은 개념 모두 DB API를 쓴다. 샘플 데이터는 없다(#37).
+신입사원 통계와 개념별 통계 모두 실제 API를 쓴다. 화면이 API를 부르지 못하면 샘플로 표시한다.
 
 - 화면: `frontend/login_ui/Admin Dashboard.dc.html`
 - 데이터: `frontend/login_ui/admin_data.js` (`loadAdminData()`: `/api/admin/trainees`, `/api/admin/concepts`)
@@ -41,7 +41,7 @@
 | 요청 | 상태 | 설명 |
 |---|---|---|
 | `GET /api/admin/trainees` | 구현됨 | 신입사원별 섹션 이해도·통과·시도·오개념 개수·마지막 학습일 ([auth-api.md](auth-api.md)) |
-| `GET /api/admin/concepts` | 구현됨 | 개념(=설비)별 첫 판정 분포(`backend/src/admin/concept-stats.ts`) |
+| `GET /api/admin/concepts` | 구현됨 | 개념별 첫 판정 분포·미해결 오개념 수(`backend/src/admin/concept-stats.ts`). `?section=`으로 공정 선택 |
 
 둘 다 `Authorization: Bearer <token>`(`st-rookie-token`), `admin`만. 아니면 `403 ADMIN_ONLY`.
 
@@ -58,7 +58,8 @@
 - `final_wrong`: 재확인 후에도 0점(`recheck_verdict = 'wrong'`).
 - `open`: 이 개념의 미해결 오개념 수(전체 합).
 - 답변 원문·오개념 설명·사용자 id는 **넣지 않는다**.
-- `name`(**아직 없음**, 아래 '남은 작업'): 화면에 쓸 개념 이름. 실제 체크포인트의 `concept_id`는 **루브릭 개념 id**(`sinter_purpose`, `coke_reduction`, `blast_furnace_hot_metal`)라서 설비 id가 아니다. 설비 id를 쓰는 것은 시연 기록(`demo-records.ts`)뿐이다. 그래서 서버가 루브릭 `name`(없으면 설비 이름, 그것도 없으면 id)을 붙여 준다. 지금 화면은 `data_v2.js`의 설비 목록에서만 이름을 찾아 실데이터에서는 id가 그대로 보인다.
+- `section`이 섹션 4개가 아니면 `400 INVALID_SECTION`. 체크포인트 테이블이 없으면 `{ "concepts": [] }`.
+- `name`(제안, 미구현): 화면에 쓸 개념 이름. 실제 체크포인트의 `concept_id`는 **루브릭 개념 id**(`sinter_purpose`, `coke_reduction`, `blast_furnace_hot_metal`)라서 설비 id가 아니다. 설비 id를 쓰는 것은 시연 기록(`demo-records.ts`)뿐이다. 그래서 서버가 루브릭 `name`(없으면 설비 이름, 그것도 없으면 id)을 붙여 준다. 지금 화면은 `data_v2.js`의 설비 목록에서만 이름을 찾아 실데이터에서는 id가 그대로 보인다.
 
 ## 계산 규칙 (프론트)
 
@@ -104,12 +105,10 @@ frontend/login_ui/
 
 ## 남은 작업
 
-백엔드
-- [x] `backend/src/admin/`에 `GET /api/admin/concepts` (#37). `requireUser, requireAdmin`은 trainees와 같다.
-- [ ] concepts 응답에 `name`(루브릭 개념 이름) 추가. 지금은 실데이터의 루브릭 `concept_id`가 화면에 id 그대로 보인다.
-- [x] `backend/test/admin.test.ts`: 401·403, 첫 판정 분포 (#37)
-- [ ] `backend/test/admin.test.ts`: 진행 중 시도 제외, trainee만 집계, 응답에 원문·사용자 id 없음
-- [x] `docs/auth-api.md`에 concepts 추가 (#37)
+백엔드 (#37 ssoyoum 구현, 명세 보완)
+- [x] `backend/src/admin/`에 `GET /api/admin/concepts`(위 형식, `name`은 '정할 것'으로 남김). `requireUser, requireAdmin`은 trainees와 같다.
+- [x] `backend/test/admin.test.ts`에 추가: 401·403, 첫 판정 분포, 진행 중 시도 제외, trainee만 집계, 응답에 원문·사용자 id 없음.
+- [x] `docs/auth-api.md` '관리자 통계'에 concepts를 추가한다.
 
 프론트 (`Admin Dashboard.dc.html`, `admin_data.js`)
 - [ ] 개념 이름은 API의 `name`을 먼저 쓰고, 없을 때만 설비 이름으로 찾는다(백엔드 `name` 추가 후).

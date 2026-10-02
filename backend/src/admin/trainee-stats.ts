@@ -88,7 +88,7 @@ export function traineeStats(db: DatabaseSync): TraineeStats {
 }
 
 // PostgreSQL로 옮겨도 쓸 수 있게 시스템 테이블 대신 빈 조회로 테이블 존재를 확인한다.
-function hasTable(db: DatabaseSync, name: string): boolean {
+export function hasTable(db: DatabaseSync, name: string): boolean {
   try {
     db.prepare(`SELECT 1 FROM ${name} WHERE 1 = 0`).all();
     return true;

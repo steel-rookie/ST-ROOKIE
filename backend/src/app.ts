@@ -2,7 +2,7 @@
 // 프론트(frontend/3d-demo)도 이 서버가 같은 출처로 서빙하고, 프론트는 API를 상대 경로(/api/...)로 부른다.
 import express from "express";
 import { join } from "node:path";
-import { DEFAULT_GEMINI_MODEL } from "../../llm/src/ironmaking-agent.js";
+import { DEFAULT_GEMINI_MODEL } from "../../llm/src/gemini.js";
 import type { CheckpointEngine } from "./checkpoint/engine.js";
 import { createCheckpointRouter } from "./checkpoint/routes.js";
 import { withRequestUser } from "./request-user.js";

@@ -13,7 +13,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { LlmUnavailableError } from "../../backend/src/checkpoint/types.js";
 import { loadFinalRubrics, type Rubric, type RubricConcept } from "../../backend/src/rubrics.js";
-import { DEFAULT_GEMINI_MODEL } from "../src/ironmaking-agent.js";
+import { DEFAULT_GEMINI_MODEL } from "../src/gemini.js";
 import { answerTermsInName, findLeaks, hasLeak, type LeakResult } from "../src/question-check.js";
 import { GeminiTutor, type PolishResult } from "../src/tutor.js";
 import { fingerprint, flag, InfraStreak, isInfraError, MAX_CONSECUTIVE_INFRA, option, openRecordFile, RESULTS_DIR, RetryingGeminiClient, type RunRecord } from "./run-log.js";
