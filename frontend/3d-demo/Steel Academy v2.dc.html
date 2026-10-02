@@ -236,8 +236,8 @@ class Component extends DCLogic {
   state = { ready: false, processId: 'site', selectedId: null, tutorOpen: false, devOpen: false, theme: null, speed: 1, messages: [], input: '', pending: false, lastReq: null, lastRes: null, lastResults: [], progress: 0, matLabel: '', playing: false };
   chatRef = React.createRef();
   async componentDidMount() {
-    const [d, t] = await Promise.all([import('./data_v2.js'), import('./tutor_v2.js')]);
-    this.data = d; this.mockTutor = t.mockTutor;
+    const [d, lc] = await Promise.all([import('./data_v2.js'), import('./learning-chat.js')]);
+    this.data = d; this.chat = await lc.createLearningChat(this); // 학습 모드 채팅(ask, 가짜 튜터, 추천 질문)은 learning-chat.js
     this.setState({ ready: true, speed: this.props.flowSpeed ?? 1 });
     document.addEventListener('steel-select', e => { const id = e.detail.id; if (this.state.touring && e.detail.user) this.scene()?.stopTour(); this.setState({ selectedId: id }); if (id) this.scene()?.focus(id); });
     document.addEventListener('steel-model', e => this.setState({ model: e.detail }));
@@ -257,31 +257,9 @@ class Component extends DCLogic {
   componentDidUpdate(_, prev) { if (prev.selectedId !== this.state.selectedId) this.scene()?.setLeftLimit(this.state.selectedId ? 400 : 8); }
   theme() { return this.state.theme ?? this.props.theme ?? 'dark'; }
   process() { return this.data.findProcess(this.state.processId) || { id: 'site', num: '00', name: '제철소 전체', en: 'Site Overview', io: '원료 부두 → 제선 → 제강 → 연주 → 열간압연 → 제품 출하', summary: '항만을 감싸는 부지에 공정이 원료 입고부터 제품 출하까지 순서대로 배치되어 있습니다. 구역을 클릭해 들어가세요.', equipment: [], materialIn: { label: '구역을 클릭하면 해당 공정으로 들어갑니다' } }; }
-  screenContext() { return { process_id: this.state.processId, equipment_id: this.state.selectedId, learning_mode: 'free_question', learning_step: null, last_scene_action_results: this.state.lastResults }; }
+  screenContext() { return this.chat.screenContext(); }
   goProcess(id) { if (id !== this.state.processId) this.setState({ processId: id, selectedId: null }); else { this.setState({ selectedId: null }); this.scene()?.reset(); } }
-  wait(ms) { return new Promise(r => setTimeout(r, ms)); }
-  async runActions(actions) {
-    const results = [];
-    for (const a of actions || []) {
-      let ok = false;
-      try {
-        if (a.type === 'goto_process') { ok = !!this.data.findProcess(a.target_id); if (ok) { this.goProcess(a.target_id); await this.wait(150); } }
-        else if (a.type === 'highlight') { ok = !!this.data.findEquipment(this.state.processId, a.target_id); if (ok) this.setState({ selectedId: a.target_id }); }
-        else if (a.type === 'focus') { ok = !!this.scene()?.focus(a.target_id); }
-        else if (a.type === 'play_animation') { ok = !!this.scene()?.play(this.state.speed); }
-      } catch (e) { ok = false; }
-      results.push({ type: a.type, target_id: a.target_id, status: ok ? 'succeeded' : 'failed' });
-    }
-    return results;
-  }
-  async ask(text) {
-    text = (text || '').trim(); if (!text || this.state.pending) return;
-    const req = { message: text, screen_context: this.screenContext() };
-    this.setState(s => ({ messages: [...s.messages, { role: 'user', text }], input: '', pending: true, lastReq: req, tutorOpen: true, devOpen: false })); this.scrollChat();
-    const res = await this.mockTutor(req);
-    const results = await this.runActions(res.scene_actions);
-    this.setState(s => ({ pending: false, lastRes: res, lastResults: results, messages: [...s.messages, { role: 'assistant', text: res.answer, mode: res.mode, evidence: res.evidence_status, citations: res.citations, followUp: res.follow_up_question }] })); this.scrollChat();
-  }
+  ask(text) { return this.chat.ask(text); }
   renderVals() {
     const S = this.state, theme = this.theme();
     if (document.body.dataset.theme !== theme) document.body.dataset.theme = theme;
@@ -306,9 +284,7 @@ class Component extends DCLogic {
       showTutor: S.tutorOpen && !S.devOpen && !S.touring, toggleTutor: () => { this.setState(s => ({ tutorOpen: !s.tutorOpen, devOpen: false })); this.scrollChat(); }, tutorBtnBg: S.tutorOpen ? 'var(--panel2)' : 'transparent', tutorBtnColor: 'var(--text)',
       showDev: S.devOpen && !S.touring, toggleDev: () => this.setState(s => ({ devOpen: !s.devOpen })),
       ctxLabel: eq ? `${p.name} · ${eq.name}` : p.name,
-      messages: S.messages.map(m => ({ ...m, isUser: m.role === 'user', isSafety: m.role === 'assistant' && m.mode === 'safety_redirect', isAssistant: m.role === 'assistant' && m.mode !== 'safety_redirect', hasFollowUp: !!m.followUp, askFollowUp: () => this.ask(m.followUp) })),
-      chatRef: this.chatRef, pending: S.pending, chips: D.SUGGESTED.map(text => ({ text, onClick: () => this.ask(text) })),
-      input: S.input, onInput: e => this.setState({ input: e.target.value }), send: e => { e.preventDefault(); this.ask(S.input); },
+      ...this.chat.vals(D),
       modelLabel: ({ loading: '불러오는 중…', glb: `GLB 로드됨 (${S.model?.mapped}개 노드 연결)`, 'glb-no-nodes': 'GLB 로드됨 · EQ_ 노드 없음 → 기본 도형', primitive: '기본 도형 (GLB 없음)' })[S.model?.status] || '기본 도형',
       modelPath: `models/${S.processId}.glb`, modelJson: j(S.model),
       screenContextJson: j(this.screenContext()), lastRequestJson: j(S.lastReq), lastResponseJson: j(S.lastRes),
