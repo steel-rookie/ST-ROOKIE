@@ -2,6 +2,7 @@
 // options.notes로 이 타입을 받는다. 타입과 buildLearnerNotes 시그니처는 고정이고(바꾸려면 체크포인트 담당과 먼저 합의),
 // 구현은 학습 모드에서 채운다. 설계는 docs/learning-mode.md '학습자 메모'.
 import type { Section } from "../checkpoint/types.js";
+import { MISCONCEPTION_SOURCE_LABEL } from "./labels.js";
 import { latestPerConcept, MAX_OPEN_MISCONCEPTIONS, type OpenMisconception } from "./repository.js";
 
 export interface LearnerNotes {
@@ -18,8 +19,6 @@ export interface LearnerNotesSource {
 
 /** context에 넣는 미해결 오개념 수(최근 것부터, 개념당 하나). 학습 채팅 프롬프트와 같은 기준. */
 export const MAX_NOTE_ITEMS = MAX_OPEN_MISCONCEPTIONS;
-
-const SOURCE_LABEL: Record<OpenMisconception["source"], string> = { learning: "대화 중 감지됨", checkpoint: "이해도 확인" };
 
 let notesSource: LearnerNotesSource | null = null;
 
@@ -38,6 +37,6 @@ export async function buildLearnerNotes(userId: string, section: Section): Promi
   if (!notesSource) return {};
   const items = latestPerConcept(notesSource.openMisconceptions(userId, section), MAX_NOTE_ITEMS);
   if (items.length === 0) return {};
-  const lines = items.map((m) => `- ${m.concept_id} (${SOURCE_LABEL[m.source]}): ${m.summary}`);
+  const lines = items.map((m) => `- ${m.concept_id} (${MISCONCEPTION_SOURCE_LABEL[m.source]}): ${m.summary}`);
   return { context: ["이 학습자가 아직 헷갈리는 내용입니다. 관련 개념을 설명할 때 이 오해를 짚어 주세요.", ...lines].join("\n") };
 }
