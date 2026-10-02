@@ -34,7 +34,7 @@
 | 요청 | 상태 | 설명 |
 |---|---|---|
 | `GET /api/admin/trainees` | 구현됨 | 신입사원별 섹션 이해도·통과·시도·오개념 개수·마지막 학습일 ([auth-api.md](auth-api.md)) |
-| `GET /api/admin/concepts` | **제안, 미구현** | 개념(=설비)별 첫 판정 분포. 없으면 이 영역만 샘플 |
+| `GET /api/admin/concepts` | 구현됨 | 개념(=설비)별 첫 판정 분포(`backend/src/admin/concept-stats.ts`) |
 
 둘 다 `Authorization: Bearer <token>`(`st-rookie-token`), `admin`만. 아니면 `403 ADMIN_ONLY`.
 

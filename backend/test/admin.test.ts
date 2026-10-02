@@ -31,9 +31,9 @@ before(async () => {
 });
 after(() => server.close());
 
-const get = async (user?: User) => {
+const get = async (user?: User, path = "/api/admin/trainees") => {
   const headers: Record<string, string> = user ? { authorization: `Bearer ${await signToken(user, secret)}` } : {};
-  const res = await fetch(`${base}/api/admin/trainees`, { headers });
+  const res = await fetch(`${base}${path}`, { headers });
   return { status: res.status, json: (await res.json()) as any };
 };
 
@@ -41,6 +41,20 @@ test("only admins can read trainee stats", async () => {
   assert.equal((await get()).status, 401);
   assert.equal((await get(kim)).status, 403);
   assert.equal((await get(admin)).status, 200);
+});
+
+test("concept statistics require admin and come from completed trainee answers", async () => {
+  assert.equal((await get(undefined, "/api/admin/concepts")).status, 401);
+  assert.equal((await get(kim, "/api/admin/concepts")).status, 403);
+  const before = await get(admin, "/api/admin/concepts");
+  assert.equal(before.status, 200);
+  assert.deepEqual(before.json.concepts, []);
+  db.prepare("INSERT INTO attempts (id, user_id, section, state, understanding, unlocked, created_at, updated_at, completed_at, kind, concept_ids) VALUES ('concept-test', ?, 'ironmaking', 'completed', 0.5, 0, '2026-10-01', '2026-10-01', '2026-10-01', 'first', '[\"hot_stove\"]')").run(lee.id);
+  db.prepare("INSERT INTO concept_results (attempt_id, concept_id, question, answer, verdict, recheck_verdict, created_at, updated_at) VALUES ('concept-test', 'hot_stove', 'q', 'a', 'wrong', 'partial', '2026-10-01', '2026-10-01')").run();
+  const after = await get(admin, "/api/admin/concepts");
+  assert.deepEqual(after.json.concepts, [{ section: "ironmaking", concept_id: "hot_stove", asked: 1, partial: 0, wrong: 1, assisted: 0, final_wrong: 0, open: 0 }]);
+  db.prepare("DELETE FROM concept_results WHERE attempt_id = 'concept-test'").run();
+  db.prepare("DELETE FROM attempts WHERE id = 'concept-test'").run();
 });
 
 test("without checkpoint tables, trainees are listed with empty records", () => {

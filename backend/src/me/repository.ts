@@ -18,8 +18,35 @@ export interface MyMisconception {
   resolved_at: string | null;
 }
 
+export interface MyConceptResult {
+  section: string;
+  concept_id: string;
+  verdict: string;
+  recheck_verdict: string | null;
+  updated_at: string;
+}
+
 export class MeRepository {
   constructor(private readonly db: DatabaseSync) {}
+
+  /** 한 사용자의 완료된 체크포인트 개념 결과. 최근 것부터. 신입사원 대시보드의 복습할 개념에 쓴다. */
+  conceptResults(userId: string): MyConceptResult[] {
+    return this.db
+      .prepare(
+        `SELECT a.section, c.concept_id, c.verdict, c.recheck_verdict, c.updated_at
+           FROM concept_results c JOIN attempts a ON a.id = c.attempt_id
+          WHERE a.user_id = ? AND a.state = 'completed'
+          ORDER BY c.updated_at DESC`,
+      )
+      .all(userId)
+      .map((row) => ({
+        section: String(row.section),
+        concept_id: String(row.concept_id),
+        verdict: String(row.verdict),
+        recheck_verdict: row.recheck_verdict == null ? null : String(row.recheck_verdict),
+        updated_at: String(row.updated_at),
+      }));
+  }
 
   /** 한 사용자의 오개념. 최근 것부터. section을 주면 그 섹션만. */
   listMisconceptions(userId: string, section?: Section): MyMisconception[] {
