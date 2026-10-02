@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; min-height: 100%; font-family: "IBM Plex Sans KR", sans-serif; }
+    body { --bg: oklch(0.14 0.02 245); --panel: oklch(0.18 0.018 245); --panel2: oklch(0.24 0.022 245); --line: oklch(1 0 0 / .12); --text: oklch(0.96 0.006 240); --muted: oklch(0.7 0.02 240); --accent: #1a9bd7; --ok: oklch(0.74 0.15 155); --mid: oklch(0.82 0.14 80); --bad: oklch(0.68 0.18 25); background: var(--bg); color: var(--text); }
+    body[data-theme="light"] { --bg: oklch(0.95 0.008 245); --panel: oklch(0.995 0.002 245); --panel2: oklch(0.93 0.01 245); --line: oklch(0 0 0 / .09); --text: oklch(0.22 0.02 245); --muted: oklch(0.5 0.02 245); --ok: oklch(0.55 0.15 155); --mid: oklch(0.62 0.14 70); --bad: oklch(0.55 0.19 25); }
+    a { color: var(--accent); text-decoration: none; } a:hover { color: var(--text); }
+    button, input, select { font-family: inherit; }
+    * { box-sizing: border-box; }
+  </style>
+</helmet>
+<div style="min-height:100vh;background:var(--bg);color:var(--text);">
+  <header style="position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;padding:14px clamp(16px,3vw,36px);background:color-mix(in srgb, var(--bg) 88%, transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="width:34px;height:34px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff;">S</span>
+      <div style="display:flex;flex-direction:column;gap:1px;"><span style="font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.05em;white-space:nowrap;">STEEL ACADEMY</span><span style="font-size:11px;color:var(--muted);">관리자 · 신입사원 학습 현황</span></div>
+    </div>
+    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:3px 8px;border-radius:999px;border:1px dashed {{ srcColor }};color:{{ srcColor }};white-space:nowrap;">{{ srcLabel }}</span>
+    <div style="flex:1;"></div>
+    <nav style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      <a href="../3d-demo/Steel%20Academy%20v2.dc.html" style="padding:7px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--muted);" style-hover="color:var(--text);border-color:var(--accent);">학습 화면</a>
+      <a href="./My Page.dc.html" style="padding:7px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--muted);" style-hover="color:var(--text);border-color:var(--accent);">마이페이지</a>
+      <button type="button" onClick="{{ toggleTheme }}" aria-label="테마 전환" style="width:34px;height:34px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:14px;cursor:pointer;" style-hover="border-color:var(--accent);">{{ themeIcon }}</button>
+    </nav>
+  </header>
+
+  <main style="max-width:1280px;margin:0 auto;padding:28px clamp(16px,3vw,36px) 64px;display:flex;flex-direction:column;gap:28px;">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px 24px;flex-wrap:wrap;">
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <h1 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:28px;font-weight:900;letter-spacing:-0.02em;">학습 현황</h1>
+        <span style="font-size:13px;color:var(--muted);">기준 이해도 <b style="font-family:'IBM Plex Mono',monospace;color:var(--text);">80%</b> 이상이면 섹션 통과 · 오개념은 본인만 볼 수 있어 개수만 표시합니다</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);">{{ updatedLabel }}</span>
+    </div>
+
+    <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:18px;overflow:hidden;">
+      <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+        <div style="display:flex;flex-direction:column;gap:8px;padding:18px 20px;background:var(--panel);">
+          <span style="font-size:12px;color:var(--muted);">{{ k.label }}</span>
+          <span style="display:flex;align-items:baseline;gap:6px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:600;color:{{ k.color }};">{{ k.value }}</span><span style="font-size:13px;color:var(--muted);">{{ k.unit }}</span></span>
+          <span style="font-size:12px;color:var(--muted);">{{ k.sub }}</span>
+        </div>
+      </sc-for>
+    </section>
+
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:stretch;">
+      <section style="flex:1.5 1 520px;min-width:0;display:flex;flex-direction:column;gap:16px;padding:22px;background:var(--panel);border:1px solid var(--line);border-radius:18px;">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:18px;font-weight:700;">오답률 높은 개념</h2>
+            <span style="font-size:12px;color:var(--muted);">체크포인트 첫 답변이 정답이 아니었던 비율 · 개념 = 설비</span>
+          </div>
+          <div role="tablist" style="display:flex;gap:4px;padding:3px;border-radius:999px;background:var(--panel2);flex-wrap:wrap;">
+            <sc-for list="{{ secTabs }}" as="t" hint-placeholder-count="5">
+              <button type="button" role="tab" aria-selected="{{ t.on }}" onClick="{{ t.onClick }}" style="height:28px;padding:0 12px;border:none;border-radius:999px;background:{{ t.bg }};color:{{ t.color }};font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">{{ t.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--muted);">
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:3px;background:var(--bad);"></span>틀림</span>
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:3px;background:var(--mid);"></span>부분 정답</span>
+          <span style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:3px;background:var(--muted);opacity:.6;"></span>힌트 요청</span>
+        </div>
+        <ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;">
+          <sc-for list="{{ concepts }}" as="c" hint-placeholder-count="8">
+            <li style="display:grid;grid-template-columns:28px minmax(120px,1fr) minmax(120px,1.4fr) 56px;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line);">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:{{ c.rankColor }};">{{ c.rank }}</span>
+              <span style="display:flex;flex-direction:column;gap:3px;min-width:0;">
+                <span style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ c.name }}</span>
+                <span style="font-size:11px;color:var(--muted);white-space:nowrap;"><span style="font-family:'IBM Plex Mono',monospace;">{{ c.id }}</span> · {{ c.secName }}</span>
+              </span>
+              <span style="display:flex;flex-direction:column;gap:5px;">
+                <span style="display:flex;height:10px;border-radius:999px;background:var(--panel2);overflow:hidden;">
+                  <span style="width:{{ c.wWrong }};background:var(--bad);"></span>
+                  <span style="width:{{ c.wPartial }};background:var(--mid);"></span>
+                  <span style="width:{{ c.wAssist }};background:var(--muted);opacity:.6;"></span>
+                </span>
+                <span style="font-size:11px;color:var(--muted);">{{ c.detail }}</span>
+              </span>
+              <span style="text-align:right;font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:{{ c.rateColor }};">{{ c.rate }}</span>
+            </li>
+          </sc-for>
+        </ol>
+        <sc-if value="{{ conceptsSample }}" hint-placeholder-val="{{ true }}">
+          <span style="font-size:11px;color:var(--muted);line-height:1.6;">개념별 집계 API(<span style="font-family:'IBM Plex Mono',monospace;">GET /api/admin/concepts</span>)는 아직 없어 샘플로 표시합니다. 형식은 <span style="font-family:'IBM Plex Mono',monospace;">admin_data.js</span> 참고.</span>
+        </sc-if>
+      </section>
+
+      <section style="flex:1 1 340px;min-width:0;display:flex;flex-direction:column;gap:18px;padding:22px;background:var(--panel);border:1px solid var(--line);border-radius:18px;">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;">
+            <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:18px;font-weight:700;">전 과정 수료</h2>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ok);">{{ doneCount }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;">
+            <sc-for list="{{ doneList }}" as="d" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);">
+                <span style="width:32px;height:32px;border-radius:16px;flex:none;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb, var(--ok) 18%, transparent);color:var(--ok);font-size:13px;font-weight:700;">{{ d.initial }}</span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+                  <span style="font-size:14px;font-weight:600;">{{ d.name }} <span style="font-weight:400;font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;">{{ d.emp }}</span></span>
+                  <span style="font-size:11px;color:var(--muted);">{{ d.sub }}</span>
+                </span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;">{{ d.avg }}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{ doneEmpty }}" hint-placeholder-val="{{ false }}"><span style="padding:10px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted);">아직 수료한 사람이 없습니다.</span></sc-if>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;">
+            <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:18px;font-weight:700;">확인이 필요한 사람</h2>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--bad);">{{ watchCount }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;">
+            <sc-for list="{{ watchList }}" as="w" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);">
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+                  <span style="font-size:14px;font-weight:600;">{{ w.name }} <span style="font-weight:400;font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;">{{ w.emp }}</span></span>
+                  <span style="font-size:11px;color:var(--muted);">{{ w.sub }}</span>
+                </span>
+                <span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:{{ w.tagBg }};color:{{ w.tagColor }};white-space:nowrap;">{{ w.tag }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section style="display:flex;flex-direction:column;gap:14px;">
+      <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:18px;font-weight:700;">섹션별 진행</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;">
+        <sc-for list="{{ secCards }}" as="s" hint-placeholder-count="4">
+          <div style="display:flex;flex-direction:column;gap:14px;padding:18px 20px;background:var(--panel);border:1px solid var(--line);border-radius:16px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--accent);">{{ s.num }}</span>
+              <span style="font-size:16px;font-weight:700;">{{ s.name }}</span>
+              <span style="flex:1;"></span>
+              <span style="font-size:11px;color:var(--muted);">평균 <b style="font-family:'IBM Plex Mono',monospace;color:var(--text);">{{ s.avg }}</b></span>
+            </div>
+            <div style="position:relative;height:8px;border-radius:999px;background:var(--panel2);overflow:hidden;">
+              <span style="position:absolute;left:0;top:0;bottom:0;width:{{ s.wTaken }};background:color-mix(in srgb, var(--accent) 35%, transparent);"></span>
+              <span style="position:absolute;left:0;top:0;bottom:0;width:{{ s.wPassed }};background:var(--accent);"></span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+              <span style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:11px;color:var(--muted);">통과</span><span style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;">{{ s.passed }}</span></span>
+              <span style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:11px;color:var(--muted);">미통과</span><span style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:{{ s.failColor }};">{{ s.failed }}</span></span>
+              <span style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:11px;color:var(--muted);">평균 시도</span><span style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;">{{ s.tries }}</span></span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;">
+        <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:18px;font-weight:700;">신입사원 명단</h2>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div role="tablist" style="display:flex;gap:4px;padding:3px;border-radius:999px;background:var(--panel2);flex-wrap:wrap;">
+            <sc-for list="{{ statusTabs }}" as="t" hint-placeholder-count="5">
+              <button type="button" role="tab" aria-selected="{{ t.on }}" onClick="{{ t.onClick }}" style="height:28px;padding:0 12px;border:none;border-radius:999px;background:{{ t.bg }};color:{{ t.color }};font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">{{ t.label }}</button>
+            </sc-for>
+          </div>
+          <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="이름·아이디·사번 검색" aria-label="검색" style="height:34px;width:200px;max-width:100%;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:13px;outline:none;" style-focus="border-color:var(--accent);">
+        </div>
+      </div>
+      <div style="overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;">
+        <div style="min-width:900px;display:flex;flex-direction:column;font-size:13px;">
+          <div style="display:grid;grid-template-columns:minmax(160px,1.6fr) repeat(4,minmax(78px,1fr)) minmax(110px,1.1fr) minmax(90px,.9fr) minmax(90px,.9fr) minmax(90px,.9fr);gap:10px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);color:var(--muted);font-size:12px;">
+            <sc-for list="{{ cols }}" as="h" hint-placeholder-count="9">
+              <button type="button" onClick="{{ h.onClick }}" style="padding:0;border:none;background:none;color:{{ h.color }};font-size:12px;font-weight:600;text-align:{{ h.align }};cursor:{{ h.cursor }};white-space:nowrap;">{{ h.label }}</button>
+            </sc-for>
+          </div>
+          <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:minmax(160px,1.6fr) repeat(4,minmax(78px,1fr)) minmax(110px,1.1fr) minmax(90px,.9fr) minmax(90px,.9fr) minmax(90px,.9fr);gap:10px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);" style-hover="background:var(--panel2);">
+              <span style="display:flex;flex-direction:column;gap:2px;min-width:0;"><span style="font-weight:600;">{{ r.name }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">{{ r.username }} · {{ r.emp }}</span></span>
+              <sc-for list="{{ r.cells }}" as="x" hint-placeholder-count="4">
+                <span style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;border-radius:8px;background:{{ x.bg }};">
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:{{ x.color }};">{{ x.value }}</span>
+                  <span style="font-size:10px;color:var(--muted);">{{ x.sub }}</span>
+                </span>
+              </sc-for>
+              <span style="display:flex;align-items:center;gap:8px;">
+                <span style="display:flex;gap:3px;"><sc-for list="{{ r.dots }}" as="d" hint-placeholder-count="4"><span style="width:14px;height:6px;border-radius:3px;background:{{ d.bg }};"></span></sc-for></span>
+                <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;">{{ r.progress }}</span>
+              </span>
+              <span style="text-align:right;font-family:'IBM Plex Mono',monospace;"><b style="color:{{ r.misColor }};">{{ r.misOpen }}</b><span style="color:var(--muted);font-size:11px;"> / 해결 {{ r.misResolved }}</span></span>
+              <span style="text-align:right;color:var(--muted);font-size:12px;">{{ r.last }}</span>
+              <span style="justify-self:end;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:{{ r.tagBg }};color:{{ r.tagColor }};white-space:nowrap;">{{ r.tag }}</span>
+            </div>
+          </sc-for>
+          <sc-if value="{{ rowsEmpty }}" hint-placeholder-val="{{ false }}"><span style="padding:24px 18px;text-align:center;color:var(--muted);">조건에 맞는 신입사원이 없습니다.</span></sc-if>
+        </div>
+      </div>
+      <span style="font-size:11px;color:var(--muted);">칸: 마지막 체크포인트 이해도 · 시도 횟수. 잠김 = 앞 섹션 미통과. 모든 교육 내용과 기록은 샘플입니다.</span>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;dark&quot;, &quot;light&quot;], &quot;default&quot;: &quot;dark&quot;, &quot;tsType&quot;: &quot;'dark' | 'light'&quot;}}">
+const STATUS = {
+  done: { label: '수료', bg: 'color-mix(in srgb, var(--ok) 18%, transparent)', color: 'var(--ok)' },
+  retry: { label: '재도전 필요', bg: 'color-mix(in srgb, var(--bad) 18%, transparent)', color: 'var(--bad)' },
+  active: { label: '진행 중', bg: 'color-mix(in srgb, var(--accent) 18%, transparent)', color: 'var(--accent)' },
+  idle: { label: '미시작', bg: 'var(--panel2)', color: 'var(--muted)' },
+};
+const pct = x => Math.round(x * 100) + '%';
+const uColor = u => u >= 0.8 ? 'var(--ok)' : u >= 0.6 ? 'var(--mid)' : 'var(--bad)';
+const days = iso => iso ? Math.floor((Date.now() - new Date(iso)) / 864e5) : null;
+const ago = iso => { const d = days(iso); return d == null ? '기록 없음' : d === 0 ? '오늘' : d === 1 ? '어제' : `${d}일 전`; };
+
+class Component extends DCLogic {
+  state = { P: null, data: null, theme: this.props.theme ?? 'dark', sec: 'all', status: 'all', q: '', sort: 'progress', loadedAt: null };
+  componentDidMount() {
+    document.body.dataset.theme = this.state.theme;
+    import('../3d-demo/data_v2.js').then(m => this.setState({ P: m.PROCESSES }));
+    import('./admin_data.js').then(m => m.loadAdminData()).then(data => this.setState({ data, loadedAt: new Date() }));
+  }
+  statusOf(t, secs) {
+    if (t.passed_sections === secs.length) return 'done';
+    if (secs.some(s => t.sections[s] && !t.sections[s].passed)) return 'retry';
+    if (secs.some(s => t.sections[s])) return 'active';
+    return 'idle';
+  }
+  renderVals() {
+    const S = this.state, P = S.P || [], D = S.data;
+    const secs = D ? D.trainees.sections : ['ironmaking', 'steelmaking', 'continuous_casting', 'rolling'];
+    const T = D ? D.trainees.trainees : [];
+    const meta = id => P.find(p => p.id === id) || { num: '', name: id, equipment: [] };
+    const eqName = (sec, id) => (meta(sec).equipment.find(e => e.id === id) || { name: id }).name;
+    const N = T.length;
+    const st = T.map(t => this.statusOf(t, secs));
+    const allU = T.flatMap(t => secs.map(s => t.sections[s]).filter(Boolean).map(x => x.understanding));
+    const openMis = T.reduce((a, t) => a + t.misconceptions.open, 0);
+    const doneN = st.filter(x => x === 'done').length;
+    const tab = (on, label, onClick) => ({ on, label, onClick, bg: on ? 'var(--panel)' : 'transparent', color: on ? 'var(--text)' : 'var(--muted)' });
+    const src = D ? D.source : { trainees: 'sample', concepts: 'sample' };
+
+    // 오답률 높은 개념
+    const C = (D ? D.concepts.concepts : []).filter(c => S.sec === 'all' || c.section === S.sec)
+      .map(c => ({ ...c, miss: c.partial + c.wrong + c.assisted })).filter(c => c.asked > 0)
+      .sort((a, b) => b.miss / b.asked - a.miss / a.asked || b.wrong - a.wrong).slice(0, 8);
+    const concepts = C.map((c, i) => { const r = c.miss / c.asked; return {
+      rank: String(i + 1).padStart(2, '0'), rankColor: i < 3 ? 'var(--bad)' : 'var(--muted)',
+      name: eqName(c.section, c.concept_id), id: c.concept_id, secName: meta(c.section).name,
+      wWrong: pct(c.wrong / c.asked), wPartial: pct(c.partial / c.asked), wAssist: pct(c.assisted / c.asked),
+      detail: `${c.asked}회 출제 · 재확인 후에도 틀림 ${c.final_wrong} · 미해결 오개념 ${c.open}`,
+      rate: pct(r), rateColor: r >= 0.5 ? 'var(--bad)' : r >= 0.3 ? 'var(--mid)' : 'var(--text)' }; });
+
+    // 수료 / 확인 필요
+    const avgOf = t => { const u = secs.map(s => t.sections[s]).filter(Boolean); return u.length ? u.reduce((a, x) => a + x.understanding, 0) / u.length : 0; };
+    const done = T.filter((t, i) => st[i] === 'done').sort((a, b) => new Date(b.last_activity) - new Date(a.last_activity));
+    const watch = [];
+    T.forEach((t, i) => {
+      const fail = secs.find(s => t.sections[s] && !t.sections[s].passed);
+      if (fail) { const x = t.sections[fail]; watch.push({ t, w: 3, tag: '재도전 필요', c: 'bad', sub: `${meta(fail).name} ${pct(x.understanding)} · ${x.attempts}회 시도` }); }
+      else if (st[i] === 'idle') watch.push({ t, w: 1, tag: '미시작', c: 'muted', sub: `가입 ${ago(t.created_at)} · 아직 체크포인트 없음` });
+      else if (st[i] !== 'done' && days(t.last_activity) >= 3) watch.push({ t, w: 2, tag: `${days(t.last_activity)}일 미접속`, c: 'mid', sub: `진도 ${t.passed_sections}/${secs.length}` });
+      if (st[i] !== 'done' && t.misconceptions.open >= 3 && !fail) watch.push({ t, w: 2, tag: '오개념 많음', c: 'mid', sub: `미해결 오개념 ${t.misconceptions.open}개` });
+    });
+    watch.sort((a, b) => b.w - a.w);
+
+    // 섹션 카드
+    const secCards = secs.map(s => { const x = T.map(t => t.sections[s]).filter(Boolean), p = x.filter(v => v.passed).length;
+      return { num: meta(s).num, name: meta(s).name, avg: x.length ? pct(x.reduce((a, v) => a + v.understanding, 0) / x.length) : '—',
+        passed: `${p}/${N}`, failed: String(x.length - p), failColor: x.length - p ? 'var(--bad)' : 'var(--text)',
+        tries: x.length ? (x.reduce((a, v) => a + v.attempts, 0) / x.length).toFixed(1) : '—',
+        wTaken: N ? pct(x.length / N) : '0%', wPassed: N ? pct(p / N) : '0%' }; });
+
+    // 명단
+    const q = S.q.trim().toLowerCase();
+    const sorters = {
+      name: (a, b) => a.t.name.localeCompare(b.t.name, 'ko'),
+      progress: (a, b) => b.t.passed_sections - a.t.passed_sections || avgOf(b.t) - avgOf(a.t),
+      mis: (a, b) => b.t.misconceptions.open - a.t.misconceptions.open,
+      last: (a, b) => new Date(b.t.last_activity || 0) - new Date(a.t.last_activity || 0),
+    };
+    const list = T.map((t, i) => ({ t, s: st[i] }))
+      .filter(x => S.status === 'all' || x.s === S.status)
+      .filter(x => !q || [x.t.name, x.t.username, x.t.employee_no].some(v => v.toLowerCase().includes(q)))
+      .sort(sorters[S.sort]);
+    const rows = list.map(({ t, s }) => {
+      let locked = false;
+      const cells = secs.map(k => { const x = t.sections[k];
+        if (x) { const c = { value: pct(x.understanding), sub: `${x.passed ? '통과' : '미통과'} · ${x.attempts}회`, color: uColor(x.understanding), bg: `color-mix(in srgb, ${uColor(x.understanding)} 12%, transparent)` }; if (!x.passed) locked = true; return c; }
+        const c = { value: locked ? '잠김' : '—', sub: locked ? '' : '미응시', color: 'var(--muted)', bg: 'transparent' }; locked = true; return c; });
+      return { name: t.name, username: t.username, emp: t.employee_no, cells,
+        dots: secs.map(k => ({ bg: t.sections[k]?.passed ? 'var(--accent)' : 'var(--panel2)' })), progress: `${t.passed_sections}/${secs.length}`,
+        misOpen: String(t.misconceptions.open), misResolved: String(t.misconceptions.resolved), misColor: t.misconceptions.open ? 'var(--bad)' : 'var(--text)',
+        last: ago(t.last_activity), tag: STATUS[s].label, tagBg: STATUS[s].bg, tagColor: STATUS[s].color };
+    });
+    const col = (label, key, align = 'center') => ({ label: label + (key && S.sort === key ? ' ↓' : ''), align, color: key && S.sort === key ? 'var(--text)' : 'var(--muted)', cursor: key ? 'pointer' : 'default', onClick: () => key && this.setState({ sort: key }) });
+
+    const statusCount = k => k === 'all' ? N : st.filter(x => x === k).length;
+    return {
+      srcLabel: src.trainees === 'api' ? (src.concepts === 'api' ? '실시간 데이터' : '실시간 · 개념 통계는 샘플') : '샘플 데이터',
+      srcColor: src.trainees === 'api' ? 'var(--ok)' : 'var(--mid)',
+      updatedLabel: S.loadedAt ? `불러온 시각 ${S.loadedAt.getHours()}:${String(S.loadedAt.getMinutes()).padStart(2, '0')}` : '불러오는 중…',
+      themeIcon: S.theme === 'dark' ? '☀' : '☾',
+      toggleTheme: () => { const theme = S.theme === 'dark' ? 'light' : 'dark'; document.body.dataset.theme = theme; this.setState({ theme }); },
+      kpis: [
+        { label: '신입사원', value: String(N), unit: '명', sub: '가입한 trainee 계정', color: 'var(--text)' },
+        { label: '전 과정 수료', value: String(doneN), unit: `명 · ${N ? pct(doneN / N) : '0%'}`, sub: '4개 섹션 모두 통과', color: 'var(--ok)' },
+        { label: '평균 이해도', value: allU.length ? pct(allU.reduce((a, b) => a + b, 0) / allU.length) : '—', unit: '', sub: '응시한 섹션의 마지막 결과 평균', color: allU.length ? uColor(allU.reduce((a, b) => a + b, 0) / allU.length) : 'var(--text)' },
+        { label: '미해결 오개념', value: String(openMis), unit: '개', sub: '내용은 본인만 볼 수 있음', color: openMis ? 'var(--bad)' : 'var(--text)' },
+      ],
+      secTabs: [tab(S.sec === 'all', '전체', () => this.setState({ sec: 'all' })), ...secs.map(s => tab(S.sec === s, meta(s).name, () => this.setState({ sec: s })))],
+      concepts, conceptsSample: src.concepts !== 'api',
+      doneCount: `${doneN}명`, doneEmpty: !!D && done.length === 0,
+      doneList: done.map(t => ({ initial: t.name.slice(0, 1), name: t.name, emp: t.employee_no, avg: pct(avgOf(t)),
+        sub: `${ago(t.last_activity)} 마지막 학습 · 재도전 ${secs.reduce((a, s) => a + (t.sections[s]?.attempts || 1) - 1, 0)}회` })),
+      watchCount: `${watch.length}건`,
+      watchList: watch.map(({ t, tag, c, sub }) => ({ name: t.name, emp: t.employee_no, sub, tag,
+        tagBg: `color-mix(in srgb, var(--${c}) 18%, transparent)`, tagColor: `var(--${c})` })),
+      secCards,
+      statusTabs: ['all', 'done', 'active', 'retry', 'idle'].map(k => tab(S.status === k, `${k === 'all' ? '전체' : STATUS[k].label} ${statusCount(k)}`, () => this.setState({ status: k }))),
+      query: S.q, onQuery: e => this.setState({ q: e.target.value }),
+      cols: [col('신입사원', 'name', 'left'), ...secs.map(s => col(meta(s).name)), col('진도', 'progress', 'left'), col('미해결 오개념', 'mis', 'right'), col('마지막 학습', 'last', 'right'), col('상태', null, 'right')],
+      rows, rowsEmpty: !!D && rows.length === 0,
+    };
+  }
+}
+</script>
+</body>
+</html>
