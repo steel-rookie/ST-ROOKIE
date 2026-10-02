@@ -10,6 +10,8 @@
 <helmet>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet">
   <script type="module" src="./scene_v2.js"></script>
+  <script type="module" src="./steel-2d.js"></script>
+  <script type="module" src="./steel-2d-popup.js"></script>
   <style>
     html, body { margin: 0; height: 100%; overflow: hidden; font-family: "IBM Plex Sans KR", sans-serif; }
     body { --bg: oklch(0.14 0.02 245); --panel: oklch(0.15 0.015 245 / .92); --panel2: oklch(0.27 0.022 245); --line: oklch(1 0 0 / .18); --text: oklch(0.96 0.006 240); --muted: oklch(0.7 0.02 240); --accent: #1a9bd7; --accent-ink: #ffffff; --danger-bg: oklch(0.32 0.09 25); --danger: oklch(0.86 0.1 25); background: var(--bg); color: var(--text); }
@@ -242,6 +244,9 @@ class Component extends DCLogic {
     document.addEventListener('steel-goto', e => { const id = e.detail.process ?? e.detail.id; if (id) this.goProcess(id); });
     document.addEventListener('steel-overview', () => { if (this.state.selectedId) this.setState({ selectedId: null }); });
     document.addEventListener('steel-layer', e => this.setState({ layerOpen: e.detail.layer !== null }));
+    // 2D 공정 팝업(steel-2d-popup)이 열리면 설비 패널을 숨겨 겹치지 않게 함
+    const syncPopup = () => { const p = document.querySelector('steel-2d-popup'); const open = !!(p && p.hasAttribute('open')); if (open !== !!this.state.popupOpen) this.setState({ popupOpen: open }); };
+    new MutationObserver(syncPopup).observe(document.body, { attributes: true, attributeFilter: ['open'], subtree: true, childList: true });
     document.addEventListener('steel-progress', e => this.setState({ progress: e.detail.t, matLabel: e.detail.label, playing: e.detail.playing, touring: e.detail.touring, tourStep: e.detail.step }));
     
     document.addEventListener('steel-tour-end', () => this.setState({ touring: false, tourStep: null }));
@@ -289,7 +294,7 @@ class Component extends DCLogic {
       processId: S.processId, selectedAttr: S.selectedId || '', process: p, processEn: p.en.toUpperCase(),
       steps: D.PROCESSES.filter(x => !(S.playing || S.touring) || x.id === S.processId).map(x => { const on = x.id === S.processId; return { ...x, active: on, onClick: () => this.goProcess(x.id), bg: on ? 'var(--panel2)' : 'transparent', color: on ? 'var(--text)' : 'var(--muted)', iconBg: on ? 'var(--accent)' : 'var(--panel2)', iconColor: on ? 'var(--accent-ink)' : 'var(--muted)', weight: on ? '700' : '500' }; }),
       eqList: p.equipment.map((e, i) => { const on = e.id === S.selectedId, passed = k >= 0 && i < k; return { ...e, num: String(i + 1).padStart(2, '0'), onClick: () => { this.setState({ selectedId: e.id }); this.scene()?.focus(e.id); }, color: on ? 'var(--accent)' : 'var(--text)', weight: on ? '700' : '500', dotBg: on ? 'var(--accent)' : (passed ? 'var(--muted)' : 'var(--panel)'), dotBorder: on ? 'var(--accent)' : (passed ? 'var(--muted)' : 'var(--line)') }; }),
-      hasSelected: !!eq && !S.touring && !S.tutorOpen && !S.devOpen && !S.layerOpen, eq: eq || {}, hasSteps: !!(eq && eq.steps), eqNum: String(k + 1).padStart(2, '0'), eqCount: String(p.equipment.length).padStart(2, '0'),
+      hasSelected: !!eq && !S.touring && !S.tutorOpen && !S.devOpen && !S.layerOpen && !S.popupOpen, eq: eq || {}, hasSteps: !!(eq && eq.steps), eqNum: String(k + 1).padStart(2, '0'), eqCount: String(p.equipment.length).padStart(2, '0'),
       nextName: nextEq ? nextEq.name : (nextP ? `${nextP.name} 공정` : '출하'),
       clearSelection: () => this.setState({ selectedId: null }), focusSelected: () => this.scene()?.focus(S.selectedId), askTutorAboutEq: () => this.ask('이 설비의 역할은?'),
       panelMix: this.theme() === 'light' ? '92%' : '72%', resetView: () => { const sc = this.scene(); sc?.stop?.(); this.setState({ selectedId: null }); setTimeout(() => sc?.overview(), 0); }, togglePlay: () => this.scene()?.toggle(S.speed), stopPlay: () => this.scene()?.stop(), nextStep: () => this.scene()?.next(), playIcon: S.playing ? '■' : '▶',
