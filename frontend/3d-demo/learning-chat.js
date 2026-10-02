@@ -3,16 +3,34 @@
 // - 페이지 컴포넌트(c)의 state·setState와 data, chatRef, scene(), goProcess(), scrollChat()을 그대로 쓴다.
 // - 상태(messages, input, pending, lastReq, lastRes, lastResults)는 페이지 컴포넌트 state에 그대로 둔다.
 // - 튜터는 학습 모드 API(POST /api/chat, docs/learning-mode.md)다. 응답은 템플릿이 그리는 메시지 형식(mode, evidence, citations, followUp)으로 바꿔 넣는다.
-// - [임시] 사용자 구분은 체크포인트 테스트 페이지와 같다: 주소의 ?user=이름 → X-User-Id, 저장된 접속 비밀번호 → X-Test-Passcode.
+// - 사용자 구분: 로그인 화면(/login)이 저장한 토큰(st-rookie-token)이 있으면 Authorization: Bearer로 보낸다.
+//   [임시] 토큰이 없으면 체크포인트 테스트 페이지와 같이 주소의 ?user=이름 → X-User-Id를 보낸다.
+// - 접속 비밀번호(TEST_PASSCODE)는 이 페이지에 입력 화면이 없어서 체크포인트 테스트 페이지가 저장한 값을 쓴다. 없거나 틀리면 401 안내를 보여 준다.
 
 const SECTIONS = ['ironmaking', 'steelmaking', 'continuous_casting', 'rolling'];
 const PASS_KEY = 'st-rookie:passcode';
+const TOKEN_KEY = 'st-rookie-token';
+
+// 로그인 상태 유지면 localStorage, 아니면 sessionStorage에 있다(frontend/login_ui).
+const tokenStore = {
+  get() { try { return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; } },
+  clear() { try { localStorage.removeItem(TOKEN_KEY); sessionStorage.removeItem(TOKEN_KEY); } catch (e) {} },
+};
+
+/** 401 응답을 학습자가 할 일로 바꿔 말한다. */
+function unauthorizedMessage(data) {
+  if (data.code === 'PASSCODE_REQUIRED') return '접속 비밀번호가 필요해요. 체크포인트 테스트 페이지(/checkpoint-test.html)에서 비밀번호를 입력한 뒤 다시 질문해 주세요.';
+  if (data.code === 'TOKEN_INVALID') { tokenStore.clear(); return '로그인이 만료됐어요. /login 에서 다시 로그인한 뒤 질문해 주세요.'; }
+  return data.error || '로그인이 필요해요. /login 에서 로그인해 주세요.';
+}
 
 /** POST /api/chat. 실패하면 서버가 준 문장(없으면 기본 문장)을 담은 Error, 404면 err.status = 404. */
 async function postChat(body) {
   const headers = { 'Content-Type': 'application/json' };
+  const token = tokenStore.get();
+  if (token) headers['Authorization'] = 'Bearer ' + token;
   const user = (new URLSearchParams(location.search).get('user') || '').trim();
-  if (user) headers['X-User-Id'] = encodeURIComponent(user);
+  if (!token && user) headers['X-User-Id'] = encodeURIComponent(user);
   let passcode = '';
   try { passcode = localStorage.getItem(PASS_KEY) || ''; } catch (e) {}
   if (passcode) headers['X-Test-Passcode'] = encodeURIComponent(passcode);
@@ -23,7 +41,10 @@ async function postChat(body) {
     throw new Error('서버에 연결하지 못했어요. npm start로 서버를 켠 뒤 http://localhost:3000 에서 열어 주세요.');
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) { const err = new Error(data.error || '답변을 받지 못했어요. 다시 질문해 주세요.'); err.status = res.status; err.data = data; throw err; }
+  if (!res.ok) {
+    const err = new Error(res.status === 401 ? unauthorizedMessage(data) : data.error || '답변을 받지 못했어요. 다시 질문해 주세요.');
+    err.status = res.status; err.data = data; throw err;
+  }
   return data;
 }
 
