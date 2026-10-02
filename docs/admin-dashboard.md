@@ -21,7 +21,7 @@
 - 목표는 지금 화면을 **실데이터로 마무리**하는 것이다. 새 기능은 아래 '남은 작업'의 최소 보강만 한다.
 - 관리자는 **조회만** 한다. 강제 해금, 기록 초기화, 계정 관리는 만들지 않는다(재응시 409·점수 규칙을 우회하는 경로가 생긴다).
 - 오개념은 사람별 개수에 더해 **개념별 개수**까지 보여 준다. 사용자 id·답변 원문·오개념 설명은 넣지 않는다. CLAUDE.md '오개념 기록'의 "관리자 화면에는 사람별 개수만"을 바꾸는 결정이므로 팀에 공유하고 CLAUDE.md를 작은 PR로 고친다.
-- `GET /api/admin/concepts`는 viiin2가 `backend/src/admin/`에 작은 PR로 만든다. 관리자 라우터는 `ironmaking-server.ts`에서 붙이므로 `app.ts`는 건드리지 않는다. 수민 담당 테이블(`concept_results`, `misconceptions`)을 읽기만 하므로 PR 전에 수민에게 알린다.
+- `GET /api/admin/concepts`는 viiin2가 `backend/src/admin/`에 작은 PR로 만든다. 관리자 라우터는 `ironmaking-server.ts`에서 붙이므로 `app.ts`는 건드리지 않는다. 수빈 담당 테이블(`concept_results`, `misconceptions`)을 읽기만 하므로 PR 전에 수빈에게 알린다.
 
 ## 화면 구성
 
@@ -122,7 +122,7 @@ frontend/login_ui/
 
 - [x] `GET /api/admin/concepts` 담당자: viiin2, 작은 PR (위 '결정')
 - [ ] 개념별 오개념 **개수** 노출: 보여 주기로 결정, 팀 공유와 CLAUDE.md 반영 대기
-- [ ] 개념 이름을 서버가 붙일지(`name`), 루브릭 개념과 설비를 잇는 `equipment_ids`(CLAUDE.md '다음 단계', 수민 담당)를 기다릴지 (백엔드·수민)
+- [ ] 개념 이름을 서버가 붙일지(`name`), 루브릭 개념과 설비를 잇는 `equipment_ids`(CLAUDE.md '다음 단계', 수빈 담당)를 기다릴지 (백엔드·수빈)
 - [ ] 미접속 경고 기준 3일 (교육 담당)
 - [ ] trainee가 대시보드 주소로 직접 들어올 때 `/login`으로 보낼지 (프론트)
 - [ ] 명단 CSV 내보내기 필요 여부 (교육 담당)

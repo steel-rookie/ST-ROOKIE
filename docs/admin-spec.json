@@ -6,7 +6,7 @@
   "owners": {
     "frontend": "viiin2 (Admin Dashboard.dc.html, admin_data.js, My Page.dc.html)",
     "backend_admin_api": "viiin2 — backend/src/admin/ (trainees는 구현됨, concepts는 작은 PR로 신규)",
-    "checkpoint_data": "수민 — attempts, concept_results, misconceptions 테이블"
+    "checkpoint_data": "수빈 — attempts, concept_results, misconceptions 테이블"
   },
 
   "user": {
