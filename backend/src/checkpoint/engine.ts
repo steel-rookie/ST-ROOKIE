@@ -13,6 +13,7 @@ import {
   type ConceptResult,
   type Results,
 } from "../scoring.js";
+import type { LearnerNotes } from "../learning/notes.js";
 import type { AttemptPatch, AttemptRow, CheckpointRepository, ConceptResultRow } from "./repository.js";
 import {
   CheckpointError,
@@ -24,7 +25,6 @@ import {
   type CheckpointView,
   type Evaluation,
   type Evaluator,
-  type LearnerNotes,
   type Phase,
   type ResultView,
   type Section,

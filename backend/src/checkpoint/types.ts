@@ -67,15 +67,6 @@ export interface Tutor {
   recheckQuestion(input: { rubric: Rubric; concept: RubricConcept; previousQuestion: string }): Promise<string>;
 }
 
-/**
- * 학습자 메모(다음 단계). 개념 순서 조정이나 튜터에게 줄 추가 컨텍스트를 받을 자리다.
- * 지금은 받기만 하고 쓰지 않는다. CLAUDE.md '다음 단계' 참고.
- */
-export interface LearnerNotes {
-  conceptOrder?: string[];
-  context?: string;
-}
-
 // --- 에러 ---
 
 /** 평가자 출력이 형식 검증에 실패했다(재시도 포함). 시도는 error 상태가 된다. */

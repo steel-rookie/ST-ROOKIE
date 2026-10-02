@@ -4,6 +4,7 @@
 
 커밋 메시지 규칙은 [agent.md](agent.md)를 따른다.
 보고는 한국어로 한다.
+작업 시작 전과 커밋 전에 현재 브랜치를 확인한다(`git branch --show-current`). IDE 등에서 브랜치가 바뀌어 커밋이 엉뚱한 브랜치에 쌓인 적이 있다.
 
 ## 현재 상태와 목표
 
@@ -11,31 +12,43 @@
 |---|---|---|
 | 프론트 | `frontend/3d-demo` (바닐라 HTML + Three.js) | 유지. React로 전환하지 않는다 |
 | 백엔드 | Node/Express + Gemini (`backend/src/ironmaking-server.ts`) | Node/Express 유지 + SQLite |
-| 튜터 | `tutor.js`의 `mockTutor` (키워드 매칭 샘플 응답) | 학습 모드 + 체크포인트 모드 |
-| 교육 내용 | `frontend/3d-demo/data.js` (샘플, 미검증) | `content/materials/{섹션}/section.md` |
+| 튜터 | 화면: `tutor_v2.js`의 `mockTutor`(키워드 매칭 샘플 응답, `learning-chat.js`가 호출). 체크포인트: Gemini 평가자·튜터 | 학습 모드 + 체크포인트 모드 |
+| 교육 내용 | `frontend/3d-demo/data_v2.js` (샘플, 미검증) | `content/materials/{섹션}/section.md` |
 
 채점 로직은 `backend/src/scoring.ts`, 루브릭 로드·검증은 `backend/src/rubrics.ts`에 있다. 서버는 시작할 때 `final/` 루브릭을 모두 검증하고, 형식이 틀리면 시작하지 않는다.
 
 ## 프론트 구조 (`frontend/3d-demo`)
 
-- `Steel Academy.dc.html`: 화면 템플릿과 로직. 로직은 `<script type="text/x-dc">` 안의 `class Component extends DCLogic`에 있고, `support.js`가 읽어서 실행한다(에디터에서 문법 강조가 안 됨).
-  - `componentDidMount`: `data.js`, `tutor.js`를 불러오고 3D 이벤트를 구독한다.
-  - `ask(text)`: 튜터 질문 → `mockTutor` 호출 → `runActions`로 화면 조작 → 메시지 추가.
-  - `runActions(actions)`: `goto_process`, `highlight`, `focus`, `play_animation`을 실행한다.
-  - `screenContext()`: 현재 공정·설비를 튜터 요청용으로 만든다.
-  - `renderVals()`: 템플릿에 넘기는 값과 클릭 핸들러(공정 탭, 설비 목록, 재생 제어, 튜터 패널, 개발자 패널).
-- `checkpoint-test.html`: 체크포인트(이해도 확인) 테스트용 단독 페이지(`/checkpoint-test.html`). 메인 페이지에서 링크하지 않는다. 입장 화면(이름·접속 비밀번호), 섹션별 진입 상태(`/api/sections/:section/progress`), 진행(`/api/checkpoints`, 새로고침 시 진행 중 시도 복원), 재채점, 결과 차트를 포함한다. 바닐라 HTML+JS라 `support.js`를 쓰지 않는다.
-  - **체크포인트 UI는 메인 페이지에 없다.** 메인 페이지에 붙였던 원본은 태그 `archive/checkpoint-ui-v1`(`Steel Academy.dc.html`의 `checkpointVals()`, `cpCall()`, `refreshCheckpoint()` 등)에 있다. 프론트(메인 페이지)가 확정되면 그 원본을 참고해 메인 페이지에 다시 적용하고, 그때까지는 `checkpoint-test.html`로 테스트한다.
-- `scene.js`: `<steel-scene>` 커스텀 엘리먼트(`SteelScene`). Three.js 뷰어 전체.
-  - 공정 빌드 `_buildProcess`, GLB 로드 `_loadGLB`, 선택 표시 `_applySelection`, 내부 단면 `_showInterior`.
-  - 클릭: `_bindPointer`에서 레이캐스트 → `_select(id)`가 `steel-select` 이벤트 발생.
-  - 재생: `tour`, `next`, `stopTour`, `play`, `stop`, `toggle`. 카메라: `focus(id)`, `reset()`.
-  - 이벤트: `steel-select`, `steel-model`, `steel-progress`, `steel-tour`, `steel-tour-end`.
-- `data.js`: `PROCESSES`(공정·설비·단계·내부 구조), `QUIZZES`(현재 미사용), `SUGGESTED`, `findProcess`, `findEquipment`. 3D 표시용 값과 교육 내용이 섞여 있다.
-- `tutor.js`: `mockTutor(req)`. 실제 튜터 API로 교체할 대상.
-- `models/`: 공정별 GLB와 `anchors.json`. 설비 노드 이름은 `EQ_<설비 id>`. 규칙은 `models/README.md`.
+**최종 페이지는 `Steel Academy v2.dc.html`(v2)이다.** 체크포인트 UI를 메인에 다시 적용할 대상도 v2다. `Steel Academy.dc.html`(v1, 서버 `/`가 아직 여는 페이지)과 `data.js`·`tutor.js`·`scene.js`는 옛 버전이라 고치지 않는다.
 
-설비 `id`(예: `blast_furnace`)는 GLB 노드, 화면 선택, 튜터 화면 조작, 콘텐츠를 잇는 키다. 바꾸지 않는다.
+- `Steel Academy v2.dc.html`: 화면 템플릿과 로직. 로직은 `<script type="text/x-dc">` 안의 `class Component extends DCLogic`에 있고, `support.js`가 읽어서 실행한다(에디터에서 문법 강조가 안 됨). 주소는 `/Steel%20Academy%20v2.dc.html`.
+  - `componentDidMount`: `data_v2.js`와 `learning-chat.js`를 불러와 `this.chat`을 만들고 3D 이벤트를 구독한다.
+  - `ask(text)`, `screenContext()`: `this.chat`에 넘기는 한 줄짜리 위임(설비 패널·개발자 패널이 부른다).
+  - `renderVals()`: 템플릿 값과 클릭 핸들러(공정 탭, 설비 목록, 재생 제어, 튜터 패널, 개발자 패널). 튜터 패널 값은 `...this.chat.vals(D)`.
+  - 알려진 문제: `componentDidUpdate(_, prev)`는 `support.js`가 인자를 하나만 넘겨 매번 콘솔 오류를 낸다([#15](https://github.com/viiin2/ST-ROOKIE/issues/15)). 아래 '알려진 문제' 참고.
+- `learning-chat.js`: 학습 모드 채팅. `createLearningChat(c)`가 `ask`(질문 → 가짜 튜터 → 화면 조작 → 메시지), `runActions`(`goto_process`, `highlight`, `focus`, `play_animation`), `screenContext`, `vals`(메시지·추천 질문·입력창)를 돌려준다. 상태는 페이지 컴포넌트 state에 그대로 있다. 실제 학습 모드 API로 바꿀 때 `ask`의 `mockTutor` 호출을 바꾼다.
+- `tutor_v2.js`: `mockTutor(req)`(가짜 튜터). `data_v2.js`: `PROCESSES`(공정 4개·설비 24개), `SUGGESTED`, `findProcess`, `findEquipment`. 3D 표시용 값과 교육 내용이 섞여 있다.
+- `scene_v2.js`: `<steel-scene>` 커스텀 엘리먼트(Three.js). 메서드 `jumpTo`, `tour`, `next`, `stopTour`, `play`, `stop`, `toggle`, `focus`, `overview`, `reset`, `setLeftLimit`. 이벤트 `steel-select`, `steel-goto`, `steel-overview`, `steel-layer`, `steel-model`, `steel-progress`, `steel-tour`, `steel-tour-end`. `steel-2d.js`·`steel-2d-popup.js`는 2D 공정 팝업.
+- `models/`: 공정별 GLB, v2 앵커 `anchors-v2b.json`(v1은 `anchors.json`). 현재 GLB에는 `EQ_<설비 id>` 노드가 없고 v2는 앵커로 설비 위치를 잡는다.
+- `checkpoint-test.html`: 체크포인트(이해도 확인) 테스트용 단독 페이지(`/checkpoint-test.html`). 메인 페이지에서 링크하지 않는다. 입장 화면(이름·접속 비밀번호), 섹션별 진입 상태(`/api/sections/:section/progress`), 진행(`/api/checkpoints`, 새로고침 시 진행 중 시도 복원), 재채점, 결과 차트를 포함한다. 바닐라 HTML+JS라 `support.js`를 쓰지 않는다.
+  - **체크포인트 UI는 메인 페이지에 없다.** v1 메인 페이지에 붙였던 원본은 태그 `archive/checkpoint-ui-v1`(`Steel Academy.dc.html`의 `checkpointVals()`, `cpCall()`, `refreshCheckpoint()` 등)에 있다. 프론트가 확정되면 그 원본을 참고해 v2에 다시 적용하고, 그때까지는 `checkpoint-test.html`로 테스트한다.
+
+설비 `id`(예: `blast_furnace`)는 화면 선택, 튜터 화면 조작, 3D 앵커, 콘텐츠를 잇는 키다. 바꾸지 않는다. 기준은 `data_v2.js`의 24개이고, v1·루브릭과의 차이는 [docs/equipment-ids.md](docs/equipment-ids.md).
+
+## 파일 담당
+
+여러 사람이 같은 파일을 고치면 병합 충돌이 나므로 담당을 나눈다. 담당이 아닌 파일을 고쳐야 하면 담당자에게 먼저 알리고 그 변경만 담은 작은 PR로 낸다.
+
+| 담당 | 파일 |
+|---|---|
+| 수민: 체크포인트·평가자·튜터·질문 은행·eval | `backend/src/checkpoint/`, `backend/src/rubrics.ts`, `backend/src/db/migrations/001_checkpoint.sql`, `llm/src/evaluator.ts`, `llm/src/tutor.ts`, `llm/src/question-check.ts`, `llm/prompts/evaluator.md`, `llm/prompts/tutor-*.md`, `llm/eval/`, `content/rubrics/`(`schema.json` 제외), `frontend/3d-demo/checkpoint-test.html`, 원격 테스트 장치(`backend/src/test-access.ts`, `usage.ts`, `request-user.ts`, `db/migrations/002_llm_usage.sql`, `scripts/tunnel.mjs`), 이 파일들의 테스트 |
+| ssoyoum: 학습 모드 | `llm/src/learning-agent.ts`·`llm/src/retrieval.ts`(둘 다 새로 만듦), `llm/prompts/learning*.md`, `backend/src/learning/`(단, `notes.ts`의 `LearnerNotes` 타입과 `buildLearnerNotes` 시그니처는 수민과 합의 후 변경), `frontend/3d-demo/learning-chat.js`, `frontend/3d-demo/tutor_v2.js`, 학습 모드 마이그레이션(`003`부터), 이 파일들의 테스트 |
+| 공용: 고치면 작은 PR + 팀 공유 | `llm/src/gemini.ts`, `backend/src/scoring.ts`, `content/rubrics/schema.json`, `backend/src/app.ts`(라우트 등록), `backend/src/db/database.ts`, `backend/src/checkpoint/types.ts`, `package.json`, `CLAUDE.md`, 마이그레이션 번호 |
+| 프론트(viiin2) | `Steel Academy v2.dc.html`, `data_v2.js`, `scene_v2.js`, `steel-2d*.js`, `models/`, `frontend/login_ui/` |
+
+- 마이그레이션 번호 규칙: `backend/src/db/migrations/NNN_이름.sql`을 파일 이름 순서로 한 번씩 적용하고 `schema_migrations`에 이름을 남긴다. 001·002는 사용 중이다. 새 번호는 지금 가장 큰 번호 + 1로 정하고, 같은 번호를 두 사람이 쓰지 않게 PR을 열기 전에 팀에 알린다. 이미 병합된 마이그레이션 파일은 고치지 않고 새 번호로 추가한다.
+- 기존 `/api/chat`(`llm/src/ironmaking-agent.ts`, `ironmaking-sources.ts`)은 학습 모드로 대체될 대상이라 학습 모드 담당이 정리한다.
+- 학습 모드 시작 안내: [docs/onboarding-learning-mode.md](docs/onboarding-learning-mode.md).
 
 ## 학습 구조
 
@@ -184,9 +197,19 @@ content/
 
 ## 다음 단계
 
-- **학습자 메모**: `CheckpointEngine.start()`·`respond()`의 선택 파라미터 `options.notes`(`LearnerNotes`: `conceptOrder`, `context`) 자리만 열어 두었다. 개념 순서 조정(`orderConcepts`)과 튜터에게 줄 추가 컨텍스트를 여기에 연결한다.
+- **학습자 메모**: `CheckpointEngine.start()`·`respond()`의 선택 파라미터 `options.notes`는 `backend/src/learning/notes.ts`의 `LearnerNotes`(`conceptOrder`, `context`)를 받는다. `buildLearnerNotes(userId, section)`은 시그니처만 고정했고 구현은 TODO(지금은 빈 메모). 엔진의 개념 순서 조정(`orderConcepts`)과 튜터에게 줄 추가 컨텍스트에 연결한다.
 - **학습 모드 연결**: 설계와 결정은 `docs/learning-mode.md`. 오개념은 같은 응답에서 단정할 때만 감지하고, 대화는 DB에 저장(보관 기간 없음), 근거는 `retrieve()`로 분리해 공개 자료 메모로 먼저 연결한다. 학습 모드 오개념은 체크포인트 튜터의 context로만 쓰고 평가자에게는 넘기지 않는다. 개인 페이지에서 `source = learning`은 "대화 중 감지됨"으로 표시한다.
+- **개념 ↔ 설비 연결(수민 담당)**: 루브릭 스키마의 개념에 `equipment_ids`(선택, `data_v2.js`의 설비 id 배열)를 추가한다. 재학습 시 3D 하이라이트(오개념이 있는 개념의 설비 강조)에 쓴다. 스키마는 공용 파일이므로 작은 PR로 내고 공유한다. id 목록은 [docs/equipment-ids.md](docs/equipment-ids.md).
 - **3D 화면 조작**: 학습 모드의 `scene_actions`와 "재학습 시 3D 하이라이트"(오개념이 있는 개념의 설비를 강조)를 함께 진행한다.
+
+## 알려진 문제
+
+고치지 않고 이슈로 남긴 것. 고치면 이 목록에서 지운다.
+
+- 테스트 `HTTP: 시작 201·재시작 200, 입력 오류 400, LLM 연결 실패 502`(`backend/test/checkpoint.test.ts`)가 전체 실행에서 가끔 실패한다(26회 중 1회, 단독 실행은 통과): [#14](https://github.com/viiin2/ST-ROOKIE/issues/14)
+- v2 `componentDidUpdate` 콘솔 오류(`support.js`가 인자 하나만 넘김, 설비 선택 시 `setLeftLimit` 미실행): [#15](https://github.com/viiin2/ST-ROOKIE/issues/15)
+- 제강 신규 설비 3개(`oxygen_lance_offgas`, `tapping_ladle_crane`, `ladle_transfer`)의 앵커가 `anchors-v2b.json`에 없음: [#16](https://github.com/viiin2/ST-ROOKIE/issues/16)
+- `models/README.md`의 `EQ_<id>` 노드 규칙이 현재 앵커 방식과 다름(GLB에 `EQ_` 노드 없음): [#17](https://github.com/viiin2/ST-ROOKIE/issues/17)
 
 ## 미정 사항
 
