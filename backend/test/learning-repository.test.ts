@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { openDatabase } from "../src/db/database.js";
 import { countUserData, deleteUserData } from "../src/db/user-data.js";
-import { LearningRepository, type NewTurn } from "../src/learning/repository.js";
+import { latestPerConcept, LearningRepository, MAX_OPEN_MISCONCEPTIONS, type NewTurn } from "../src/learning/repository.js";
 
 const turn = (over: Partial<NewTurn> = {}): NewTurn => ({
   user_id: "minsu",
@@ -76,4 +76,32 @@ test("deleteUserData: 학습 대화도 그 사용자 것만 지운다", () => {
   assert.equal(deleteUserData(db, "minsu").learning_turns, 1);
   assert.equal(countUserData(db, "minsu").learning_turns, 0);
   assert.equal(countUserData(db, "jiwoo").learning_turns, 1);
+});
+
+test("recordMisconception: 같은 사용자·섹션·개념의 미해결 learning 오개념이 있으면 새로 넣지 않고 summary·답변만 갱신한다", () => {
+  const { db, repo } = setup();
+  const base = { user_id: "minsu", section: "ironmaking" as const, concept_id: "coke_reduction" };
+  const first = repo.recordMisconception({ ...base, answer_text: "코크스는 불순물 없애죠?", summary: "불순물 제거로 앎" }, "2026-10-02T01:00:00Z");
+  const again = repo.recordMisconception({ ...base, answer_text: "코크스가 불순물 잡는 거 맞죠?", summary: "여전히 불순물 제거로 앎" }, "2026-10-02T02:00:00Z");
+  assert.equal(again, first);
+  const rows = db.prepare("SELECT answer_text, summary, created_at FROM misconceptions WHERE user_id = 'minsu'").all();
+  assert.deepEqual(rows.map((r) => ({ ...r })), [{ answer_text: "코크스가 불순물 잡는 거 맞죠?", summary: "여전히 불순물 제거로 앎", created_at: "2026-10-02T01:00:00Z" }]);
+
+  // 다른 섹션·다른 사람·체크포인트 오개념은 따로, 해결된 뒤 다시 나오면 새로 넣는다.
+  repo.recordMisconception({ ...base, section: "steelmaking", answer_text: "a", summary: "s" }, "2026-10-02T03:00:00Z");
+  repo.recordMisconception({ ...base, user_id: "jiwoo", answer_text: "a", summary: "s" }, "2026-10-02T03:00:00Z");
+  db.prepare("UPDATE misconceptions SET resolved = 1 WHERE id = ?").run(first);
+  assert.notEqual(repo.recordMisconception({ ...base, answer_text: "b", summary: "다시 헷갈림" }, "2026-10-02T04:00:00Z"), first);
+  assert.equal(Number(db.prepare("SELECT COUNT(*) AS n FROM misconceptions").get()?.n), 4);
+});
+
+test("latestPerConcept: 개념당 최근 1개만 남겨 최근 것부터 최대 5개", () => {
+  const items = [
+    ...Array.from({ length: 7 }, (_, i) => ({ concept_id: `c${i}`, summary: `오해 ${i}`, source: "learning" as const, created_at: `2026-10-02T0${i}:00:00Z` })),
+    { concept_id: "c0", summary: "c0 최신", source: "checkpoint" as const, created_at: "2026-10-02T09:00:00Z" },
+  ];
+  const picked = latestPerConcept(items);
+  assert.equal(picked.length, MAX_OPEN_MISCONCEPTIONS);
+  assert.deepEqual(picked.map((m) => m.concept_id), ["c0", "c6", "c5", "c4", "c3"]);
+  assert.equal(picked[0].summary, "c0 최신");
 });

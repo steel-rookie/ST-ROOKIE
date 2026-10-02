@@ -2,6 +2,8 @@ import express from "express";
 import { join } from "node:path";
 import { GeminiEvaluator } from "../../llm/src/evaluator.js";
 import { GeminiClient } from "../../llm/src/gemini.js";
+import { GeminiLearningAgent } from "../../llm/src/learning-agent.js";
+import { Retriever } from "../../llm/src/retrieval.js";
 import { GeminiTutor } from "../../llm/src/tutor.js";
 import { createAdminRouter } from "./admin/routes.js";
 import { createApp } from "./app.js";
@@ -12,6 +14,8 @@ import { UserRepository } from "./auth/users.js";
 import { CheckpointEngine } from "./checkpoint/engine.js";
 import { CheckpointRepository } from "./checkpoint/repository.js";
 import { openDatabase } from "./db/database.js";
+import { LearningRepository } from "./learning/repository.js";
+import { createLearningRouter } from "./learning/routes.js";
 import { currentUserId } from "./request-user.js";
 import { loadFinalRubrics } from "./rubrics.js";
 import { passcodeRequired } from "./test-access.js";
@@ -35,7 +39,15 @@ const users = new UserRepository(db);
 const seeded = await seedDemoAccounts(users);
 if (seeded > 0) console.log(`시연 계정 ${seeded}개를 만들었습니다.`);
 
-const app = createApp({ engine, usage });
+// 학습 모드: 같은 GeminiClient를 써서 하루 호출 한도를 체크포인트와 함께 센다.
+const learning = createLearningRouter({
+  repo: new LearningRepository(db),
+  retriever: new Retriever({ glossaryFor: (s) => rubrics.find((r) => r.section === s)?.glossary ?? [] }),
+  agent: new GeminiLearningAgent(gemini),
+  rubrics,
+});
+
+const app = createApp({ engine, usage, learning });
 // 로그인·관리자 API(docs/auth-api.md). createApp의 /api 접속 비밀번호 검사가 먼저 적용된다.
 const auth = { users, secret: jwtSecret() };
 app.use(createAuthRouter(auth));
