@@ -43,6 +43,8 @@
 - 체크포인트 테이블(`attempts`, `misconceptions`)이 아직 없으면 `checkpoint_data: false`와 빈 기록을 준다.
 - 시연 기록: `npm run db:seed-demo [seed]`가 `trainee01`~`20`의 기록을 지우고 다시 만든다. 01~04는 처음 정한 프로필, 05~20은 5가지 유형을 돌려 쓰며 실력을 조금씩 달리해 통과, 재도전 필요, 진행 중이 섞이게 한다. seed가 같으면 같은 기록이 나온다(예: `npm run db:seed-demo -- 58`).
 
+`GET /api/admin/concepts` (토큰 필요, `admin`만): 완료된 첫 체크포인트 판정으로 섹션·개념별 `asked`, `partial`, `wrong`, `assisted`, `final_wrong`을 집계하고 미해결 오개념 수 `open`을 돌려준다. 관리자 화면의 개념 순위는 이 DB 응답으로 계산한다.
+
 ## 아이디·비밀번호 찾기
 
 메일 발송 수단이 없어서 **이름 + 사번**으로 본인 확인을 한다.
@@ -78,8 +80,6 @@
 - `.env`의 `JWT_SECRET`으로 서명한다. 비어 있으면 실행할 때마다 임시 키를 만들어서, 서버를 다시 켜면 로그인이 모두 풀린다.
 - 계정은 SQLite `users` 테이블(`backend/src/db/migrations/003_users.sql`)에 저장한다. DB 위치는 `DB_PATH`, 기본값 `data/st-rookie.sqlite`.
 
-## 남은 연결
-
 ## 개인 페이지
 
 `GET /api/me/misconceptions[?section=ironmaking]` (토큰 필요, 없으면 401 `AUTH_REQUIRED`)
@@ -87,6 +87,8 @@
 - 로그인한 본인의 오개념만 최근 것부터 준다(라우트 `backend/src/me/routes.ts`, SQL은 `me/repository.ts`). 다른 사람의 기록은 어떤 값을 넣어도 볼 수 없다(사용자는 토큰으로만 정한다).
 - 항목: `id, section, concept_id, source, label, summary, answer_text, resolved, created_at, resolved_at`.
 - `label`: 학습 모드(`source=learning`)는 "대화 중 감지됨", 체크포인트는 "이해도 확인"(`backend/src/learning/labels.ts`, 학습자 메모와 같은 라벨).
+
+`GET /api/me/dashboard` (토큰 필요, `trainee`만): 본인의 `trainee` 통계, `review_concepts`, `misconceptions`, 섹션 목록과 `checkpoint_data`를 돌려준다. 다른 신입사원의 이름이나 학습 기록은 포함하지 않는다.
 
 ## 요청 사용자 구분 (`backend/src/request-user.ts`)
 
@@ -97,4 +99,4 @@
 ## 남은 연결
 
 - 화면이 저장된 토큰(`st-rookie-token`)을 `/api` 요청에 붙여야 한다: 3D 페이지 학습 채팅(`learning-chat.js`), 체크포인트 테스트 페이지(`checkpoint-test.html`).
-- 마이페이지의 학습 기록(`RECORDS`, `QA`, `MIS`)은 아직 샘플이다.
+- 새 신입사원 대시보드는 `/api/me/dashboard`, 관리자 대시보드는 `/api/admin/trainees`와 `/api/admin/concepts`의 DB 응답을 표시한다.

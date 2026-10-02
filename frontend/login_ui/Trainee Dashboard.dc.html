@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet">
+  <script type="module" src="../3d-demo/steel-2d.js"></script>
+  <style>
+    html, body { margin: 0; min-height: 100%; font-family: "IBM Plex Sans KR", sans-serif; }
+    body { --bg: oklch(0.14 0.02 245); --panel: oklch(0.18 0.018 245); --panel2: oklch(0.24 0.022 245); --line: oklch(1 0 0 / .12); --text: oklch(0.96 0.006 240); --muted: oklch(0.7 0.02 240); --accent: #1a9bd7; --ok: oklch(0.74 0.15 155); --mid: oklch(0.82 0.14 80); --bad: oklch(0.68 0.18 25); background: var(--bg); color: var(--text); }
+    body[data-theme="light"] { --bg: oklch(0.95 0.008 245); --panel: oklch(0.995 0.002 245); --panel2: oklch(0.93 0.01 245); --line: oklch(0 0 0 / .09); --text: oklch(0.22 0.02 245); --muted: oklch(0.5 0.02 245); --ok: oklch(0.55 0.15 155); --mid: oklch(0.62 0.14 70); --bad: oklch(0.55 0.19 25); }
+    * { box-sizing: border-box; }
+    button, input { font-family: inherit; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--text); }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; }
+    .section-title { margin: 0; font-family: "Noto Sans KR",sans-serif; font-size: 18px; font-weight: 700; }
+  </style>
+</helmet>
+<div style="min-height:100vh;background:var(--bg);color:var(--text);">
+  <header style="position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;padding:14px clamp(16px,3vw,36px);background:color-mix(in srgb, var(--bg) 88%, transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="width:34px;height:34px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff;">S</span>
+      <div style="display:flex;flex-direction:column;gap:1px;"><span style="font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:14px;letter-spacing:0.05em;white-space:nowrap;">STEEL ACADEMY</span><span style="font-size:11px;color:var(--muted);">신입사원 · 내 학습 현황</span></div>
+    </div>
+    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:3px 8px;border-radius:999px;border:1px dashed {{ srcColor }};color:{{ srcColor }};white-space:nowrap;">{{ srcLabel }}</span>
+    <div style="flex:1;"></div>
+    <nav style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      <a href="../3d-demo/Steel%20Academy%20v2.dc.html" target="_top" style="padding:7px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--muted);">학습 화면</a>
+      <button type="button" onClick="{{ toggleTheme }}" aria-label="테마 전환" style="width:34px;height:34px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:14px;cursor:pointer;">{{ themeIcon }}</button>
+      <button type="button" onClick="{{ logout }}" style="padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;">로그아웃</button>
+    </nav>
+  </header>
+
+  <main style="max-width:1280px;margin:0 auto;padding:28px clamp(16px,3vw,36px) 64px;display:flex;flex-direction:column;gap:28px;">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px 24px;flex-wrap:wrap;">
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <h1 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:28px;font-weight:900;letter-spacing:-0.02em;">내 학습 현황</h1>
+        <span style="font-size:13px;color:var(--muted);">{{ profile }} · 기준 이해도 80% 이상이면 섹션 통과</span>
+      </div>
+      <span style="font-size:12px;color:var(--muted);">{{ updatedLabel }}</span>
+    </div>
+    <sc-if value="{{ loadError }}" hint-placeholder-val="{{ false }}">
+      <div role="alert" class="card" style="padding:14px 18px;border-color:var(--bad);color:var(--bad);font-size:13px;">{{ loadError }}</div>
+    </sc-if>
+
+    <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:18px;overflow:hidden;">
+      <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+        <div style="display:flex;flex-direction:column;gap:8px;padding:18px 20px;background:var(--panel);">
+          <span style="font-size:12px;color:var(--muted);">{{ k.label }}</span>
+          <span style="display:flex;align-items:baseline;gap:6px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:600;color:{{ k.color }};">{{ k.value }}</span><span style="font-size:13px;color:var(--muted);">{{ k.unit }}</span></span>
+          <span style="font-size:12px;color:var(--muted);">{{ k.sub }}</span>
+        </div>
+      </sc-for>
+    </section>
+
+    <section style="display:flex;flex-direction:column;gap:14px;">
+      <h2 class="section-title">섹션별 진행</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;">
+        <sc-for list="{{ secCards }}" as="s" hint-placeholder-count="4">
+          <div class="card" style="display:flex;flex-direction:column;gap:14px;padding:18px 20px;">
+            <div style="display:flex;align-items:center;gap:10px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--accent);">{{ s.num }}</span><span style="font-size:16px;font-weight:700;">{{ s.name }}</span></div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;color:{{ s.color }};">{{ s.score }}</span><span style="font-size:12px;color:var(--muted);">{{ s.status }}</span></div>
+            <div style="height:8px;border-radius:999px;background:var(--panel2);overflow:hidden;"><span style="display:block;width:{{ s.width }};height:100%;background:{{ s.color }};"></span></div>
+            <span style="font-size:12px;color:var(--muted);">{{ s.attempts }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:20px;align-items:start;">
+      <section class="card" style="display:flex;flex-direction:column;gap:14px;padding:22px;">
+        <h2 class="section-title">다시 볼 개념</h2>
+        <span style="font-size:12px;color:var(--muted);">내 체크포인트의 최근 판정 기준</span>
+        <sc-if value="{{ reviewEmpty }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:var(--muted);padding:12px 0;">복습할 개념이 없습니다.</span></sc-if>
+        <sc-for list="{{ reviews }}" as="r" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);">
+            <span style="flex:1;display:flex;flex-direction:column;gap:3px;"><strong style="font-size:14px;">{{ r.name }}</strong><span style="font-size:11px;color:var(--muted);">{{ r.section }} · {{ r.date }}</span></span>
+            <span style="font-size:12px;font-weight:600;color:{{ r.color }};">{{ r.verdict }}</span>
+          </div>
+        </sc-for>
+      </section>
+      <section class="card" style="display:flex;flex-direction:column;gap:14px;padding:22px;">
+        <h2 class="section-title">내 오개념</h2>
+        <span style="font-size:12px;color:var(--muted);">내용과 답변은 본인에게만 표시됩니다</span>
+        <sc-if value="{{ misEmpty }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:var(--muted);padding:12px 0;">기록된 오개념이 없습니다.</span></sc-if>
+        <sc-for list="{{ misconceptions }}" as="m" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;gap:6px;padding:12px 0;border-top:1px solid var(--line);">
+            <span style="display:flex;align-items:center;justify-content:space-between;gap:12px;"><strong style="font-size:14px;">{{ m.name }}</strong><span style="font-size:11px;color:{{ m.color }};">{{ m.status }}</span></span>
+            <span style="font-size:12px;color:var(--muted);line-height:1.6;">{{ m.summary }}</span>
+          </div>
+        </sc-for>
+      </section>
+    </div>
+
+    <section class="card" style="display:flex;flex-direction:column;gap:14px;padding:22px;">
+      <h2 class="section-title">학습 모듈 · 제강</h2>
+      <span style="font-size:13px;color:var(--muted);">설비별 2D 공정 동작을 단계별로 따라갑니다.</span>
+      <div style="height:min(900px,calc(100vh - 160px));min-height:560px;border-radius:14px;overflow:hidden;border:1px solid var(--line);">
+        <x-import component-from-global-scope="steel-2d" process="steelmaking" theme="{{ theme }}" hint-size="100%,100%" style="display:block;width:100%;height:100%;"></x-import>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const pct = value => Math.round(value * 100) + '%';
+const scoreColor = value => value >= 0.8 ? 'var(--ok)' : value >= 0.6 ? 'var(--mid)' : 'var(--bad)';
+const token = () => { try { return localStorage.getItem('st-rookie-token') || sessionStorage.getItem('st-rookie-token'); } catch (e) { return null; } };
+
+class Component extends DCLogic {
+  state = { data: null, processes: [], error: null, theme: this.props.theme ?? 'dark', loadedAt: null };
+  componentDidMount() {
+    document.body.dataset.theme = this.state.theme;
+    import('../3d-demo/data_v2.js').then(m => this.setState({ processes: m.PROCESSES }));
+    const auth = token();
+    if (!auth) { this.setState({ error: '로그인한 뒤 학습 현황을 볼 수 있습니다.' }); return; }
+    fetch('/api/me/dashboard', { headers: { authorization: 'Bearer ' + auth } })
+      .then(async response => { if (!response.ok) throw new Error('학습 현황을 DB에서 불러오지 못했습니다.'); return response.json(); })
+      .then(data => this.setState({ data, loadedAt: new Date() }), error => this.setState({ error: error.message }));
+  }
+  renderVals() {
+    const S = this.state, D = S.data, T = D?.trainee;
+    // 섹션 목록과 순서는 서버 응답(/api/me/dashboard의 sections)을 그대로 쓴다.
+    const secs = D?.sections || [];
+    const process = section => S.processes.find(p => p.id === section) || { num: '', name: section, equipment: [] };
+    const conceptName = (section, id) => process(section).equipment.find(e => e.id === id)?.name || id;
+    const stats = secs.map(section => T?.sections[section]).filter(Boolean);
+    const avg = stats.length ? stats.reduce((sum, s) => sum + s.understanding, 0) / stats.length : null;
+    const misconceptions = D?.misconceptions || [];
+    const open = misconceptions.filter(m => !m.resolved).length;
+    const reviews = (D?.review_concepts || []).map(r => ({
+      name: conceptName(r.section, r.concept_id), section: process(r.section).name,
+      date: r.updated_at.slice(0, 10), verdict: r.recheck_verdict === 'partial' || r.verdict === 'partial' ? '부분 이해' : r.verdict === 'assisted' ? '도움 받음' : '재확인 필요',
+      color: r.verdict === 'wrong' || r.recheck_verdict === 'wrong' ? 'var(--bad)' : 'var(--mid)',
+    }));
+    return {
+      srcLabel: D ? 'DB 데이터' : S.error ? '연결 오류' : '불러오는 중',
+      srcColor: D ? 'var(--ok)' : S.error ? 'var(--bad)' : 'var(--muted)',
+      loadError: S.error,
+      profile: T ? `${T.name} · ${T.employee_no}` : '내 학습 기록',
+      updatedLabel: S.loadedAt ? `불러온 시각 ${S.loadedAt.getHours()}:${String(S.loadedAt.getMinutes()).padStart(2, '0')}` : S.error ? '불러오기 실패' : '불러오는 중…',
+      theme: S.theme, themeIcon: S.theme === 'dark' ? '☀' : '☾',
+      toggleTheme: () => { const theme = S.theme === 'dark' ? 'light' : 'dark'; document.body.dataset.theme = theme; this.setState({ theme }); },
+      logout: () => { try { localStorage.removeItem('st-rookie-token'); sessionStorage.removeItem('st-rookie-token'); } catch (e) {} window.top.location.href = './My%20Page.dc.html'; },
+      kpis: [
+        { label: '통과한 섹션', value: T ? String(T.passed_sections) : '—', unit: `/ ${secs.length || '—'}`, sub: '이해도 80% 이상', color: 'var(--ok)' },
+        { label: '평균 이해도', value: avg == null ? '—' : pct(avg), unit: '', sub: '응시한 섹션의 마지막 결과', color: avg == null ? 'var(--text)' : scoreColor(avg) },
+        { label: '미해결 오개념', value: D ? String(open) : '—', unit: '개', sub: '본인 기록만 표시', color: open ? 'var(--bad)' : 'var(--text)' },
+        { label: '다시 볼 개념', value: D ? String(reviews.length) : '—', unit: '개', sub: '최근 체크포인트 판정', color: reviews.length ? 'var(--mid)' : 'var(--text)' },
+      ],
+      secCards: secs.map(section => { const info = T?.sections[section], p = process(section); return {
+        num: p.num, name: p.name, score: info ? pct(info.understanding) : '—',
+        status: !info ? '미응시' : info.passed ? '통과' : '재도전 필요',
+        color: !info ? 'var(--muted)' : scoreColor(info.understanding),
+        width: info ? pct(info.understanding) : '0%', attempts: info ? `${info.attempts}회 응시` : '체크포인트 기록 없음',
+      }; }),
+      reviews, reviewEmpty: !!D && reviews.length === 0,
+      misconceptions: misconceptions.slice(0, 8).map(m => ({ name: conceptName(m.section, m.concept_id), summary: m.summary,
+        status: m.resolved ? '해결됨' : m.label, color: m.resolved ? 'var(--ok)' : 'var(--bad)' })),
+      misEmpty: !!D && misconceptions.length === 0,
+    };
+  }
+}
+</script>
+</body>
+</html>

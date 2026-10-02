@@ -64,3 +64,14 @@ test("로그인이 필요하다(토큰 없으면 401)", async () => {
   assert.equal(status, 401);
   assert.equal(json.code, "AUTH_REQUIRED");
 });
+
+test("학습 현황은 로그인한 신입사원의 DB 기록만 돌려준다", async () => {
+  assert.equal((await get("/api/me/dashboard")).status, 401);
+  const { status, json } = await get("/api/me/dashboard", kim);
+  assert.equal(status, 200);
+  assert.equal(json.trainee.username, "trainee01");
+  assert.equal(json.trainee.misconceptions.open, 2);
+  assert.deepEqual(json.review_concepts, []);
+  assert.deepEqual(json.misconceptions.map((m: { id: string }) => m.id), ["m3", "m2", "m1"]);
+  assert.ok(!JSON.stringify(json).includes("다른 사람"));
+});

@@ -83,346 +83,17 @@
   </sc-if>
 
   <sc-if value="{{ loggedIn }}" hint-placeholder-val="{{ true }}">
-    <header style="position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;padding:12px 24px;background:color-mix(in srgb, var(--bg) 85%, transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="width:34px;height:34px;border-radius:7px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff;">S</span>
-        <div style="display:flex;flex-direction:column;gap:2px;line-height:1.15;"><span style="font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.05em;white-space:nowrap;">STEEL ACADEMY</span><span style="font-size:{{ fs.xs }};color:var(--muted);">{{ headerSub }}</span></div>
-      </div>
-      <div style="flex:1;"></div>
-      <a href="../3d-demo/Steel%20Academy%20v2.dc.html" style="height:36px;display:flex;align-items:center;padding:0 14px;border-radius:8px;border:1px solid var(--line);font-size:{{ fs.sm }};font-weight:600;color:var(--text);white-space:nowrap;" style-hover="border-color:var(--accent);color:var(--accent);">← 3D 학습으로</a>
-      <button onClick="{{ toggleTheme }}" title="테마" style="width:36px;height:36px;border-radius:8px;background:transparent;color:var(--text);border:1px solid var(--line);font-size:15px;cursor:pointer;" style-hover="border-color:var(--accent);color:var(--accent);">{{ themeLabel }}</button>
-      <button onClick="{{ logout }}" style="height:36px;padding:0 12px;border-radius:8px;background:transparent;color:var(--muted);border:1px solid var(--line);font-size:{{ fs.sm }};cursor:pointer;white-space:nowrap;flex:none;" style-hover="color:var(--text);border-color:var(--accent);">로그아웃</button>
-    </header>
-
-    <main style="max-width:1180px;margin:0 auto;padding:28px 24px 64px;display:flex;flex-direction:column;gap:28px;">
-
-      <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px;">
-        <div style="display:flex;align-items:center;gap:16px;padding:20px;background:var(--panel);border:1px solid var(--line);border-radius:16px;">
-          <span style="width:56px;height:56px;border-radius:28px;flex:none;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:20px;color:var(--accent);">{{ user.initial }}</span>
-          <div style="display:flex;flex-direction:column;gap:4px;min-width:0;">
-            <span style="font-family:'Noto Sans KR',sans-serif;font-size:22px;font-weight:900;letter-spacing:-0.02em;">{{ user.name }}</span>
-            <span style="font-size:{{ fs.sm }};color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><span style="font-family:'IBM Plex Mono',monospace;font-size:{{ fs.xs }};padding:2px 6px;border-radius:4px;border:1px solid var(--line);">{{ user.provider }}</span>{{ user.email }}</span>
-            <span style="font-size:{{ fs.sm }};color:var(--muted);">{{ user.cohort }} · <span style="white-space:nowrap;">마지막 학습 {{ user.lastSeen }}</span></span>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden;">
-          <sc-for list="{{ stats }}" as="st" hint-placeholder-count="3">
-            <button onClick="{{ st.onClick }}" style="display:flex;flex-direction:column;justify-content:center;gap:6px;padding:16px;background:var(--panel);border:none;color:var(--text);text-align:left;cursor:pointer;" style-hover="background:var(--panel2);">
-              <span style="font-size:{{ fs.xs }};color:var(--muted);">{{ st.label }}</span>
-              <span style="font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:600;">{{ st.value }}</span>
-              <span style="font-size:{{ fs.xs }};color:var(--muted);">{{ st.sub }}</span>
-            </button>
-          </sc-for>
-        </div>
-      </section>
-
-      <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
-        <sc-if value="{{ adminNote }}" hint-placeholder-val="{{ false }}">
-          <span role="status" style="padding:12px 16px;border-radius:12px;border:1px dashed var(--line);font-size:14px;color:var(--muted);line-height:1.6;">{{ adminNote }}</span>
-        </sc-if>
-
-        <section style="display:flex;flex-direction:column;gap:14px;">
-          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-            <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:20px;font-weight:700;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">신입사원별 통계 <a href="./Admin Dashboard.dc.html" style="font-family:'IBM Plex Sans KR',sans-serif;font-size:13px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid var(--accent);">관리자 대시보드 열기 →</a></h2>
-            <span style="font-size:14px;color:var(--muted);">섹션에 마우스를 올리면 오른쪽 그래프가 바뀝니다</span>
-          </div>
-
-          <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:stretch;">
-            <nav aria-label="섹션" style="flex:0 1 240px;min-width:220px;display:flex;flex-direction:column;gap:8px;">
-              <sc-for list="{{ adminSide }}" as="sd" hint-placeholder-count="4">
-                <button type="button" aria-pressed="{{ sd.on }}" onMouseEnter="{{ sd.pick }}" onFocus="{{ sd.pick }}" onClick="{{ sd.pick }}" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;border:1px solid {{ sd.border }};background:{{ sd.bg }};color:var(--text);text-align:left;cursor:pointer;box-shadow:inset 4px 0 0 {{ sd.bar }};transition:background .15s, border-color .15s;">
-                  <span style="width:36px;height:36px;border-radius:18px;flex:none;display:flex;align-items:center;justify-content:center;background:{{ sd.numBg }};color:{{ sd.numColor }};font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;transition:background .15s;">{{ sd.num }}</span>
-                  <span style="display:flex;flex-direction:column;gap:2px;min-width:0;">
-                    <span style="font-size:16px;font-weight:700;">{{ sd.name }}</span>
-                    <span style="font-size:14px;color:var(--muted);white-space:nowrap;">{{ sd.key }}</span>
-                  </span>
-                </button>
-              </sc-for>
-            </nav>
-
-            <div style="flex:1 1 440px;min-width:0;display:flex;flex-direction:column;gap:18px;padding:20px 22px;background:var(--panel);border:1px solid var(--line);border-radius:18px;">
-              <div style="display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;">
-                <span style="font-family:'Noto Sans KR',sans-serif;font-size:22px;font-weight:900;">{{ adminCur.name }}</span>
-                <sc-for list="{{ adminCur.chips }}" as="ch" hint-placeholder-count="3">
-                  <span style="font-size:14px;padding:4px 12px;border-radius:999px;background:var(--panel2);color:var(--muted);white-space:nowrap;">{{ ch.label }} <span style="font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--text);">{{ ch.value }}</span></span>
-                </sc-for>
-              </div>
-
-              <!-- 신입사원이 많으면 막대·이름이 겹치지 않도록 사람당 최소 폭을 두고 가로로 스크롤한다. -->
-              <div style="overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent;">
-              <div style="min-width:{{ adminChartWidth }};display:flex;flex-direction:column;gap:18px;">
-              <div role="img" aria-label="{{ adminCur.aria }}" style="position:relative;height:300px;padding-top:70px;">
-                <div style="position:relative;height:100%;border-bottom:1px solid var(--line);">
-                  <sc-if value="{{ adminCur.hasAvg }}" hint-placeholder-val="{{ true }}">
-                    <div style="position:absolute;left:0;right:0;bottom:{{ adminCur.avgPos }};border-top:2px dotted var(--muted);z-index:1;pointer-events:none;">
-                      <span style="position:absolute;left:0;top:-15px;padding:3px 10px;border-radius:999px;background:var(--text);color:var(--bg);font-size:14px;font-weight:600;white-space:nowrap;">평균 {{ adminCur.avgLabel }}</span>
-                    </div>
-                  </sc-if>
-                  <div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:space-around;gap:14px;padding:0 8px;">
-                    <sc-for list="{{ adminBars }}" as="b" hint-placeholder-count="4">
-                      <button type="button" aria-label="{{ b.aria }}" onMouseEnter="{{ b.enter }}" onMouseLeave="{{ b.leave }}" onFocus="{{ b.enter }}" onBlur="{{ b.leave }}" style="position:relative;flex:1 1 0;min-width:0;max-width:84px;height:100%;display:flex;align-items:flex-end;justify-content:center;padding:0;border:none;background:none;cursor:pointer;">
-                        <sc-if value="{{ b.hover }}" hint-placeholder-val="{{ false }}">
-                          <span style="position:absolute;left:50%;bottom:calc({{ b.h }} + 10px);transform:translateX(-50%);z-index:2;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);box-shadow:0 6px 18px rgb(0 0 0 / .25);white-space:nowrap;pointer-events:none;">
-                            <span style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:var(--text);">{{ b.value }}</span>
-                            <span style="font-size:14px;color:var(--muted);">{{ b.detail }}</span>
-                          </span>
-                        </sc-if>
-                        <span style="display:block;width:100%;height:{{ b.h }};min-height:8px;border-radius:14px 14px 6px 6px;background:{{ b.bg }};transition:background .15s, height .3s;"></span>
-                      </button>
-                    </sc-for>
-                  </div>
-                </div>
-              </div>
-
-              <div style="display:flex;justify-content:space-around;gap:14px;padding:0 8px;">
-                <sc-for list="{{ adminBars }}" as="n" hint-placeholder-count="4">
-                  <span style="flex:1 1 0;min-width:0;max-width:84px;text-align:center;font-size:14px;font-weight:{{ n.nameWeight }};padding:4px 0;border-radius:999px;background:{{ n.nameBg }};color:{{ n.nameColor }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .15s;">{{ n.name }}</span>
-                </sc-for>
-              </div>
-              </div>
-              </div>
-              <sc-if value="{{ adminEmpty }}" hint-placeholder-val="{{ false }}"><span style="text-align:center;font-size:14px;color:var(--muted);">가입한 신입사원이 없습니다.</span></sc-if>
-
-              <button type="button" onClick="{{ toggleAdminTable }}" aria-expanded="{{ adminTableOpen }}" style="align-self:flex-start;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:14px;cursor:pointer;" style-hover="color:var(--text);border-color:var(--accent);">{{ adminTableLabel }}</button>
-              <sc-if value="{{ adminTableOpen }}" hint-placeholder-val="{{ false }}">
-                <div style="overflow-x:auto;">
-                  <div style="min-width:640px;display:flex;flex-direction:column;font-size:14px;">
-                    <div style="display:grid;grid-template-columns:minmax(120px,1.3fr) minmax(80px,1fr) minmax(90px,1fr) minmax(90px,1fr) minmax(90px,1fr);gap:8px;padding:10px 4px;border-bottom:1px solid var(--line);color:var(--muted);">
-                      <span>신입사원</span><span style="text-align:right;">이해도</span><span style="text-align:right;">결과</span><span style="text-align:right;">미해결 오개념</span><span style="text-align:right;">마지막 학습</span>
-                    </div>
-                    <sc-for list="{{ adminBars }}" as="t" hint-placeholder-count="4">
-                      <div style="display:grid;grid-template-columns:minmax(120px,1.3fr) minmax(80px,1fr) minmax(90px,1fr) minmax(90px,1fr) minmax(90px,1fr);gap:8px;padding:10px 4px;border-bottom:1px solid var(--line);">
-                        <span><b>{{ t.name }}</b> <span style="color:var(--muted);">{{ t.username }}</span></span>
-                        <span style="text-align:right;font-family:'IBM Plex Mono',monospace;">{{ t.value }}</span>
-                        <span style="text-align:right;color:var(--muted);">{{ t.result }}</span>
-                        <span style="text-align:right;font-family:'IBM Plex Mono',monospace;">{{ t.mis }}</span>
-                        <span style="text-align:right;color:var(--muted);">{{ t.last }}</span>
-                      </div>
-                    </sc-for>
-                  </div>
-                </div>
-              </sc-if>
-            </div>
-          </div>
-        </section>
-      </sc-if>
-
-      <sc-if value="{{ isTrainee }}" hint-placeholder-val="{{ true }}">
-      <section style="display:flex;flex-direction:column;gap:12px;">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-          <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:18px;font-weight:700;">섹션별 학습 진행</h2>
-          <span style="font-size:12px;color:var(--muted);text-wrap:pretty;">체크포인트 이해도 80% 이상이면 다음 섹션이 열립니다</span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;">
-          <sc-for list="{{ sections }}" as="sc" hint-placeholder-count="4">
-            <button onClick="{{ sc.onClick }}" style="display:flex;flex-direction:column;gap:14px;padding:16px;background:var(--panel);border:1px solid {{ sc.border }};border-radius:16px;color:var(--text);text-align:left;cursor:pointer;opacity:{{ sc.opacity }};" style-hover="border-color:var(--accent);">
-              <div style="display:flex;align-items:center;gap:10px;">
-                <span style="width:32px;height:32px;border-radius:16px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--panel2);font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;">{{ sc.num }}</span>
-                <div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;"><span style="font-size:15px;font-weight:700;">{{ sc.name }}</span><span style="font-size:10px;color:var(--muted);">{{ sc.en }}</span></div>
-                <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;color:{{ sc.statusColor }};border:1px solid {{ sc.statusColor }};white-space:nowrap;">{{ sc.status }}</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:6px;">
-                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);"><span>이해도</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--text);">{{ sc.pctLabel }}</span></div>
-                <div style="position:relative;height:6px;border-radius:3px;background:var(--panel2);">
-                  <div style="height:100%;width:{{ sc.pct }};border-radius:3px;background:{{ sc.barColor }};"></div>
-                  <span style="position:absolute;left:80%;top:-3px;width:2px;height:12px;background:var(--text);opacity:.5;"></span>
-                </div>
-                <span style="font-size:11px;color:var(--muted);">개념 {{ sc.confirmed }} / {{ sc.total }} 확정</span>
-              </div>
-            </button>
-          </sc-for>
-        </div>
-      </section>
-
-      <section style="display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:20px;overflow:hidden;">
-        <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap;">
-          <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:160px;">
-            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.16em;color:var(--muted);">SECTION {{ cur.num }}</span>
-            <span style="font-family:'Noto Sans KR',sans-serif;font-size:20px;font-weight:900;letter-spacing:-0.02em;">{{ cur.name }} <span style="font-family:'IBM Plex Sans KR',sans-serif;font-size:13px;font-weight:500;color:var(--muted);">{{ cur.io }}</span></span>
-          </div>
-          <div style="display:flex;gap:4px;padding:4px;border-radius:10px;background:var(--panel2);flex-wrap:wrap;">
-            <sc-for list="{{ tabs }}" as="tb" hint-placeholder-count="4">
-              <button onClick="{{ tb.onClick }}" style="height:32px;padding:0 12px;border-radius:7px;border:none;background:{{ tb.bg }};color:{{ tb.color }};font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;flex:none;" style-hover="color:var(--text);">{{ tb.label }}<span style="font-family:'IBM Plex Mono',monospace;font-size:10px;opacity:.7;">{{ tb.count }}</span></button>
-            </sc-for>
-          </div>
-        </div>
-
-        <sc-if value="{{ curLocked }}" hint-placeholder-val="{{ false }}">
-          <div style="display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--panel2);font-size:12px;color:var(--muted);">🔒 앞 섹션 체크포인트를 통과하면 열립니다. 개념은 미리 읽을 수 있어요.</div>
-        </sc-if>
-
-        <sc-if value="{{ tabModule }}" hint-placeholder-val="{{ false }}">
-          <div style="display:flex;flex-direction:column;gap:12px;padding:20px;">
-            <span style="font-size:13px;color:var(--muted);line-height:1.6;text-wrap:pretty;">설비별 2D 공정 동작을 단계별로 따라가는 학습 모듈입니다. 현재 제강 공정만 제공됩니다.</span>
-            <div style="height:min(900px,calc(100vh - 160px));min-height:560px;border-radius:14px;overflow:hidden;border:1px solid var(--line);">
-              <x-import component-from-global-scope="steel-2d" process="steelmaking" theme="{{ moduleTheme }}" hint-size="100%,100%" style="display:block;width:100%;height:100%;"></x-import>
-            </div>
-          </div>
-        </sc-if>
-
-        <sc-if value="{{ tabConcepts }}" hint-placeholder-val="{{ true }}">
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));">
-            <div style="display:flex;flex-direction:column;gap:2px;padding:12px;border-right:1px solid var(--line);">
-              <sc-for list="{{ concepts }}" as="c" hint-placeholder-count="6">
-                <button onClick="{{ c.onClick }}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:none;background:{{ c.bg }};color:var(--text);text-align:left;cursor:pointer;" style-hover="background:var(--panel2);">
-                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);width:18px;flex:none;">{{ c.num }}</span>
-                  <span style="flex:1;font-size:13px;font-weight:{{ c.weight }};">{{ c.name }}</span>
-                  <span style="width:8px;height:8px;border-radius:4px;flex:none;background:{{ c.color }};" title="{{ c.verdictLabel }}"></span>
-                </button>
-              </sc-for>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:16px;padding:22px 24px;min-width:0;height:auto;">
-              <div style="display:flex;flex-direction:column;gap:6px;">
-                <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent);">EQ_{{ eq.id }}</span>
-                <h3 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:26px;font-weight:900;letter-spacing:-0.02em;">{{ eq.name }}</h3>
-                <p style="margin:0;font-size:14px;line-height:1.7;text-wrap:pretty;">{{ eq.role }}</p>
-              </div>
-              <div style="display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:var(--panel2);font-size:12px;">
-                <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:10px;color:var(--muted);">투입</span><span style="font-weight:600;">{{ eq.input }}</span></div>
-                <span style="color:var(--muted);">→</span>
-                <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-size:10px;color:var(--muted);">산출</span><span style="font-weight:600;">{{ eq.output }}</span></div>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:8px;">
-                <sc-for list="{{ eqNotes }}" as="n" hint-placeholder-count="2">
-                  <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.6;flex:none;"><span style="color:var(--accent);flex:none;">•</span><span style="flex:1;min-width:0;">{{ n.text }}</span></div>
-                </sc-for>
-              </div>
-              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);">
-                <span style="white-space:nowrap;">내 결과</span>
-                <span style="font-weight:600;padding:3px 8px;border-radius:999px;border:1px solid {{ eqRec.color }};color:{{ eqRec.color }};white-space:nowrap;">{{ eqRec.label }}</span>
-                <span style="flex:1 1 160px;min-width:0;">{{ eqRec.detail }}</span>
-                <a href="../3d-demo/Steel%20Academy%20v2.dc.html" style="font-weight:600;white-space:nowrap;">3D에서 보기 →</a>
-              </div>
-            </div>
-          </div>
-        </sc-if>
-
-        <sc-if value="{{ tabCheckpoint }}" hint-placeholder-val="{{ false }}">
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:24px;padding:24px;">
-            <div style="display:flex;flex-direction:column;gap:14px;">
-              <span style="font-size:12px;color:var(--muted);">전체 이해도</span>
-              <span style="font-family:'IBM Plex Mono',monospace;font-size:48px;font-weight:600;line-height:1;color:{{ cur.barColor }};">{{ cur.pctLabel }}</span>
-              <div style="position:relative;height:12px;border-radius:6px;background:var(--panel2);">
-                <div style="height:100%;width:{{ cur.pct }};border-radius:6px;background:{{ cur.barColor }};"></div>
-                <span style="position:absolute;left:80%;top:-5px;width:2px;height:22px;background:var(--text);"></span>
-                <span style="position:absolute;left:80%;top:22px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">80%</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:4px;margin-top:14px;font-size:12px;color:var(--muted);line-height:1.6;">
-                <span><b style="color:var(--text);">{{ cur.status }}</b> · 시도 {{ cur.attempts }}회</span>
-                <span>{{ cur.retryNote }}</span>
-              </div>
-              <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);">
-                <sc-for list="{{ legend }}" as="lg" hint-placeholder-count="4">
-                  <span style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:{{ lg.color }};"></span>{{ lg.label }}</span>
-                </sc-for>
-              </div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:12px;">
-              <sc-for list="{{ concepts }}" as="c" hint-placeholder-count="6">
-                <div style="display:grid;grid-template-columns:minmax(90px,140px) minmax(0,1fr) 36px;align-items:center;gap:12px;">
-                  <span style="font-size:12px;font-weight:600;">{{ c.name }}</span>
-                  <div style="display:flex;flex-direction:column;gap:4px;">
-                    <div style="height:10px;border-radius:5px;background:var(--panel2);overflow:hidden;"><div style="height:100%;width:{{ c.scorePct }};background:{{ c.color }};border-radius:5px;"></div></div>
-                    <span style="font-size:10px;color:var(--muted);">{{ c.trail }}</span>
-                  </div>
-                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-align:right;">{{ c.scoreLabel }}</span>
-                </div>
-              </sc-for>
-            </div>
-          </div>
-        </sc-if>
-
-        <sc-if value="{{ tabQa }}" hint-placeholder-val="{{ false }}">
-          <div style="display:flex;flex-direction:column;gap:10px;padding:20px;">
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <sc-for list="{{ qaFilters }}" as="f" hint-placeholder-count="3">
-                <button onClick="{{ f.onClick }}" style="height:28px;padding:0 12px;border-radius:999px;border:1px solid {{ f.border }};background:transparent;color:{{ f.color }};font-size:11px;font-weight:600;cursor:pointer;">{{ f.label }}</button>
-              </sc-for>
-            </div>
-            <sc-if value="{{ qaEmpty }}" hint-placeholder-val="{{ false }}"><span style="padding:28px 0;text-align:center;font-size:13px;color:var(--muted);">이 섹션에서 남긴 질문이 없습니다.</span></sc-if>
-            <sc-for list="{{ qa }}" as="q" hint-placeholder-count="3">
-              <div style="display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;">
-                <button onClick="{{ q.onClick }}" style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:none;background:transparent;color:var(--text);text-align:left;cursor:pointer;" style-hover="background:var(--panel2);">
-                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--accent);flex:none;margin-top:1px;">Q</span>
-                  <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;">
-                    <span style="font-size:14px;font-weight:600;line-height:1.5;">{{ q.q }}</span>
-                    <span style="font-size:11px;color:var(--muted);">{{ q.mode }} · {{ q.eqName }} · {{ q.date }}</span>
-                  </div>
-                  <span style="font-size:12px;color:var(--muted);flex:none;">{{ q.chev }}</span>
-                </button>
-                <sc-if value="{{ q.open }}" hint-placeholder-val="{{ false }}">
-                  <div style="display:flex;gap:12px;padding:0 16px 16px;">
-                    <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--muted);flex:none;margin-top:2px;">A</span>
-                    <p style="margin:0;font-size:13px;line-height:1.7;text-wrap:pretty;">{{ q.a }}</p>
-                  </div>
-                </sc-if>
-              </div>
-            </sc-for>
-          </div>
-        </sc-if>
-
-        <sc-if value="{{ tabMis }}" hint-placeholder-val="{{ false }}">
-          <div style="display:flex;flex-direction:column;gap:10px;padding:20px;">
-            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-              <sc-for list="{{ misFilters }}" as="f" hint-placeholder-count="3">
-                <button onClick="{{ f.onClick }}" style="height:28px;padding:0 12px;border-radius:999px;border:1px solid {{ f.border }};background:transparent;color:{{ f.color }};font-size:11px;font-weight:600;cursor:pointer;">{{ f.label }}</button>
-              </sc-for>
-              <span style="margin-left:auto;font-size:11px;color:var(--muted);">본인 기록만 보입니다 · 같은 개념을 맞히면 해결됨으로 바뀝니다</span>
-            </div>
-            <sc-if value="{{ misEmpty }}" hint-placeholder-val="{{ false }}"><span style="padding:28px 0;text-align:center;font-size:13px;color:var(--muted);">기록된 오개념이 없습니다.</span></sc-if>
-            <sc-for list="{{ mis }}" as="m" hint-placeholder-count="2">
-              <div style="display:flex;flex-direction:column;gap:10px;padding:16px;border:1px solid var(--line);border-radius:12px;">
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                  <span style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;color:{{ m.statusColor }};border:1px solid {{ m.statusColor }};">{{ m.status }}</span>
-                  <span style="font-size:13px;font-weight:700;">{{ m.eqName }}</span>
-                  <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">{{ m.concept }}</span>
-                  <span style="margin-left:auto;font-size:11px;color:var(--muted);">{{ m.mode }} · {{ m.date }}</span>
-                </div>
-                <span style="font-size:14px;line-height:1.6;">{{ m.text }}</span>
-                <span style="font-size:12px;line-height:1.6;color:var(--muted);padding:8px 12px;border-radius:8px;background:var(--panel2);">내 답변 “{{ m.answer }}”</span>
-              </div>
-            </sc-for>
-          </div>
-        </sc-if>
-      </section>
-      </sc-if>
-    </main>
+    <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+      <iframe title="관리자 학습 현황" src="./Admin%20Dashboard.dc.html" style="display:block;width:100%;height:100vh;border:0;"></iframe>
+    </sc-if>
+    <sc-if value="{{ isTrainee }}" hint-placeholder-val="{{ true }}">
+      <iframe title="신입사원 학습 현황" src="./Trainee%20Dashboard.dc.html" style="display:block;width:100%;height:100vh;border:0;"></iframe>
+    </sc-if>
   </sc-if>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;startLoggedOut&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark'|'light'&quot;}}">
-const V = {
-  correct: { label: '맞음', c: 'var(--ok)', s: 1 },
-  partial: { label: '부분', c: 'var(--mid)', s: 0.5 },
-  wrong: { label: '틀림', c: 'var(--bad)', s: 0 },
-  assisted: { label: '도움 받음', c: 'var(--mid)', s: 0 },
-  pending: { label: '미확정', c: 'var(--muted)', s: 0 },
-};
-// 사용자별 기록(실서비스에선 DB). first = 첫 판정, retry = 재확인 판정(개념당 1회)
-const RECORDS = {
-  ironmaking: { attempts: 2, c: { sinter_plant: { first: 'correct' }, coke_oven: { first: 'correct' }, blast_furnace: { first: 'partial', retry: 'correct' }, hot_stove: { first: 'wrong', retry: 'partial' }, taphole_casthouse: { first: 'correct' }, torpedo_car: { first: 'assisted', retry: 'correct' } } },
-  steelmaking: { attempts: 1, c: { hot_metal_pretreatment: { first: 'correct' }, bof_converter: { first: 'wrong', retry: 'partial' }, oxygen_lance_offgas: { first: 'partial' } } },
-  continuous_casting: { attempts: 0, c: {} },
-  rolling: { attempts: 0, c: {} },
-};
-const QA = [
-  { id: 1, p: 'ironmaking', eq: 'blast_furnace', mode: '학습', date: '09.28', q: '고로에 코크스를 넣는 이유가 열 때문만인가요?', a: '아니요. 코크스는 열원이면서 환원제입니다. 코크스가 타며 생긴 일산화탄소(CO)가 철광석의 산소를 떼어내 철로 바꿉니다.' },
-  { id: 2, p: 'ironmaking', eq: 'sinter_plant', mode: '학습', date: '09.28', q: '가루 철광석을 그냥 넣으면 안 되나요?', a: '가루 그대로는 고로 안에서 바람(열풍)이 통하지 않아 반응이 고르게 일어나지 않습니다. 그래서 소결기에서 구워 덩어리(소결광)로 만든 뒤 넣습니다.' },
-  { id: 3, p: 'ironmaking', eq: 'hot_stove', mode: '체크포인트', date: '09.29', q: '열풍로는 몇 대가 동시에 돌아가나요?', a: '여러 대가 번갈아 가열과 송풍을 반복합니다. 한쪽이 고로 가스로 벽돌을 데우는 동안 다른 쪽이 데워진 벽돌로 공기를 약 1,200℃까지 올려 풍구로 보냅니다.' },
-  { id: 4, p: 'steelmaking', eq: 'bof_converter', mode: '학습', date: '09.30', q: '전로에서 산소를 불면 철도 같이 타지 않나요?', a: '일부 철이 산화되어 슬래그로 가지만, 산소는 주로 탄소·규소·인 같은 불순물과 먼저 반응합니다. 탄소가 타며 나는 열로 온도가 스스로 올라가서 별도 연료 없이 약 1,650℃ 용강이 됩니다.' },
-  { id: 5, p: 'steelmaking', eq: 'oxygen_lance_offgas', mode: '학습', date: '10.01', q: '랜스는 쇳물 바로 위에 있는데 왜 안 녹나요?', a: '랜스는 3중 관 구조로 안쪽에 냉각수가 계속 흐르는 수냉식입니다. 그래서 쇳물 바로 위에서도 형태를 유지합니다.' },
-  { id: 6, p: 'steelmaking', eq: 'tapping_ladle_crane', mode: '학습', date: '10.01', q: '합금은 언제 넣나요?', a: '출강할 때 래들로 용강을 받으면서 Fe-Mn, Fe-Si, Al 같은 합금철을 함께 넣습니다. 세밀한 조정은 2차 정련(LF)에서 합니다.' },
-];
-const MIS = [
-  { id: 1, p: 'ironmaking', eq: 'hot_stove', mode: '체크포인트', date: '09.29', resolved: false, text: '열풍로가 쇳물을 직접 데운다고 이해함. 열풍로는 공기를 데워 풍구로 불어 넣는 설비.', answer: '열풍로에서 쇳물을 가열해서 고로로 보내요' },
-  { id: 2, p: 'ironmaking', eq: 'blast_furnace', mode: '체크포인트', date: '09.29', resolved: true, text: '코크스를 연료로만 보고 환원제 역할을 빠뜨림.', answer: '코크스는 불을 때는 연료입니다' },
-  { id: 3, p: 'steelmaking', eq: 'bof_converter', mode: '체크포인트', date: '09.30', resolved: false, text: '산소가 주로 철을 태운다고 이해함. 실제로는 탄소 등 불순물을 산화시키는 과정.', answer: '산소로 철을 태워서 온도를 올려요' },
-  { id: 4, p: 'steelmaking', eq: 'hot_metal_pretreatment', mode: '학습', date: '09.30', resolved: true, text: '용선 예비처리를 모든 공장에서 반드시 거친다고 이해함. 공장·제품에 따라 생략되기도 함.', answer: '예비처리는 항상 해야 하죠?' },
-];
-const fin = r => !r ? 'pending' : r.first === 'correct' ? 'correct' : (r.retry || 'pending');
-
 // 로그인 API는 docs/auth-api.md. 서버(npm start)가 이 페이지를 /login으로 서빙해야 API를 부를 수 있다.
-const ROLE_LABEL = { trainee: '신입사원', admin: '관리자' };
 const TOKEN_KEY = 'st-rookie-token';
 // 로그인 상태 유지면 localStorage(브라우저를 닫아도 유지), 아니면 sessionStorage(탭을 닫으면 로그아웃).
 const tokenStore = {
@@ -446,73 +117,13 @@ async function api(path, body, token) {
 const EMPTY_FORM = { id: '', pw: '', pw2: '', name: '', emp: '' };
 
 class Component extends DCLogic {
-  state = { D: null, loggedIn: !(this.props.startLoggedOut ?? true), user: null, theme: this.props.theme ?? 'dark', sec: 'steelmaking', tab: 'concepts', eqSel: {}, qaOpen: { 5: true }, qaF: 'all', misF: 'open',
+  state = { loggedIn: !(this.props.startLoggedOut ?? true), user: null, theme: this.props.theme ?? 'dark',
     view: 'login', f: { ...EMPTY_FORM }, remember: false, busy: false, msg: null, foundId: null, demo: { accounts: [], password: null }, roleTab: 'trainee' };
   componentDidMount() {
-    import('../3d-demo/data_v2.js').then(D => this.setState({ D }));
     document.body.dataset.theme = this.state.theme;
     api('/api/auth/demo-accounts').then(demo => this.setState({ demo }), () => {});
     const token = tokenStore.get();
-    if (token) api('/api/auth/me', null, token).then(({ user }) => { this.setState({ loggedIn: true, user }); this.loadAdmin(user); }, () => tokenStore.clear());
-  }
-  loadAdmin(user) {
-    if (user.role !== 'admin') return;
-    this.setState({ admin: null, adminErr: null });
-    api('/api/admin/trainees', null, tokenStore.get()).then(admin => this.setState({ admin }), e => this.setState({ adminErr: e.message }));
-  }
-  // 관리자 화면 값. 섹션 이름은 data_v2.js의 PROCESSES에서 가져온다.
-  adminVals(P) {
-    const A = this.state.admin;
-    const ids = A ? A.sections : ['ironmaking', 'steelmaking', 'continuous_casting', 'rolling'];
-    const rows = A ? A.trainees : [];
-    const meta = id => P.find(p => p.id === id) || { num: '', name: id };
-    const pct = x => Math.round(x * 1000) / 10;
-    const date = iso => { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? '—' : `${d.getMonth() + 1}월 ${d.getDate()}일`; };
-    const summary = id => {
-      const done = rows.map(t => t.sections[id]).filter(Boolean);
-      const avg = done.length ? done.reduce((a, s) => a + s.understanding, 0) / done.length : null;
-      return { taken: done.length, passed: done.filter(s => s.passed).length, avg };
-    };
-    const curId = ids.includes(this.state.adminSec) ? this.state.adminSec : ids[0];
-    const cur = summary(curId);
-    const hov = this.state.adminHover;
-    // 막대는 평소 무채색 빗금, 마우스를 올린 막대만 강조색으로 바꾼다.
-    const HATCH = 'repeating-linear-gradient(135deg, color-mix(in srgb, var(--muted) 28%, transparent) 0 2px, transparent 2px 9px)';
-    const BAR_IDLE = `${HATCH}, var(--panel2)`;
-    const BAR_HOVER = 'repeating-linear-gradient(135deg, rgb(255 255 255 / .16) 0 2px, transparent 2px 9px), linear-gradient(180deg, #6cc4f5, var(--accent))';
-    const openTotal = rows.reduce((a, t) => a + t.misconceptions.open, 0);
-    return {
-      adminSide: ids.map(id => { const x = summary(id), on = id === curId;
-        return { num: meta(id).num, name: meta(id).name, on,
-          key: x.taken ? `평균 ${pct(x.avg)}% · 통과 ${x.passed}/${x.taken}명` : '응시 기록 없음',
-          bg: on ? 'var(--panel)' : 'transparent', border: on ? 'var(--accent)' : 'var(--line)', bar: on ? 'var(--accent)' : 'transparent',
-          numBg: on ? 'var(--accent)' : 'var(--panel2)', numColor: on ? '#fff' : 'var(--text)',
-          pick: () => { if (this.state.adminSec !== id) this.setState({ adminSec: id, adminHover: null }); } }; }),
-      adminCur: { name: meta(curId).name, hasAvg: cur.avg != null, avgLabel: cur.avg == null ? '' : pct(cur.avg) + '%', avgPos: cur.avg == null ? '0%' : pct(cur.avg) + '%',
-        chips: [{ label: '평균', value: cur.avg == null ? '—' : pct(cur.avg) + '%' }, { label: '통과', value: `${cur.passed} / ${cur.taken}명` }, { label: '기준', value: '80%' }],
-        aria: `${meta(curId).name} 신입사원별 마지막 체크포인트 이해도 막대그래프` },
-      adminBars: rows.map((t, i) => { const s = t.sections[curId], on = hov === i;
-        const value = s ? pct(s.understanding) + '%' : '기록 없음';
-        const result = s ? `${s.passed ? '통과' : '미통과'} · ${s.attempts}회` : '—';
-        return { name: t.name, username: t.username, value, result, last: date(t.last_activity),
-          mis: `${t.misconceptions.open} (해결 ${t.misconceptions.resolved})`,
-          detail: s ? `${result} · 미해결 오개념 ${t.misconceptions.open}` : '아직 응시하지 않음',
-          aria: `${t.name} ${value}${s ? ', ' + result : ''}`,
-          h: s ? pct(s.understanding) + '%' : '8px', bg: on ? BAR_HOVER : BAR_IDLE, hover: on,
-          nameBg: on ? 'color-mix(in srgb, var(--accent) 18%, transparent)' : 'transparent', nameColor: on ? 'var(--accent)' : 'var(--muted)', nameWeight: on ? 700 : 500,
-          enter: () => this.setState({ adminHover: i }), leave: () => { if (this.state.adminHover === i) this.setState({ adminHover: null }); } }; }),
-      // 사람당 60px. 패널보다 넓으면 그래프 영역만 가로로 스크롤된다.
-      adminChartWidth: `${Math.max(1, rows.length) * 60}px`,
-      adminTableOpen: !!this.state.adminTable, adminTableLabel: this.state.adminTable ? '표 닫기 ▴' : '표로 보기 ▾',
-      toggleAdminTable: () => this.setState({ adminTable: !this.state.adminTable }),
-      adminEmpty: !!A && rows.length === 0,
-      adminNote: this.state.adminErr ? `통계를 불러오지 못했어요: ${this.state.adminErr}` : !A ? '통계를 불러오는 중…' : A.checkpoint_data ? '' : '체크포인트 기록이 아직 연결되지 않아 계정 목록만 보입니다. 체크포인트 API가 dev에 들어오면 점수와 오개념 수가 자동으로 표시됩니다.',
-      adminStats: [
-        { label: '신입사원', value: `${rows.length}명`, sub: '가입한 trainee 계정' },
-        { label: '섹션 통과', value: `${rows.reduce((a, t) => a + t.passed_sections, 0)} / ${rows.length * ids.length}`, sub: '전체 신입사원 × 4섹션' },
-        { label: '미해결 오개념', value: String(openTotal), sub: '내용은 본인만 볼 수 있음' },
-      ].map(s => ({ ...s, onClick: () => {} })),
-    };
+    if (token) api('/api/auth/me', null, token).then(({ user }) => { this.setState({ loggedIn: true, user }); }, () => tokenStore.clear());
   }
   // 버튼 연타로 같은 요청이 두 번 가지 않게 busy 동안은 막는다.
   async submit(run) {
@@ -523,7 +134,6 @@ class Component extends DCLogic {
   signedIn({ token, user }, remember) {
     tokenStore.set(token, remember);
     this.setState({ loggedIn: true, user, f: { ...EMPTY_FORM }, msg: null, view: 'login' });
-    this.loadAdmin(user);
   }
   go(view, keep = {}) { this.setState({ view, f: { ...EMPTY_FORM, ...keep }, msg: null, foundId: null }); }
   pickDemo(username) { this.setState({ f: { ...EMPTY_FORM, id: username, pw: this.state.demo.password || '' }, msg: null }); }
@@ -565,6 +175,7 @@ class Component extends DCLogic {
       },
     };
     const form = forms[S.view] || forms.login;
+    // 시연 계정 목록은 서버(/api/auth/demo-accounts)가 준 그대로 보여 준다.
     const demoOf = role => S.demo.accounts.filter(a => a.role === role);
     return {
       form: { foundId: null, isLogin: false, ...form },
@@ -579,79 +190,10 @@ class Component extends DCLogic {
     };
   }
   componentDidUpdate() { document.body.dataset.theme = this.state.theme; }
-  secInfo(p, prevPassed) {
-    const rec = RECORDS[p.id] || { attempts: 0, c: {} };
-    const vs = p.equipment.map(e => fin(rec.c[e.id]));
-    const total = vs.length, confirmed = vs.filter(v => v !== 'pending').length;
-    const sum2 = vs.reduce((a, v) => a + V[v].s * 2, 0); // 분수 계산: 0.5 단위를 정수로
-    const pass = confirmed === total && sum2 * 10 >= total * 2 * 8;
-    const locked = !prevPassed;
-    const status = locked ? '잠김' : pass ? '통과' : confirmed === total ? '재도전 필요' : rec.attempts || confirmed ? '진행 중' : '시작 전';
-    const statusColor = locked ? 'var(--muted)' : pass ? 'var(--ok)' : status === '재도전 필요' ? 'var(--bad)' : 'var(--accent)';
-    const pctN = total ? Math.round(sum2 / (total * 2) * 1000) / 10 : 0;
-    const retryList = p.equipment.filter((e, i) => vs[i] !== 'correct' && vs[i] !== 'pending').map(e => e.name);
-    return { rec, vs, total, confirmed, pass, locked, status, statusColor, pct: pctN + '%', pctLabel: (locked ? '—' : pctN.toFixed(pctN % 1 ? 1 : 0) + '%'), barColor: pass ? 'var(--ok)' : 'var(--accent)', attempts: rec.attempts,
-      retryNote: locked ? '앞 섹션을 통과하면 체크포인트를 볼 수 있습니다.' : pass ? (retryList.length ? `만점이 아닌 개념: ${retryList.join(', ')}` : '모든 개념 만점') : confirmed < total ? `미확정 개념 ${total - confirmed}개가 남았습니다. 미확정 개념은 0점으로 계산됩니다.` : `재도전 때 다시 묻는 개념: ${retryList.join(', ')}` };
-  }
   renderVals() {
-    const S = this.state, D = S.D, P = D ? D.PROCESSES : [];
-    const set = o => () => this.setState(o);
-    let prev = true;
-    const infos = P.map(p => { const i = this.secInfo(p, prev); prev = i.pass; return { p, ...i }; });
-    const curI = infos.find(x => x.p.id === S.sec) || infos[0];
-    const cp = curI ? curI.p : { equipment: [] };
-    const eqId = S.eqSel[cp.id] || (cp.equipment[0] || {}).id;
-    const eq = cp.equipment.find(e => e.id === eqId) || {};
-    const eqV = curI ? curI.vs[cp.equipment.indexOf(eq)] || 'pending' : 'pending';
-    const r = curI && curI.rec.c[eq.id];
-    const qaAll = QA.filter(q => q.p === cp.id), qa = qaAll.filter(q => S.qaF === 'all' || q.mode === S.qaF);
-    const misAll = MIS.filter(m => m.p === cp.id), mis = misAll.filter(m => S.misF === 'all' || (S.misF === 'open' ? !m.resolved : m.resolved));
-    const eqName = (pid, id) => ((P.find(x => x.id === pid) || { equipment: [] }).equipment.find(e => e.id === id) || {}).name || id;
-    const allConcepts = infos.reduce((a, x) => a + x.total, 0), allConfirmed = infos.reduce((a, x) => a + (x.locked ? 0 : x.confirmed), 0);
-    const pill = (on) => ({ border: on ? 'var(--accent)' : 'var(--line)', color: on ? 'var(--accent)' : 'var(--muted)' });
-    // 관리자는 개인 학습 기록 대신 신입사원 통계를 본다.
+    const S = this.state;
     const isAdmin = !!S.user && S.user.role === 'admin';
-    const adminV = isAdmin ? this.adminVals(P) : null;
-    return {
-      loggedIn: S.loggedIn, loggedOut: !S.loggedIn,
-      ...this.formVals(),
-      logout: () => { tokenStore.clear(); this.setState({ loggedIn: false, user: null, admin: null, adminErr: null }); this.go('login'); },
-      isAdmin, isTrainee: !isAdmin,
-      // 관리자 화면은 글자를 14px 이상으로 둔다.
-      fs: isAdmin ? { xs: '14px', sm: '14px' } : { xs: '11px', sm: '12px' },
-      headerSub: isAdmin ? '관리자 · 신입사원 통계' : '마이페이지',
-      ...(isAdmin ? adminV : {}),
-      toggleTheme: () => this.setState({ theme: S.theme === 'dark' ? 'light' : 'dark' }), themeLabel: S.theme === 'dark' ? '☀' : '☾',
-      // 학습 기록(RECORDS·QA·MIS)은 아직 샘플이라 마지막 학습일도 샘플 값이다. 에디터 미리보기(로그인 없이)는 샘플 사용자로 보여 준다.
-      user: S.user
-        ? { name: S.user.name, initial: S.user.name.slice(0, 1), email: S.user.username, provider: ROLE_LABEL[S.user.role] || S.user.role, cohort: `사번 ${S.user.employee_no}`, lastSeen: isAdmin ? '—' : '10월 1일' }
-        : { name: '김신입', initial: '김', email: 'trainee01', provider: ROLE_LABEL.trainee, cohort: '사번 T2026001', lastSeen: '10월 1일' },
-      stats: isAdmin ? adminV.adminStats : [
-        { label: '섹션 통과', value: `${infos.filter(x => x.pass).length} / ${infos.length || 4}`, sub: '체크포인트 80% 이상', onClick: set({ tab: 'checkpoint' }) },
-        { label: '확정된 개념', value: `${allConfirmed} / ${allConcepts || 24}`, sub: '첫 판정 맞음 또는 재확인 완료', onClick: set({ tab: 'concepts' }) },
-        { label: '미해결 오개념', value: String(MIS.filter(m => !m.resolved).length), sub: `질문 ${QA.length}개 남김`, onClick: set({ tab: 'mis', misF: 'open' }) },
-      ],
-      sections: infos.map(x => ({ num: x.p.num, name: x.p.name, en: x.p.en, status: x.status, statusColor: x.statusColor, pct: x.locked ? '0%' : x.pct, pctLabel: x.pctLabel, barColor: x.barColor, confirmed: x.locked ? 0 : x.confirmed, total: x.total,
-        border: x.p.id === S.sec ? 'var(--accent)' : 'var(--line)', opacity: x.locked ? 0.6 : 1, onClick: set({ sec: x.p.id }) })),
-      cur: curI ? { num: cp.num, name: cp.name, io: cp.io, pct: curI.locked ? '0%' : curI.pct, pctLabel: curI.pctLabel, barColor: curI.barColor, status: curI.status, attempts: curI.attempts, retryNote: curI.retryNote } : {},
-      curLocked: !!(curI && curI.locked),
-      tabs: [['concepts', '개념 보기', cp.equipment.length], ['module', '학습 모듈', ''], ['checkpoint', '체크포인트 결과', ''], ['qa', '질문 · 답변', qaAll.length], ['mis', '오개념', misAll.filter(m => !m.resolved).length || '']].map(([k, label, count]) => ({ label, count, bg: S.tab === k ? 'var(--panel)' : 'transparent', color: S.tab === k ? 'var(--text)' : 'var(--muted)', onClick: set({ tab: k }) })),
-      tabConcepts: S.tab === 'concepts', tabModule: S.tab === 'module', moduleTheme: S.theme, tabCheckpoint: S.tab === 'checkpoint', tabQa: S.tab === 'qa', tabMis: S.tab === 'mis',
-      concepts: cp.equipment.map((e, i) => { const v = curI.locked ? 'pending' : curI.vs[i], rr = curI.rec.c[e.id];
-        return { num: String(i + 1).padStart(2, '0'), name: e.name, color: V[v].c, verdictLabel: V[v].label, bg: e.id === eqId ? 'var(--panel2)' : 'transparent', weight: e.id === eqId ? 700 : 500,
-          scorePct: (V[v].s * 100) + '%', scoreLabel: v === 'pending' ? '—' : String(V[v].s), trail: !rr ? '아직 묻지 않음' : rr.first === 'correct' ? '첫 판정 맞음' : `첫 판정 ${V[rr.first].label} → ${rr.retry ? '재확인 ' + V[rr.retry].label : '재확인 전'}`,
-          onClick: () => this.setState({ eqSel: { ...S.eqSel, [cp.id]: e.id } }) }; }),
-      eq: { id: eq.id || '', name: eq.name || '', role: eq.role || '', input: eq.input || '', output: eq.output || '' },
-      eqNotes: (eq.notes || []).map(text => ({ text })),
-      eqRec: { label: V[eqV].label, color: V[eqV].c, detail: !r ? '체크포인트에서 아직 묻지 않았습니다' : r.first === 'correct' ? '첫 판정에서 맞혔습니다' : `첫 판정 ${V[r.first].label}${r.retry ? ` → 재확인 ${V[r.retry].label}` : ' · 재확인 대기'}` },
-      legend: ['correct', 'partial', 'wrong', 'pending'].map(k => ({ label: V[k].label + (k === 'pending' ? ' (0점)' : ''), color: V[k].c })),
-      qaFilters: [['all', '전체'], ['학습', '학습 모드'], ['체크포인트', '체크포인트']].map(([k, label]) => ({ label, ...pill(S.qaF === k), onClick: set({ qaF: k }) })),
-      qa: qa.map(q => ({ ...q, eqName: eqName(q.p, q.eq), open: !!S.qaOpen[q.id], chev: S.qaOpen[q.id] ? '▴' : '▾', onClick: () => this.setState({ qaOpen: { ...S.qaOpen, [q.id]: !S.qaOpen[q.id] } }) })),
-      qaEmpty: !qa.length,
-      misFilters: [['open', '미해결'], ['done', '해결됨'], ['all', '전체']].map(([k, label]) => ({ label, ...pill(S.misF === k), onClick: set({ misF: k }) })),
-      mis: mis.map(m => ({ ...m, eqName: eqName(m.p, m.eq), concept: m.eq, status: m.resolved ? '해결됨' : '미해결', statusColor: m.resolved ? 'var(--ok)' : 'var(--bad)' })),
-      misEmpty: !mis.length,
-    };
+    return { loggedIn: S.loggedIn, loggedOut: !S.loggedIn, ...this.formVals(), isAdmin, isTrainee: !isAdmin };
   }
 }
 </script>

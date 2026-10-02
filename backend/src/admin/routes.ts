@@ -2,12 +2,16 @@
 import express from "express";
 import type { DatabaseSync } from "node:sqlite";
 import { requireAdmin, requireUser, type AuthDeps } from "../auth/routes.js";
+import { conceptStats } from "./concept-stats.js";
 import { traineeStats } from "./trainee-stats.js";
 
 export function createAdminRouter(db: DatabaseSync, auth: AuthDeps): express.Router {
   const router = express.Router();
   router.get("/api/admin/trainees", requireUser(auth), requireAdmin, (_req, res) => {
     res.json(traineeStats(db));
+  });
+  router.get("/api/admin/concepts", requireUser(auth), requireAdmin, (_req, res) => {
+    res.json(conceptStats(db));
   });
   return router;
 }
