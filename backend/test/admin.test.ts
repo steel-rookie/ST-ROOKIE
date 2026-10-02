@@ -3,6 +3,7 @@ import type { AddressInfo } from "node:net";
 import { DatabaseSync } from "node:sqlite";
 import { after, before, test } from "node:test";
 import express from "express";
+import { conceptStats } from "../src/admin/concept-stats.js";
 import { createAdminRouter } from "../src/admin/routes.js";
 import { traineeStats } from "../src/admin/trainee-stats.js";
 import { signToken } from "../src/auth/tokens.js";
@@ -55,6 +56,37 @@ test("concept statistics require admin and come from completed trainee answers",
   assert.deepEqual(after.json.concepts, [{ section: "ironmaking", concept_id: "hot_stove", asked: 1, partial: 0, wrong: 1, assisted: 0, final_wrong: 0, open: 0 }]);
   db.prepare("DELETE FROM concept_results WHERE attempt_id = 'concept-test'").run();
   db.prepare("DELETE FROM attempts WHERE id = 'concept-test'").run();
+});
+
+test("concept statistics include retries, filter by section, and reject unknown sections", async () => {
+  const attempt = db.prepare("INSERT INTO attempts (id, user_id, section, state, understanding, unlocked, created_at, updated_at, completed_at, kind, concept_ids) VALUES (?, ?, ?, 'completed', 0.5, 0, '2026-10-01', '2026-10-01', '2026-10-01', ?, '[]')");
+  attempt.run("cs-first", lee.id, "ironmaking", "first");
+  attempt.run("cs-retry", lee.id, "ironmaking", "retry");
+  attempt.run("cs-steel", lee.id, "steelmaking", "first");
+  const result = db.prepare("INSERT INTO concept_results (attempt_id, concept_id, question, answer, verdict, recheck_verdict, created_at, updated_at) VALUES (?, ?, 'q', 'a', ?, ?, '2026-10-01', '2026-10-01')");
+  result.run("cs-first", "hot_stove", "wrong", "partial");
+  result.run("cs-retry", "hot_stove", "assisted", "wrong"); // 재도전도 센다
+  result.run("cs-steel", "converter", "partial", "correct");
+
+  const all = await get(admin, "/api/admin/concepts");
+  assert.deepEqual(all.json.concepts, [
+    { section: "ironmaking", concept_id: "hot_stove", asked: 2, partial: 0, wrong: 1, assisted: 1, final_wrong: 1, open: 0 },
+    { section: "steelmaking", concept_id: "converter", asked: 1, partial: 1, wrong: 0, assisted: 0, final_wrong: 0, open: 0 },
+  ]);
+  const steel = await get(admin, "/api/admin/concepts?section=steelmaking");
+  assert.deepEqual(steel.json.concepts.map((c: { concept_id: string }) => c.concept_id), ["converter"]);
+  const bad = await get(admin, "/api/admin/concepts?section=sintering");
+  assert.equal(bad.status, 400);
+  assert.equal(bad.json.code, "INVALID_SECTION");
+
+  db.prepare("DELETE FROM concept_results WHERE attempt_id LIKE 'cs-%'").run();
+  db.prepare("DELETE FROM attempts WHERE id LIKE 'cs-%'").run();
+});
+
+test("without checkpoint tables, concept statistics are empty", () => {
+  const bare = new DatabaseSync(":memory:");
+  bare.exec("CREATE TABLE users (id TEXT, username TEXT, password_hash TEXT, role TEXT, name TEXT, employee_no TEXT, created_at TEXT)");
+  assert.deepEqual(conceptStats(bare), { concepts: [] });
 });
 
 test("without checkpoint tables, trainees are listed with empty records", () => {
