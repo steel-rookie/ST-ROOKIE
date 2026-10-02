@@ -121,11 +121,12 @@ test("Gemini 연결 오류는 재시도하지 않고 LlmUnavailableError, 키가
   }
 });
 
-test("튜터: 재확인 질문에 이전 질문을 넘기고, 부가 설명은 explain_from부터의 핵심 요소만 쓴다", async () => {
+test("튜터(은행이 빈 개념): 재확인 질문에 이전 질문을 넘기고, 부가 설명은 explain_from부터의 핵심 요소만 쓴다", async () => {
   const { sent, client } = fakeGemini(["  “다른 각도의 질문?”  ", "설명입니다.", ""]);
   const tutor = new GeminiTutor(client);
+  const noBank = { ...concept, questions: undefined, recheck_questions: undefined };
 
-  assert.equal(await tutor.recheckQuestion({ rubric, concept, previousQuestion: "이전 질문" }), "다른 각도의 질문?");
+  assert.equal(await tutor.recheckQuestion({ rubric, concept: noBank, previousQuestion: "이전 질문" }), "다른 각도의 질문?");
   assert.match(sent[0]!.contents[0]!.parts[0]!.text, /이전 질문: 이전 질문/);
   assert.equal(sent[0]!.generationConfig.responseMimeType, "text/plain");
 
@@ -135,5 +136,24 @@ test("튜터: 재확인 질문에 이전 질문을 넘기고, 부가 설명은 e
   assert.match(prompt, /일산화탄소가 철광석에서 산소를 떼어내는 환원에 관여한다/);
   assert.match(prompt, /<answer>&lt;b&gt;<\/answer>/);
 
-  await assert.rejects(tutor.question({ rubric, concept }), LlmUnavailableError); // 빈 응답
+  await assert.rejects(tutor.question({ rubric, concept: noBank }), LlmUnavailableError); // 빈 응답
+});
+
+test("튜터: explain_from이 null이면 핵심 요소를 다시 설명하지 않고 오개념만 바로잡는 프롬프트를 쓴다", async () => {
+  const { sent, client } = fakeGemini(["교정입니다."]);
+  await new GeminiTutor(client).explanation({ rubric, concept, explainFrom: null, misconception: "코크스가 용선 불순물을 없앤다고 함", answer: "A" });
+  const prompt = sent[0]!.contents[0]!.parts[0]!.text;
+  assert.match(prompt, /핵심 요소는 모두 맞게 설명했지만/);
+  assert.match(prompt, /오개념: 코크스가 용선 불순물을 없앤다고 함/);
+  assert.match(prompt, /열풍과 반응해 일산화탄소를 만든다/); // 근거 범위로 모든 핵심 요소를 참고로 준다
+});
+
+test("평가자: 핵심 요소를 모두 맞혔지만 사실 오류로 partial이면 explain_from null을 받고, 오개념이 없거나 partial이 아니면 형식 오류", async () => {
+  const input = { rubric, concept, phase: "initial" as const, question: "Q", answer: "A" };
+  const accepted = await new GeminiEvaluator(fakeGemini([ok({ verdict: "partial", explain_from: null, misconception: "불순물 제거는 코크스 역할이 아님" })]).client).evaluate(input);
+  assert.equal(accepted.explain_from, null);
+
+  for (const bad of [ok({ verdict: "partial", explain_from: null }), ok({ verdict: "wrong", explain_from: null, misconception: "x" })]) {
+    await assert.rejects(new GeminiEvaluator(fakeGemini([bad, bad]).client).evaluate(input), EvaluationFormatError);
+  }
 });

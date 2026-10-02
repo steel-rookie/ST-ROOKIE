@@ -136,12 +136,12 @@ interface Evaluator {
 interface Evaluation {
   verdict: "correct" | "partial" | "wrong" | "assisted"; // recheck에서는 assisted 없음
   misconception: string | null;
-  explain_from: number | null;  // key_points 인덱스(0부터). correct면 null
+  explain_from: number | null;  // key_points 인덱스(0부터). correct면 null. 핵심 요소를 다 맞혔지만 사실 오류로 partial이면 null(오개념만 교정)
   evidence: string;
 }
 interface Tutor {
   question({ rubric, concept }): Promise<string>;
-  explanation({ rubric, concept, explainFrom, misconception, answer }): Promise<string>;
+  explanation({ rubric, concept, explainFrom, misconception, answer }): Promise<string>; // explainFrom null이면 오개념만 교정
   recheckQuestion({ rubric, concept, previousQuestion }): Promise<string>;
 }
 ```
@@ -149,7 +149,8 @@ interface Tutor {
 - 구현: `GeminiEvaluator`, `GeminiTutor`(`llm/src`). 테스트는 `FakeEvaluator`, `FakeTutor`(`backend/test/checkpoint-fakes.ts`).
 - 평가자는 `concept_id`를 출력하지 않는다. 서버가 붙인다.
 - 평가자 출력이 형식 검증에 실패하면 구현 안에서 1회 재시도하고, 그래도 실패하면 `EvaluationFormatError` → 시도는 `error` 상태.
-- 엔진도 계약을 한 번 더 확인한다: recheck에서 `assisted`, 범위 밖 `explain_from`은 형식 오류로 본다.
+- 엔진도 계약을 한 번 더 확인한다: recheck에서 `assisted`, 범위 밖 `explain_from`, 오개념 없는 partial·partial이 아닌 판정의 `explain_from: null`은 형식 오류로 본다(`explainFromProblem`).
+- 튜터 질문은 루브릭의 질문 은행(`questions`, `recheck_questions`)에서 골라 말투만 다듬는다. 은행이 비었을 때만 LLM이 만든다(CLAUDE.md '튜터').
 
 평가자 호출 설정
 
@@ -171,7 +172,7 @@ interface Tutor {
 }
 ```
 
-서버 측 추가 검증: `explain_from` 범위, correct가 아니면 `explain_from` 필수, correct면 `misconception`·`explain_from`이 null.
+서버 측 추가 검증: `explain_from` 범위, correct가 아니면 `explain_from` 필수(단, 오개념이 있는 partial은 null 허용: 핵심 요소를 다 맞히고 사실 오류만 있는 경우), correct면 `misconception`·`explain_from`이 null.
 
 LLM을 쓰지 않는 발화(템플릿): 시작 멘트, "맞아요" 피드백, 재확인 실패 시 핵심 요소 요약, 결과 멘트.
 
@@ -208,7 +209,7 @@ LLM을 쓰지 않는 발화(템플릿): 시작 멘트, "맞아요" 피드백, �
 - evidence: 판정 근거가 된 답변 속 표현을 그대로 인용
 - verdict
 - misconception: 답변에 드러난 잘못된 이해 한 문장. 몰라서 비어 있는 것은 null. correct면 null
-- explain_from: correct가 아니면 처음 놓치거나 틀린 핵심 요소 번호. correct면 null
+- explain_from: correct가 아니면 처음 놓치거나 틀린 핵심 요소 번호. 핵심 요소를 모두 맞혔지만 사실 오류로 partial이면 null. correct면 null
 
 <question>{question}</question>
 <answer>{answer}</answer>
@@ -218,6 +219,8 @@ LLM을 쓰지 않는 발화(템플릿): 시작 멘트, "맞아요" 피드백, �
 
 ### 튜터: 질문
 
+질문 은행이 비었을 때만 쓰는 대체 경로다. 은행 질문은 말투 다듬기(`llm/prompts/tutor-polish.md`)만 거친다. 실제 프롬프트는 `llm/prompts/`가 기준이다.
+
 ```
 제철 신입사원을 돕는 튜터입니다. 아래 개념을 이해했는지 확인하는 질문을 한국어 한 문장으로 만드세요.
 - 정답이나 핵심 요소 표현을 질문에 넣지 마세요. 예/아니오 질문은 피하세요.
@@ -225,6 +228,8 @@ LLM을 쓰지 않는 발화(템플릿): 시작 멘트, "맞아요" 피드백, �
 ```
 
 ### 튜터: 부가 설명
+
+`explain_from`이 null(핵심 요소는 다 맞히고 사실 오류만 있음)이면 `llm/prompts/tutor-correction.md`로 오개념만 바로잡는다.
 
 ```
 학습자가 일부를 놓쳤습니다. {explain_from}번 핵심 요소부터 차례로 신입 수준의 한국어 2~4문장으로 설명하세요.

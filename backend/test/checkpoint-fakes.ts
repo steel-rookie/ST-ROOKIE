@@ -39,7 +39,7 @@ export const STEELMAKING: Rubric = {
  * 답변 문자열로 판정을 정한다.
  * - "correct" | "partial" | "wrong" | "assisted"
  * - "<판정>|<오개념 요약>": 오개념 포함
- * - "<판정>@<explain_from>": explain_from 지정(기본 0)
+ * - "<판정>@<explain_from>": explain_from 지정(기본 0). "partial@null|오개념"은 오개념만 교정하는 경우
  */
 export class FakeEvaluator implements Evaluator {
   calls: EvaluateInput[] = [];
@@ -57,7 +57,7 @@ export class FakeEvaluator implements Evaluator {
     return {
       verdict: verdict as Verdict,
       misconception,
-      explain_from: verdict === "correct" ? null : Number(from ?? 0),
+      explain_from: verdict === "correct" || from === "null" ? null : Number(from ?? 0),
       evidence: input.answer,
     };
   }

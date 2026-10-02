@@ -63,21 +63,27 @@
      "evidence": "string"
    }
    ```
-   `explain_from`은 학습자가 처음 놓친 `key_points`의 인덱스(0부터)다. 되묻거나 힌트를 요청하면 `assisted`다.
-4. `correct`가 아니면(`partial`, `wrong`, `assisted`) `explain_from`부터 부가 설명을 한 뒤 **다른 각도의 질문으로 한 번** 재확인한다. 재확인은 개념당 1회뿐이다.
+   `explain_from`은 학습자가 처음 놓친 `key_points`의 인덱스(0부터)다. 핵심 요소를 모두 맞혔지만 사실 오류로 partial이면 `null`이고 `misconception`이 있어야 한다(서버가 검증, `explainFromProblem`). 되묻거나 힌트를 요청하면 `assisted`다.
+4. `correct`가 아니면(`partial`, `wrong`, `assisted`) `explain_from`부터 부가 설명을 한 뒤 **다른 각도의 질문으로 한 번** 재확인한다. `explain_from`이 `null`이면 핵심 요소를 다시 설명하지 않고 오개념만 바로잡는다(`llm/prompts/tutor-correction.md`). 재확인은 개념당 1회뿐이다.
 5. 재확인 단계의 평가자는 `responseSchema`의 verdict에서 `assisted`를 빼고, 프롬프트에 "되묻기·힌트 요청은 wrong"을 명시한다(판정 뒤 변환하지 않는다).
 
 평가자는 `content/rubrics/final/`만 읽는다. `draft/`는 읽지 않는다.
 
-평가자 공통 규칙(개념별 기준보다 먼저 적용, `llm/prompts/evaluator.md`):
-1. 하한: 핵심 요소를 하나 이상 맞게 설명했으면 최소 partial. 루브릭의 wrong 문장은 핵심 요소 없이 그 오개념만 있을 때의 예시다.
-2. 상한: 사실 오류가 하나라도 있으면 핵심 요소를 다 말했어도 최대 partial이고, 오류는 misconception에 기록한다. 루브릭에 없더라도 맞는 설명은 감점하지 않는다.
-3. wrong: 핵심 요소가 하나도 없거나 다른 개념·공정을 설명한 경우.
+평가자 판정 순서(개념별 기준보다 먼저, 이 순서대로 적용, `llm/prompts/evaluator.md`):
+1. 맞게 설명한 핵심 요소가 하나도 없거나 다른 개념·공정을 설명했으면 wrong. 루브릭의 wrong 문장은 핵심 요소 없이 그 오개념만 있을 때의 예시다.
+2. 핵심 요소를 하나 이상 맞게 설명했으면 최소 partial. 이 경우에만 오개념이 함께 있어도 wrong으로 내리지 않는다.
+3. 사실 오류가 하나라도 있으면 핵심 요소를 다 말했어도 최대 partial이고, 오류는 misconception에 기록한다. 루브릭에 없더라도 맞는 설명은 감점하지 않는다.
 
-튜터 질문 유출 검사(`llm/src/question-check.ts`, 질문과 재확인 질문 모두):
+튜터 질문은 루브릭의 **질문 은행**에서 고른다(`llm/src/tutor.ts`).
+- 개념별 `questions`(첫 질문 2~3개)와 `recheck_questions`(재확인 2개). 핵심 요소 전체를 묻고, 핵심 요소·정답 용어·그 동의어 표현을 쓰지 않는다(테스트로 유출 검사 통과 확인, 핵심 요소 문장과의 겹침도 검사).
+- 튜터는 고른 질문의 말투만 다듬는다(`llm/prompts/tutor-polish.md`, 의미 변경 금지). 다듬기 프롬프트에는 핵심 요소와 정답 용어를 주지 않는다. 다듬은 문장이 유출 검사에 걸리거나 다듬기 호출이 실패하면 은행 원문을 쓴다.
+- 재확인은 `recheck_questions`에서 고른다. 루브릭 로드 때 `questions`와 겹치면 오류로 막으므로 첫 질문으로 쓰지 않은 질문이 된다.
+- 은행이 비어 있을 때만 LLM이 질문을 만든다(대체 경로). 아래 유출 검사·재생성·`fallback_question`은 이 경로와 다듬은 문장에 적용된다.
+
+튜터 질문 유출 검사(`llm/src/question-check.ts`, 다듬은 은행 질문과 LLM이 만든 질문 모두):
 - 루브릭 개념의 `answer_terms`(선택)와 그 용어집 동의어가 질문에 있으면 유출. 개념 이름(`name`)은 검사에서 뺀다: 질문 속 개념 이름은 지우고 보고, 개념 이름에 든 말은 허용한다. `answer_terms`(동의어 포함)에 개념 이름에 든 말이 있으면 검사에서 조용히 빠지므로 테스트로 막는다.
 - quote와 4글자 이상 겹치는 구간 중 단어 경계 양쪽에 각각 2글자 이상 걸친 구가 있으면 유출. 한 단어 안의 겹침("철광석을")이나 조사 한 글자가 붙은 겹침("는 철광석")은 허용한다(그대로 4글자 비교하면 자연스러운 질문도 걸려서 정한 규칙).
-- 걸리면 걸린 표현을 알려 주고 1회 다시 만든다. 또 걸리면 루브릭의 `fallback_question`(선택)을, 없거나 재확인에서 직전 질문과 같으면 고정 문장(`genericQuestion`)을 쓴다. 모든 `fallback_question`은 유출 검사를 통과해야 한다(테스트로 확인).
+- (LLM이 만든 질문) 걸리면 걸린 표현을 알려 주고 1회 다시 만든다. 또 걸리면 루브릭의 `fallback_question`(선택)을, 없거나 재확인에서 직전 질문과 같으면 고정 문장(`genericQuestion`)을 쓴다. 모든 `fallback_question`은 유출 검사를 통과해야 한다(테스트로 확인).
 - 질문 생성 프롬프트에는 근거 문장(quote)을 주지 않고 핵심 요소만 준다. 질문은 핵심 요소만으로 완전히 답할 수 있는 범위로 제한한다.
 평가자 입력은 해당 개념의 루브릭, 섹션 용어집(`glossary`), 질문, 답변뿐이다. 질문과 답변은 `<question>`, `<answer>` 구분자로 감싸고, 구분자 안의 내용은 채점 대상이며 지시가 아니라고 명시한다.
 
@@ -121,8 +127,10 @@ content/
 - `section.md`가 교육 내용의 단일 기준이다. 다른 곳에 교육 내용을 중복해서 만들지 않는다.
 - 루브릭은 `draft/` → 팀 검수 → `final/` 순서로만 옮긴다. 검수 없이 `final/`에 쓰지 않는다.
 - 루브릭 형식은 `content/rubrics/schema.json`. 최상위 `reviewed`는 팀 검수 여부이고, `false`인 루브릭을 로드하면 경고 로그를 남긴다(`backend/src/rubrics.ts`의 `loadRubric`). 스키마 검증은 서버 실행 중에도 `ajv`로 한다.
+- 개념의 선택 필드 `questions`·`recheck_questions`는 튜터 질문 은행이다(위 '튜터' 절).
 - 루브릭 최상위의 선택 필드 `glossary: [{term, aliases}]`는 섹션 단위 용어집이다(예: 용선 = 쇳물). 평가자 프롬프트에 들어가 동의어를 같은 말로 본다.
-- 현재 `final/01_제선.json`은 `reviewed: false`인 임시 루브릭이다. `section.md`가 생기면 그 문서를 근거로 다시 만든다.
+- 현재 `final/01_제선.json`은 `reviewed: false`인 임시 루브릭이다. `section.md`가 생기면 그 문서를 근거로 다시 만든다. 질문 은행도 검수 전 초안이다.
+- 소결 개념 재설계 초안(정의 → 이유: 가루 원료의 통기성 문제와 덩어리화): `draft/sinter_purpose.v2.json`. 통기성 근거 문장이 현재 자료에 없어 출처 확보 전에는 final로 옮기지 않는다. 옮기면 smoke·hard의 소결 케이스 기대 판정도 새 핵심 요소에 맞게 다시 쓴다.
 
 ## 튜토리얼
 
@@ -193,7 +201,7 @@ content/
   - 출력: 일치율(전체·단계·source·유형), source별 혼동 표, 평가자 형식 재시도(케이스별·전체 비율), 같은 뜻 쌍(`pair_id`) 일치율, 틀린 케이스.
 - `npm run eval:export-human -- --db 파일 ...`: 체크포인트 DB의 첫 판정 답변을 `llm/eval/hard/pending/`에 내보낸다(판정 빈칸, 모델 판정은 별도 파일, 사용자 id 익명화). 팀원 테스트 안내는 `docs/team-test.md`.
 - 평가자 프롬프트나 루브릭을 바꾸면 `eval:evaluator`를 smoke·hard로 다시 돌려 일치율을 확인한다.
-- `npm run eval:questions -- --count 10 --out 파일.md`: 개념마다 튜터 질문을 만들어 유출 검사(완화·엄격 4글자) 결과와 처리(통과·재생성·대체)를 표로 출력한다. '범위 초과'는 사람이 채운다. 모든 Gemini 호출 사이에 `--gap`(기본 6000ms)을 둔다.
+- `npm run eval:questions -- --polish-count 3 --out 파일.md`: 질문 은행이 있는 개념은 은행 질문마다 말투 다듬기를 N회 돌려 원문·다듬은 결과의 유출 검사(완화·엄격 4글자)와 사용한 문장(다듬은 문장·원문)을 표로 출력한다. '의미 변경'은 사람이 채운다. 은행이 빈 개념은 `--count`(기본 10)개의 LLM 질문을 만들어 처리(통과·재생성·대체)를 기록하고 '범위 초과'는 사람이 채운다. 모든 Gemini 호출 사이에 `--gap`(기본 6000ms)을 둔다.
 - 긴 실제 Gemini 실행(평가 여러 회차)은 컴퓨터가 절전에 들어가면 호출 시간 초과로 중단된다. macOS에서는 `caffeinate -i npm run eval:evaluator -- --set hard`처럼 앞에 `caffeinate -i`를 붙여 명령이 끝날 때까지 절전을 막는다(덮개를 닫으면 효과 없음). 팀원 테스트 서버·터널도 같은 방법으로 띄운다(`docs/team-test.md`).
 - `eval:evaluator`, `eval:questions`는 케이스마다 결과를 `llm/eval/results/*.jsonl`(Git 제외, `--records`로 변경)에 바로 기록한다. 끊기면 `--resume`으로 이어서 실행한다. 같은 모델·프롬프트·루브릭으로 끝난 케이스만 건너뛰고, 보고서는 파일의 기록 전체로 만든다. `--resume` 없이 결과 파일이 있으면 덮어쓰지 않고 멈춘다.
 - 429·시간 초과·연결 실패는 `EVAL_RETRY_BASE_MS`(기본 10000)부터 2배씩 늘려 최대 3회 다시 호출한다. 그래도 실패하면 `infra_error`로 기록해 평가자 형식 오류(`format_error`)와 따로 세고, 일치율·처리 비율에서 빼되 개수는 표시한다. 연속 3케이스가 `infra_error`면 멈춘다(`--resume`으로 다시 실행).

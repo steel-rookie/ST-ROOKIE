@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
-import { loadFinalRubrics, type Rubric } from "../src/rubrics.js";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { loadFinalRubrics, loadRubric, type Rubric, type RubricConcept } from "../src/rubrics.js";
 import { GeminiClient } from "../../llm/src/gemini.js";
 import { answerTerms, answerTermsInName, findLeaks, hasLeak } from "../../llm/src/question-check.js";
 import { genericQuestion, GeminiTutor } from "../../llm/src/tutor.js";
@@ -11,6 +13,8 @@ import { genericQuestion, GeminiTutor } from "../../llm/src/tutor.js";
 const rubric = JSON.parse(readFileSync(join(process.cwd(), "content", "rubrics", "final", "01_제선.json"), "utf8")) as Rubric;
 const concept = (id: string) => rubric.concepts.find((c) => c.concept_id === id)!;
 const coke = concept("coke_reduction");
+/** 질문 은행을 비운 개념: LLM 질문 생성(대체 경로)을 검사할 때 쓴다. */
+const noBank = (c: RubricConcept): RubricConcept => ({ ...c, questions: undefined, recheck_questions: undefined });
 
 test("정답 용어: answer_terms와 용어집 동의어를 막고, 개념 이름의 말은 허용한다", () => {
   assert.deepEqual(answerTerms(rubric, coke).sort(), ["CO", "일산화탄소", "환원"].sort());
@@ -57,6 +61,29 @@ test("모든 fallback_question은 유출 검사를 통과한다", () => {
   }
 });
 
+test("질문 은행: 모든 final 루브릭의 은행 질문은 정답 용어·근거 문장·핵심 요소 문장 표현이 없고, 첫 질문과 재확인 질문이 겹치지 않는다", (t) => {
+  t.mock.method(console, "warn", () => {});
+  for (const r of loadFinalRubrics()) {
+    for (const c of r.concepts) {
+      // 핵심 요소 문장(point)도 근거 문장처럼 보고 겹치는 구를 찾는다.
+      const points = { ...c, key_points: c.key_points.map((k) => ({ point: k.point, quote: k.point })) };
+      for (const q of [...(c.questions ?? []), ...(c.recheck_questions ?? [])]) {
+        assert.ok(!hasLeak(findLeaks(q, r, c)), `${c.concept_id}: ${q} ${JSON.stringify(findLeaks(q, r, c))}`);
+        assert.ok(!hasLeak(findLeaks(q, r, points)), `${c.concept_id}(핵심 요소 문장): ${q} ${JSON.stringify(findLeaks(q, r, points))}`);
+      }
+      assert.ok(!(c.recheck_questions ?? []).some((q) => c.questions?.includes(q)), `${c.concept_id}: 첫 질문과 재확인 질문 중복`);
+    }
+  }
+});
+
+test("질문 은행: 루브릭 로드 때 questions와 recheck_questions가 겹치면 오류", (t) => {
+  t.mock.method(console, "warn", () => {});
+  const c = { ...coke, questions: ["같은 질문입니다?", "다른 질문입니다?"], recheck_questions: ["같은 질문입니다?", "세 번째 질문?"] };
+  const path = join(mkdtempSync(join(tmpdir(), "rubric-")), "r.json");
+  writeFileSync(path, JSON.stringify({ ...rubric, concepts: [c] }));
+  assert.throws(() => loadRubric(path), /질문 은행 중복/);
+});
+
 function fakeTutor(replies: string[]) {
   const prompts: string[] = [];
   const client = new GeminiClient({
@@ -66,12 +93,45 @@ function fakeTutor(replies: string[]) {
       return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: replies.shift() ?? "" }] } }] }));
     }) as typeof fetch,
   });
-  return { prompts, tutor: new GeminiTutor(client) };
+  return { prompts, tutor: new GeminiTutor(client, { random: () => 0.99 }) };
 }
 
-test("질문이 유출 검사에 걸리면 걸린 표현을 알려 주고 1회 다시 만든다", async () => {
-  const { prompts, tutor } = fakeTutor(["코크스가 만드는 일산화탄소는 무슨 일을 하나요?", "고로에서 코크스가 하는 일을 설명해 주세요."]);
+test("질문 은행: 은행에서 고른 질문의 말투만 다듬고, 다듬기 프롬프트에는 정답을 주지 않는다", async () => {
+  const polished = "고로 안에서 코크스가 무엇을 만나 어떤 물질을 만들고, 그 물질이 원료에 어떤 화학적 작용을 하는지 말해 줄래요?";
+  const { prompts, tutor } = fakeTutor([polished]);
   const q = await tutor.questionDetailed({ rubric, concept: coke });
+  assert.equal(q.source, "bank");
+  assert.equal(q.bank!.original, coke.questions!.at(-1)); // random 0.99 → 마지막 후보
+  assert.equal(q.text, polished);
+  assert.equal(q.bank!.used, "polished");
+  assert.match(prompts[0]!, /말투\(어미, 존댓말, 연결 표현, 어순\)만 바꾸세요/);
+  assert.doesNotMatch(prompts[0]!, /일산화탄소|환원|열풍/); // 핵심 요소·정답 용어를 주지 않는다
+});
+
+test("질문 은행: 다듬은 문장이 유출 검사에 걸리거나 호출이 실패하면 원문을 쓴다", async () => {
+  const leaked = await fakeTutor(["코크스가 만든 일산화탄소는 원료에 무엇을 하나요?"]).tutor.questionDetailed({ rubric, concept: coke });
+  assert.equal(leaked.text, coke.questions!.at(-1));
+  assert.equal(leaked.bank!.reason, "leak");
+  assert.deepEqual(leaked.bank!.polishedLeaks!.terms, ["일산화탄소"]);
+
+  const failed = await fakeTutor([""]).tutor.questionDetailed({ rubric, concept: coke }); // 빈 응답
+  assert.equal(failed.text, coke.questions!.at(-1));
+  assert.equal(failed.bank!.reason, "error");
+  assert.equal(failed.bank!.error!.infra, false);
+});
+
+test("질문 은행: 재확인은 recheck_questions에서 고르고, 직전 질문과 같은 후보는 고르지 않는다", async () => {
+  const [first, second] = coke.recheck_questions!;
+  const { tutor } = fakeTutor(["", ""]);
+  const q = await tutor.recheckQuestionDetailed({ rubric, concept: coke, previousQuestion: coke.questions![0]! });
+  assert.equal(q.bank!.original, second); // random 0.99 → 두 후보 중 마지막
+  const avoid = await tutor.recheckQuestionDetailed({ rubric, concept: coke, previousQuestion: second! });
+  assert.equal(avoid.bank!.original, first);
+});
+
+test("은행이 빈 개념: 질문이 유출 검사에 걸리면 걸린 표현을 알려 주고 1회 다시 만든다", async () => {
+  const { prompts, tutor } = fakeTutor(["코크스가 만드는 일산화탄소는 무슨 일을 하나요?", "고로에서 코크스가 하는 일을 설명해 주세요."]);
+  const q = await tutor.questionDetailed({ rubric, concept: noBank(coke) });
   assert.equal(q.text, "고로에서 코크스가 하는 일을 설명해 주세요.");
   assert.equal(q.attempts.length, 2);
   assert.equal(q.usedFallback, false);
@@ -80,12 +140,12 @@ test("질문이 유출 검사에 걸리면 걸린 표현을 알려 주고 1회 �
   assert.doesNotMatch(prompts[0]!, /근거:/); // 질문 생성에는 근거 문장을 주지 않는다
 });
 
-test("두 번 모두 걸리면 fallback_question을, 재확인에서 직전 질문과 같으면 고정 문장을 쓴다", async () => {
+test("은행이 빈 개념: 두 번 모두 걸리면 fallback_question을, 재확인에서 직전 질문과 같으면 고정 문장을 쓴다", async () => {
   const leaky = ["CO가 어디서 생기나요?", "환원은 무엇인가요?"];
-  const first = await fakeTutor([...leaky]).tutor.questionDetailed({ rubric, concept: coke });
+  const first = await fakeTutor([...leaky]).tutor.questionDetailed({ rubric, concept: noBank(coke) });
   assert.equal(first.usedFallback, true);
   assert.equal(first.text, coke.fallback_question);
 
-  const recheck = await fakeTutor([...leaky]).tutor.recheckQuestionDetailed({ rubric, concept: coke, previousQuestion: coke.fallback_question! });
+  const recheck = await fakeTutor([...leaky]).tutor.recheckQuestionDetailed({ rubric, concept: noBank(coke), previousQuestion: coke.fallback_question! });
   assert.equal(recheck.text, genericQuestion(coke));
 });

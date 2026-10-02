@@ -77,7 +77,7 @@ curl -s -o /dev/null -w "%{http_code}\n" https://xxxx-xxxx.trycloudflare.com/api
 
 ```bash
 caffeinate -i npm run eval:evaluator -- --set hard | tee hard-report.txt
-caffeinate -i npm run eval:questions -- --count 10 --out questions.md
+caffeinate -i npm run eval:questions -- --polish-count 3 --out questions.md
 ```
 
 - 케이스마다 결과가 `llm/eval/results/`에 바로 기록됩니다. 중간에 끊기면 같은 명령에 `--resume`을 붙여 이어서 실행합니다(끝난 케이스는 건너뜀).

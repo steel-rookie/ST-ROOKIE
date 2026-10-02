@@ -3,6 +3,7 @@
 import { z } from "zod";
 import {
   EvaluationFormatError,
+  explainFromProblem,
   type EvaluateInput,
   type Evaluation,
   type Evaluator,
@@ -77,13 +78,8 @@ export function parseEvaluation(raw: string, concept: RubricConcept, phase: Phas
   }).safeParse(json);
   if (!parsed.success) return `스키마 불일치: ${parsed.error.issues.map((i) => i.path.join(".") || i.message).join(", ")}`;
   const e = parsed.data;
-  if (e.verdict === "correct") {
-    if (e.explain_from !== null) return "correct인데 explain_from이 있음";
-    if (e.misconception !== null) return "correct인데 misconception이 있음";
-  } else if (e.explain_from === null || e.explain_from < 0 || e.explain_from >= concept.key_points.length) {
-    return `explain_from 범위 오류: ${e.explain_from}`;
-  }
-  return e;
+  if (e.verdict === "correct" && e.misconception !== null) return "correct인데 misconception이 있음";
+  return explainFromProblem(e, concept.key_points.length) ?? e;
 }
 
 /** 평가 한 번의 상세 결과. formatProblems는 형식 검증에 실패한 시도의 이유(재시도 횟수 = 길이). */
