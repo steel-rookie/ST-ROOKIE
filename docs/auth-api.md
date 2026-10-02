@@ -41,6 +41,22 @@
 - `sections.{섹션}`: 끝낸 체크포인트가 없으면 `null`. `understanding`은 마지막으로 끝낸 시도의 이해도, `passed`는 한 번이라도 통과했는지.
 - 오개념은 개수만 준다. 설명·답변 원문은 본인만 본다.
 - 체크포인트 테이블(`attempts`, `misconceptions`)이 아직 없으면 `checkpoint_data: false`와 빈 기록을 준다.
+
+`GET /api/admin/concepts?section=ironmaking` (토큰 필요, `admin`만. `section`은 선택)
+
+```json
+{ "concepts": [
+  { "section": "ironmaking", "concept_id": "sinter_purpose",
+    "asked": 9, "partial": 2, "wrong": 4, "assisted": 1, "final_wrong": 2, "open": 3 }
+] }
+```
+
+- 신입사원(`role = 'trainee'`)이 끝낸(`state = 'completed'`) 체크포인트만 센다. 재도전 시도도 포함한다.
+- `asked`: 첫 질문을 받은 횟수. `partial`·`wrong`·`assisted`: 첫 판정별 개수. `final_wrong`: 재확인 판정도 `wrong`인 수.
+- `open`: 이 개념의 미해결 오개념 수(신입사원 전체 합, 체크포인트·학습 모드 모두).
+- `concept_id`는 루브릭 개념 id다(시연 기록은 설비 id).
+- 답변 원문·오개념 설명·사용자 id는 주지 않는다.
+- `section`이 섹션 4개 중 하나가 아니면 `400 INVALID_SECTION`. 체크포인트 테이블(`attempts`, `concept_results`)이 없으면 빈 목록을 준다.
 - 시연 기록: `npm run db:seed-demo [seed]`가 `trainee01`~`20`의 기록을 지우고 다시 만든다. 01~04는 처음 정한 프로필, 05~20은 5가지 유형을 돌려 쓰며 실력을 조금씩 달리해 통과, 재도전 필요, 진행 중이 섞이게 한다. seed가 같으면 같은 기록이 나온다(예: `npm run db:seed-demo -- 58`).
 
 ## 아이디·비밀번호 찾기

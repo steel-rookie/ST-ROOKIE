@@ -75,7 +75,7 @@
       }
     },
     "concepts": {
-      "status": "proposed",
+      "status": "implemented",
       "method": "GET",
       "path": "/api/admin/concepts",
       "desc": "개념별 체크포인트 첫 판정 분포. 오답률 순위에 쓴다. 없으면 화면은 샘플로 표시.",
@@ -86,7 +86,7 @@
           "type": "array",
           "items": {
             "section": { "type": "string", "desc": "공정 id" },
-            "concept_id": { "type": "string", "desc": "data_v2.js 설비 id (예: hot_stove)" },
+            "concept_id": { "type": "string", "desc": "루브릭 개념 id (예: sinter_purpose). 시연 기록은 data_v2.js 설비 id" },
             "asked": { "type": "integer", "desc": "첫 질문을 받은 횟수" },
             "partial": { "type": "integer", "desc": "첫 판정 partial 수" },
             "wrong": { "type": "integer", "desc": "첫 판정 wrong 수" },

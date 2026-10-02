@@ -3,6 +3,7 @@ import type { AddressInfo } from "node:net";
 import { DatabaseSync } from "node:sqlite";
 import { after, before, test } from "node:test";
 import express from "express";
+import { conceptStats } from "../src/admin/concept-stats.js";
 import { createAdminRouter } from "../src/admin/routes.js";
 import { traineeStats } from "../src/admin/trainee-stats.js";
 import { signToken } from "../src/auth/tokens.js";
@@ -31,9 +32,9 @@ before(async () => {
 });
 after(() => server.close());
 
-const get = async (user?: User) => {
+const get = async (user?: User, path = "/api/admin/trainees") => {
   const headers: Record<string, string> = user ? { authorization: `Bearer ${await signToken(user, secret)}` } : {};
-  const res = await fetch(`${base}/api/admin/trainees`, { headers });
+  const res = await fetch(`${base}${path}`, { headers });
   return { status: res.status, json: (await res.json()) as any };
 };
 
@@ -83,4 +84,49 @@ test("with checkpoint tables, stats use the last completed attempt and count mis
   const l = stats.trainees.find((t) => t.username === "trainee02")!;
   assert.equal(l.passed_sections, 0);
   assert.equal(l.last_activity, null);
+});
+
+test("only admins can read concept stats, and an unknown section is rejected", async () => {
+  assert.equal((await get(undefined, "/api/admin/concepts")).status, 401);
+  assert.equal((await get(kim, "/api/admin/concepts")).status, 403);
+  assert.equal((await get(admin, "/api/admin/concepts")).status, 200);
+  const bad = await get(admin, "/api/admin/concepts?section=sintering");
+  assert.equal(bad.status, 400);
+  assert.equal(bad.json.code, "INVALID_SECTION");
+});
+
+test("without checkpoint tables, concept stats are empty", () => {
+  const bare = new DatabaseSync(":memory:");
+  bare.exec("CREATE TABLE users (id TEXT, username TEXT, password_hash TEXT, role TEXT, name TEXT, employee_no TEXT, created_at TEXT)");
+  assert.deepEqual(conceptStats(bare), { concepts: [] });
+});
+
+test("concept stats count first verdicts of completed trainee attempts, including retries", async () => {
+  // a1·a2(김신입, 제선, 완료)와 a3(진행 중), m1(미해결)·m2(해결)는 앞 테스트에서 넣었다.
+  db.prepare("INSERT INTO attempts (id, user_id, section, state, understanding, unlocked, created_at, updated_at, completed_at, kind, concept_ids) VALUES (?, ?, ?, 'completed', 1, 1, ?, ?, ?, 'first', '[]')")
+    .run("a4", admin.id, "ironmaking", "2026-10-01T04:00Z", "2026-10-01T04:10Z", "2026-10-01T04:10Z");
+  db.prepare("INSERT INTO attempts (id, user_id, section, state, understanding, unlocked, created_at, updated_at, completed_at, kind, concept_ids) VALUES (?, ?, ?, 'completed', 0.5, 0, ?, ?, ?, 'first', '[]')")
+    .run("a5", lee.id, "steelmaking", "2026-10-01T05:00Z", "2026-10-01T05:10Z", "2026-10-01T05:10Z");
+  const result = db.prepare("INSERT INTO concept_results (attempt_id, concept_id, question, answer, verdict, recheck_verdict, created_at, updated_at) VALUES (?, ?, '질문', ?, ?, ?, '2026-10-01', '2026-10-01')");
+  result.run("a1", "hot_stove", "열풍로가 쇳물을 데워요", "wrong", "wrong");
+  result.run("a1", "coke_reduction", "코크스는 연료", "partial", "correct");
+  result.run("a2", "hot_stove", "힌트 주세요", "assisted", "partial"); // 재도전
+  result.run("a2", "coke_reduction", "환원제", "correct", null);
+  result.run("a3", "hot_stove", "진행 중", "wrong", null); // 진행 중인 시도는 세지 않는다
+  result.run("a4", "hot_stove", "관리자 답", "wrong", "wrong"); // 관리자 시도는 세지 않는다
+  result.run("a5", "converter", "전로", "partial", "wrong");
+
+  const { status, json } = await get(admin, "/api/admin/concepts");
+  assert.equal(status, 200);
+  assert.deepEqual(json.concepts, [
+    { section: "ironmaking", concept_id: "coke_reduction", asked: 2, partial: 1, wrong: 0, assisted: 0, final_wrong: 0, open: 0 },
+    { section: "ironmaking", concept_id: "hot_stove", asked: 2, partial: 0, wrong: 1, assisted: 1, final_wrong: 1, open: 1 },
+    { section: "steelmaking", concept_id: "converter", asked: 1, partial: 1, wrong: 0, assisted: 0, final_wrong: 1, open: 0 },
+  ]);
+  // 답변 원문·오개념 설명·사용자 id는 내보내지 않는다
+  const body = JSON.stringify(json);
+  for (const hidden of ["열풍로가 쇳물을", "열풍로 역할 오해", kim.id, lee.id]) assert.ok(!body.includes(hidden), hidden);
+
+  const steel = await get(admin, "/api/admin/concepts?section=steelmaking");
+  assert.deepEqual(steel.json.concepts.map((c: { concept_id: string }) => c.concept_id), ["converter"]);
 });
