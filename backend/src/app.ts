@@ -15,9 +15,11 @@ export interface AppDeps {
   engine: CheckpointEngine;
   usage: LlmUsage;
   webRoot?: string;
+  /** 학습 모드 라우터(POST /api/chat). 있으면 아래 예전 제선 Q&A보다 먼저 답한다. */
+  learning?: express.Router;
 }
 
-export function createApp({ engine, usage, webRoot = join(process.cwd(), "frontend", "3d-demo") }: AppDeps): express.Express {
+export function createApp({ engine, usage, webRoot = join(process.cwd(), "frontend", "3d-demo"), learning }: AppDeps): express.Express {
   const app = express();
   app.disable("x-powered-by");
   app.use(express.json({ limit: "16kb" }));
@@ -29,6 +31,7 @@ export function createApp({ engine, usage, webRoot = join(process.cwd(), "fronte
   app.use("/api", passcodeGuard, withRequestUser);
 
   app.use(createCheckpointRouter(engine));
+  if (learning) app.use(learning);
   app.use(express.static(webRoot));
 
   const sessions = new Map<string, { turns: ChatTurn[]; touched: number }>();

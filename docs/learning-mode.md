@@ -40,6 +40,15 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
 - 사용자 구분(`X-User-Id`, 로그인 후에는 JWT), 접속 비밀번호, 하루 LLM 호출 한도는 체크포인트와 같은 장치를 쓴다.
 - 학습 모드는 채점하지 않으므로 오개념을 해결 처리하지 않는다. 해결은 체크포인트에서 맞혔을 때만 일어난다.
 
+### 라우트 구현 (`backend/src/learning/routes.ts`)
+
+- `createLearningRouter({ repo, retriever, agent, rubrics })`를 `createApp({ learning })`에 넘긴다. `app.ts`는 이 라우터를 예전 제선 Q&A(`ironmaking-agent`)보다 먼저 등록하므로 `POST /api/chat`은 학습 모드가 답한다.
+- 요청 `{ question, session_id?, screen?: { process_id, equipment_id } }`, 응답 `{ answer, status, sources, follow_up, session_id }`. `process_id`가 없으면 제선.
+- 세션은 DB(`learning_turns`)로 이어진다. 없는 세션·다른 사람의 세션은 404, 같은 세션에서 답변 중 다시 질문하면 409.
+- 안전 질문(`safety.ts`, mockTutor와 같은 키워드)은 튜터를 부르지 않고 `safety_redirect`로 저장한다.
+- 질문만으로 근거를 못 찾고 직전 대화가 있으면, 직전 질문·답변을 붙여 한 번 더 검색한다("그럼 그건요?" 같은 후속 질문).
+- 오류: 하루 한도 429, Gemini 키 없음 503, 연결·형식 오류 502. 오류 때는 대화를 저장하지 않는다.
+
 ### 튜터 구현 (`llm/src/learning-agent.ts`)
 
 - `LearningAgent.reply(input)` → `{ answer, status, source_ids, follow_up, detected_misconception }`. 구현은 `GeminiLearningAgent`, 프롬프트는 `llm/prompts/learning-system.md`.
