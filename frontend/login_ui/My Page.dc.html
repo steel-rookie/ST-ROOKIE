@@ -175,7 +175,8 @@ class Component extends DCLogic {
       },
     };
     const form = forms[S.view] || forms.login;
-    const demoOf = role => S.demo.accounts.filter(a => a.role === role && (role !== 'trainee' || /^trainee0[1-4]$/.test(a.username)));
+    // 시연 계정 목록은 서버(/api/auth/demo-accounts)가 준 그대로 보여 준다.
+    const demoOf = role => S.demo.accounts.filter(a => a.role === role);
     return {
       form: { foundId: null, isLogin: false, ...form },
       showRoleToggle: S.view === 'login' && S.demo.accounts.length > 0,

@@ -109,7 +109,6 @@
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script>
-const SECTIONS = ['ironmaking', 'steelmaking', 'continuous_casting', 'rolling'];
 const pct = value => Math.round(value * 100) + '%';
 const scoreColor = value => value >= 0.8 ? 'var(--ok)' : value >= 0.6 ? 'var(--mid)' : 'var(--bad)';
 const token = () => { try { return localStorage.getItem('st-rookie-token') || sessionStorage.getItem('st-rookie-token'); } catch (e) { return null; } };
@@ -127,9 +126,11 @@ class Component extends DCLogic {
   }
   renderVals() {
     const S = this.state, D = S.data, T = D?.trainee;
+    // 섹션 목록과 순서는 서버 응답(/api/me/dashboard의 sections)을 그대로 쓴다.
+    const secs = D?.sections || [];
     const process = section => S.processes.find(p => p.id === section) || { num: '', name: section, equipment: [] };
     const conceptName = (section, id) => process(section).equipment.find(e => e.id === id)?.name || id;
-    const stats = SECTIONS.map(section => T?.sections[section]).filter(Boolean);
+    const stats = secs.map(section => T?.sections[section]).filter(Boolean);
     const avg = stats.length ? stats.reduce((sum, s) => sum + s.understanding, 0) / stats.length : null;
     const misconceptions = D?.misconceptions || [];
     const open = misconceptions.filter(m => !m.resolved).length;
@@ -148,12 +149,12 @@ class Component extends DCLogic {
       toggleTheme: () => { const theme = S.theme === 'dark' ? 'light' : 'dark'; document.body.dataset.theme = theme; this.setState({ theme }); },
       logout: () => { try { localStorage.removeItem('st-rookie-token'); sessionStorage.removeItem('st-rookie-token'); } catch (e) {} window.top.location.href = './My%20Page.dc.html'; },
       kpis: [
-        { label: '통과한 섹션', value: T ? String(T.passed_sections) : '—', unit: '/ 4', sub: '이해도 80% 이상', color: 'var(--ok)' },
+        { label: '통과한 섹션', value: T ? String(T.passed_sections) : '—', unit: `/ ${secs.length || '—'}`, sub: '이해도 80% 이상', color: 'var(--ok)' },
         { label: '평균 이해도', value: avg == null ? '—' : pct(avg), unit: '', sub: '응시한 섹션의 마지막 결과', color: avg == null ? 'var(--text)' : scoreColor(avg) },
         { label: '미해결 오개념', value: D ? String(open) : '—', unit: '개', sub: '본인 기록만 표시', color: open ? 'var(--bad)' : 'var(--text)' },
         { label: '다시 볼 개념', value: D ? String(reviews.length) : '—', unit: '개', sub: '최근 체크포인트 판정', color: reviews.length ? 'var(--mid)' : 'var(--text)' },
       ],
-      secCards: SECTIONS.map(section => { const info = T?.sections[section], p = process(section); return {
+      secCards: secs.map(section => { const info = T?.sections[section], p = process(section); return {
         num: p.num, name: p.name, score: info ? pct(info.understanding) : '—',
         status: !info ? '미응시' : info.passed ? '통과' : '재도전 필요',
         color: !info ? 'var(--muted)' : scoreColor(info.understanding),

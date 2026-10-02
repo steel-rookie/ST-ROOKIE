@@ -204,7 +204,7 @@
           <sc-if value="{{ rowsEmpty }}" hint-placeholder-val="{{ false }}"><span style="padding:24px 18px;text-align:center;color:var(--muted);">조건에 맞는 신입사원이 없습니다.</span></sc-if>
         </div>
       </div>
-      <span style="font-size:11px;color:var(--muted);">칸: 마지막 체크포인트 이해도 · 시도 횟수. 잠김 = 앞 섹션 미통과. 모든 교육 내용과 기록은 샘플입니다.</span>
+      <span style="font-size:11px;color:var(--muted);">칸: 마지막 체크포인트 이해도 · 시도 횟수. 잠김 = 앞 섹션 미통과. 기록은 DB 데이터이고, 설비·단계 같은 교육 내용은 샘플입니다.</span>
     </section>
   </main>
 </div>
@@ -238,7 +238,8 @@ class Component extends DCLogic {
   }
   renderVals() {
     const S = this.state, P = S.P || [], D = S.data;
-    const secs = D ? D.trainees.sections : ['ironmaking', 'steelmaking', 'continuous_casting', 'rolling'];
+    // 섹션 목록과 순서는 서버 응답(/api/admin/trainees의 sections)을 그대로 쓴다.
+    const secs = D ? D.trainees.sections : [];
     const T = D ? D.trainees.trainees : [];
     const meta = id => P.find(p => p.id === id) || { num: '', name: id, equipment: [] };
     const eqName = (sec, id) => (meta(sec).equipment.find(e => e.id === id) || { name: id }).name;
@@ -318,7 +319,7 @@ class Component extends DCLogic {
       },
       kpis: [
         { label: '신입사원', value: String(N), unit: '명', sub: '가입한 trainee 계정', color: 'var(--text)' },
-        { label: '전 과정 수료', value: String(doneN), unit: `명 · ${N ? pct(doneN / N) : '0%'}`, sub: '4개 섹션 모두 통과', color: 'var(--ok)' },
+        { label: '전 과정 수료', value: String(doneN), unit: `명 · ${N ? pct(doneN / N) : '0%'}`, sub: `${secs.length}개 섹션 모두 통과`, color: 'var(--ok)' },
         { label: '평균 이해도', value: allU.length ? pct(allU.reduce((a, b) => a + b, 0) / allU.length) : '—', unit: '', sub: '응시한 섹션의 마지막 결과 평균', color: allU.length ? uColor(allU.reduce((a, b) => a + b, 0) / allU.length) : 'var(--text)' },
         { label: '미해결 오개념', value: String(openMis), unit: '개', sub: '내용은 본인만 볼 수 있음', color: openMis ? 'var(--bad)' : 'var(--text)' },
       ],
