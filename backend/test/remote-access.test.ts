@@ -123,6 +123,6 @@ test("deleteUserData: 한 사용자의 시도·답변·대화·오개념·사용
   assert.equal(deleted.misconceptions, 1);
   assert.equal(deleted.llm_usage, 1);
   assert.ok(deleted.attempt_messages >= 4);
-  assert.deepEqual(countUserData(db, "minsu"), { attempts: 0, misconceptions: 0 });
-  assert.deepEqual(countUserData(db, "jiwoo"), { attempts: 1, misconceptions: 1 });
+  assert.deepEqual(countUserData(db, "minsu"), { attempts: 0, misconceptions: 0, learning_turns: 0 });
+  assert.deepEqual(countUserData(db, "jiwoo"), { attempts: 1, misconceptions: 1, learning_turns: 0 });
 });

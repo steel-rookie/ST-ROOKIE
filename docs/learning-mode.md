@@ -66,24 +66,28 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
 
 ## 저장
 
-`backend/src/db/migrations/003_learning.sql`
+`backend/src/db/migrations/004_learning.sql` (`003_users.sql`은 로그인 계정)
 
 ```sql
 CREATE TABLE learning_turns (
   id          TEXT PRIMARY KEY,
   user_id     TEXT NOT NULL,
   session_id  TEXT NOT NULL,
+  seq         INTEGER NOT NULL,       -- 세션 안 순서(1부터), UNIQUE (session_id, seq)
   section     TEXT,
   equipment_id TEXT,
   question    TEXT NOT NULL,
   answer      TEXT NOT NULL,
-  status      TEXT NOT NULL,          -- grounded | unverified | safety_redirect
+  status      TEXT NOT NULL,          -- grounded | unverified | safety_redirect (CHECK)
   source_ids  TEXT NOT NULL,          -- JSON 배열
   created_at  TEXT NOT NULL
 );
 ```
 
 보관 기간은 두지 않는다. 사용자 기록 삭제(`npm run db:reset-user`)에 이 테이블도 포함한다.
+
+- 저장소: `backend/src/learning/repository.ts`(`LearningRepository`). 대화 저장(`saveTurn`), 세션의 최근 대화(`recentTurns`), 세션 주인 확인(`sessionOwner`), 학습 모드 오개념 기록(`recordMisconception`, source=learning), 섹션의 미해결 오개념(`openMisconceptions`, 학습·체크포인트 모두).
+- 정렬은 SQLite 전용 `rowid` 대신 `seq`로 한다.
 
 ## 개인 페이지 표시
 
