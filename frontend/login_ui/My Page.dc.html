@@ -9,6 +9,7 @@
 <x-dc>
 <helmet>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@700;900&display=swap" rel="stylesheet">
+  <script type="module" src="../3d-demo/steel-2d.js"></script>
   <style>
     html, body { margin: 0; min-height: 100%; font-family: "IBM Plex Sans KR", sans-serif; }
     body { --bg: oklch(0.14 0.02 245); --panel: oklch(0.18 0.018 245); --panel2: oklch(0.24 0.022 245); --line: oklch(1 0 0 / .12); --text: oklch(0.96 0.006 240); --muted: oklch(0.7 0.02 240); --accent: #1a9bd7; --ok: oklch(0.74 0.15 155); --mid: oklch(0.82 0.14 80); --bad: oklch(0.68 0.18 25); background: var(--bg); color: var(--text); }
@@ -122,7 +123,7 @@
 
         <section style="display:flex;flex-direction:column;gap:14px;">
           <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-            <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:20px;font-weight:700;">신입사원별 통계</h2>
+            <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:20px;font-weight:700;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">신입사원별 통계 <a href="./Admin Dashboard.dc.html" style="font-family:'IBM Plex Sans KR',sans-serif;font-size:13px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid var(--accent);">관리자 대시보드 열기 →</a></h2>
             <span style="font-size:14px;color:var(--muted);">섹션에 마우스를 올리면 오른쪽 그래프가 바뀝니다</span>
           </div>
 
@@ -243,6 +244,15 @@
 
         <sc-if value="{{ curLocked }}" hint-placeholder-val="{{ false }}">
           <div style="display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--panel2);font-size:12px;color:var(--muted);">🔒 앞 섹션 체크포인트를 통과하면 열립니다. 개념은 미리 읽을 수 있어요.</div>
+        </sc-if>
+
+        <sc-if value="{{ tabModule }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:12px;padding:20px;">
+            <span style="font-size:13px;color:var(--muted);line-height:1.6;text-wrap:pretty;">설비별 2D 공정 동작을 단계별로 따라가는 학습 모듈입니다. 현재 제강 공정만 제공됩니다.</span>
+            <div style="height:min(900px,calc(100vh - 160px));min-height:560px;border-radius:14px;overflow:hidden;border:1px solid var(--line);">
+              <x-import component-from-global-scope="steel-2d" process="steelmaking" theme="{{ moduleTheme }}" hint-size="100%,100%" style="display:block;width:100%;height:100%;"></x-import>
+            </div>
+          </div>
         </sc-if>
 
         <sc-if value="{{ tabConcepts }}" hint-placeholder-val="{{ true }}">
@@ -618,8 +628,8 @@ class Component extends DCLogic {
         border: x.p.id === S.sec ? 'var(--accent)' : 'var(--line)', opacity: x.locked ? 0.6 : 1, onClick: set({ sec: x.p.id }) })),
       cur: curI ? { num: cp.num, name: cp.name, io: cp.io, pct: curI.locked ? '0%' : curI.pct, pctLabel: curI.pctLabel, barColor: curI.barColor, status: curI.status, attempts: curI.attempts, retryNote: curI.retryNote } : {},
       curLocked: !!(curI && curI.locked),
-      tabs: [['concepts', '개념 보기', cp.equipment.length], ['checkpoint', '체크포인트 결과', ''], ['qa', '질문 · 답변', qaAll.length], ['mis', '오개념', misAll.filter(m => !m.resolved).length || '']].map(([k, label, count]) => ({ label, count, bg: S.tab === k ? 'var(--panel)' : 'transparent', color: S.tab === k ? 'var(--text)' : 'var(--muted)', onClick: set({ tab: k }) })),
-      tabConcepts: S.tab === 'concepts', tabCheckpoint: S.tab === 'checkpoint', tabQa: S.tab === 'qa', tabMis: S.tab === 'mis',
+      tabs: [['concepts', '개념 보기', cp.equipment.length], ['module', '학습 모듈', ''], ['checkpoint', '체크포인트 결과', ''], ['qa', '질문 · 답변', qaAll.length], ['mis', '오개념', misAll.filter(m => !m.resolved).length || '']].map(([k, label, count]) => ({ label, count, bg: S.tab === k ? 'var(--panel)' : 'transparent', color: S.tab === k ? 'var(--text)' : 'var(--muted)', onClick: set({ tab: k }) })),
+      tabConcepts: S.tab === 'concepts', tabModule: S.tab === 'module', moduleTheme: S.theme, tabCheckpoint: S.tab === 'checkpoint', tabQa: S.tab === 'qa', tabMis: S.tab === 'mis',
       concepts: cp.equipment.map((e, i) => { const v = curI.locked ? 'pending' : curI.vs[i], rr = curI.rec.c[e.id];
         return { num: String(i + 1).padStart(2, '0'), name: e.name, color: V[v].c, verdictLabel: V[v].label, bg: e.id === eqId ? 'var(--panel2)' : 'transparent', weight: e.id === eqId ? 700 : 500,
           scorePct: (V[v].s * 100) + '%', scoreLabel: v === 'pending' ? '—' : String(V[v].s), trail: !rr ? '아직 묻지 않음' : rr.first === 'correct' ? '첫 판정 맞음' : `첫 판정 ${V[rr.first].label} → ${rr.retry ? '재확인 ' + V[rr.retry].label : '재확인 전'}`,
