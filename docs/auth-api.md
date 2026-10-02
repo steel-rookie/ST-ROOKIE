@@ -80,6 +80,14 @@
 
 ## 남은 연결
 
+## 개인 페이지
+
+`GET /api/me/misconceptions[?section=ironmaking]` (토큰 필요, 없으면 401 `AUTH_REQUIRED`)
+
+- 로그인한 본인의 오개념만 최근 것부터 준다(`backend/src/me/routes.ts`). 다른 사람의 기록은 어떤 값을 넣어도 볼 수 없다(사용자는 토큰으로만 정한다).
+- 항목: `id, section, concept_id, source, label, summary, answer_text, resolved, created_at, resolved_at`.
+- `label`: 학습 모드(`source=learning`)는 "대화 중 감지됨", 체크포인트는 "이해도 확인".
+
 ## 요청 사용자 구분 (`backend/src/request-user.ts`)
 
 - `/api` 요청에 `Authorization: Bearer <token>`이 있으면 토큰의 사용자 id(`users.id`)로 구분한다. 체크포인트(`userIdOf(req)`), 학습 모드·LLM 사용량(`currentUserId()`)이 모두 이 id를 쓴다. 토큰이 틀리거나 만료됐으면 401 `TOKEN_INVALID`.

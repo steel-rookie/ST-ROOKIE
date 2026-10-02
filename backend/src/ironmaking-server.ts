@@ -9,6 +9,7 @@ import { seedDemoAccounts } from "./auth/demo-accounts.js";
 import { createAuthRouter } from "./auth/routes.js";
 import { jwtSecret } from "./auth/tokens.js";
 import { UserRepository } from "./auth/users.js";
+import { createMeRouter } from "./me/routes.js";
 import { CheckpointEngine } from "./checkpoint/engine.js";
 import { CheckpointRepository } from "./checkpoint/repository.js";
 import { openDatabase } from "./db/database.js";
@@ -40,6 +41,7 @@ const app = createApp({ engine, usage });
 const auth = { users, secret: jwtSecret() };
 app.use(createAuthRouter(auth));
 app.use(createAdminRouter(db, auth));
+app.use(createMeRouter(db, auth));
 // 로그인·마이페이지(frontend/login_ui)는 ../3d-demo/를 상대 경로로 읽으므로 두 폴더를 같은 깊이에 둔다.
 const webRoot = join(process.cwd(), "frontend", "3d-demo");
 app.use("/3d-demo", express.static(webRoot));
