@@ -41,7 +41,7 @@
 - `sections.{섹션}`: 끝낸 체크포인트가 없으면 `null`. `understanding`은 마지막으로 끝낸 시도의 이해도, `passed`는 한 번이라도 통과했는지.
 - 오개념은 개수만 준다. 설명·답변 원문은 본인만 본다.
 - 체크포인트 테이블(`attempts`, `misconceptions`)이 아직 없으면 `checkpoint_data: false`와 빈 기록을 준다.
-- 시연 기록: `npm run db:seed-demo [seed]`가 `trainee01`~`04`의 기록을 지우고 다시 만든다. 사람마다 실력·진도·재도전 횟수를 달리해 통과, 재도전 필요, 진행 중이 섞이게 한다. seed가 같으면 같은 기록이 나온다(예: `npm run db:seed-demo -- 58`).
+- 시연 기록: `npm run db:seed-demo [seed]`가 `trainee01`~`20`의 기록을 지우고 다시 만든다. 01~04는 처음 정한 프로필, 05~20은 5가지 유형을 돌려 쓰며 실력을 조금씩 달리해 통과, 재도전 필요, 진행 중이 섞이게 한다. seed가 같으면 같은 기록이 나온다(예: `npm run db:seed-demo -- 58`).
 
 ## 아이디·비밀번호 찾기
 
@@ -58,7 +58,7 @@
 
 | 아이디 | 역할 | 이름 | 사번 |
 |---|---|---|---|
-| `trainee01` ~ `trainee04` | trainee | 김신입, 이신입, 박신입, 최신입 | `T2026001` ~ `T2026004` |
+| `trainee01` ~ `trainee20` | trainee | 김신입, 이신입, 박신입, 최신입, 정다은 … 전소율(20명, `demo-accounts.ts`) | `T2026001` ~ `T2026020` |
 | `admin01` | admin | 관리자 | `A2026001` |
 
 - 로그인 화면의 일반 사용자 / 관리자 토글이 `GET /api/auth/demo-accounts`로 계정을 받아, 누르면 아이디·비밀번호 칸을 채운다. 목록에 사번은 내보내지 않는다.

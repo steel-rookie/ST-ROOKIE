@@ -22,7 +22,7 @@
 <div style="min-height:100vh;background:var(--bg);color:var(--text);">
 
   <sc-if value="{{ loggedOut }}" hint-placeholder-val="{{ false }}">
-    <div style="min-height:100vh;display:grid;place-items:center;padding:24px;">
+    <div style="min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;padding:24px;">
       <div style="width:min(400px,100%);display:flex;flex-direction:column;gap:20px;padding:32px 28px;background:var(--panel);border:1px solid var(--line);border-radius:20px;">
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="width:38px;height:38px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff;">S</span>
@@ -40,10 +40,10 @@
                 <button type="button" role="tab" aria-selected="{{ t.on }}" onClick="{{ t.onClick }}" style="height:36px;border:none;border-radius:999px;background:{{ t.bg }};color:{{ t.color }};font-size:13px;font-weight:700;cursor:pointer;">{{ t.label }}</button>
               </sc-for>
             </div>
-            <div style="display:flex;align-items:center;gap:4px 10px;flex-wrap:wrap;font-size:11px;color:var(--muted);">
-              <span>시연 계정</span>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;overflow-x:auto;max-width:100%;padding-bottom:4px;white-space:nowrap;scrollbar-width:thin;scrollbar-color:var(--line) transparent;font-size:11px;color:var(--muted);">
+              <span style="flex:none;">시연 계정</span>
               <sc-for list="{{ demoPicks }}" as="d" hint-placeholder-count="4">
-                <button type="button" onClick="{{ d.onClick }}" style="padding:0;border:none;background:none;font-family:'IBM Plex Mono',monospace;font-size:11px;color:{{ d.color }};cursor:pointer;" style-hover="color:var(--accent);">{{ d.username }}</button>
+                <button type="button" onClick="{{ d.onClick }}" style="padding:0;border:none;background:none;font-family:'IBM Plex Mono',monospace;font-size:11px;color:{{ d.color }};cursor:pointer;flex:none;" style-hover="color:var(--accent);">{{ d.username }}</button>
               </sc-for>
             </div>
           </div>
@@ -148,6 +148,9 @@
                 </sc-for>
               </div>
 
+              <!-- 신입사원이 많으면 막대·이름이 겹치지 않도록 사람당 최소 폭을 두고 가로로 스크롤한다. -->
+              <div style="overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent;">
+              <div style="min-width:{{ adminChartWidth }};display:flex;flex-direction:column;gap:18px;">
               <div role="img" aria-label="{{ adminCur.aria }}" style="position:relative;height:300px;padding-top:70px;">
                 <div style="position:relative;height:100%;border-bottom:1px solid var(--line);">
                   <sc-if value="{{ adminCur.hasAvg }}" hint-placeholder-val="{{ true }}">
@@ -157,7 +160,7 @@
                   </sc-if>
                   <div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:space-around;gap:14px;padding:0 8px;">
                     <sc-for list="{{ adminBars }}" as="b" hint-placeholder-count="4">
-                      <button type="button" aria-label="{{ b.aria }}" onMouseEnter="{{ b.enter }}" onMouseLeave="{{ b.leave }}" onFocus="{{ b.enter }}" onBlur="{{ b.leave }}" style="position:relative;flex:1 1 0;max-width:84px;height:100%;display:flex;align-items:flex-end;justify-content:center;padding:0;border:none;background:none;cursor:pointer;">
+                      <button type="button" aria-label="{{ b.aria }}" onMouseEnter="{{ b.enter }}" onMouseLeave="{{ b.leave }}" onFocus="{{ b.enter }}" onBlur="{{ b.leave }}" style="position:relative;flex:1 1 0;min-width:0;max-width:84px;height:100%;display:flex;align-items:flex-end;justify-content:center;padding:0;border:none;background:none;cursor:pointer;">
                         <sc-if value="{{ b.hover }}" hint-placeholder-val="{{ false }}">
                           <span style="position:absolute;left:50%;bottom:calc({{ b.h }} + 10px);transform:translateX(-50%);z-index:2;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);box-shadow:0 6px 18px rgb(0 0 0 / .25);white-space:nowrap;pointer-events:none;">
                             <span style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;color:var(--text);">{{ b.value }}</span>
@@ -173,8 +176,10 @@
 
               <div style="display:flex;justify-content:space-around;gap:14px;padding:0 8px;">
                 <sc-for list="{{ adminBars }}" as="n" hint-placeholder-count="4">
-                  <span style="flex:1 1 0;max-width:84px;text-align:center;font-size:14px;font-weight:{{ n.nameWeight }};padding:4px 0;border-radius:999px;background:{{ n.nameBg }};color:{{ n.nameColor }};white-space:nowrap;transition:background .15s;">{{ n.name }}</span>
+                  <span style="flex:1 1 0;min-width:0;max-width:84px;text-align:center;font-size:14px;font-weight:{{ n.nameWeight }};padding:4px 0;border-radius:999px;background:{{ n.nameBg }};color:{{ n.nameColor }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background .15s;">{{ n.name }}</span>
                 </sc-for>
+              </div>
+              </div>
               </div>
               <sc-if value="{{ adminEmpty }}" hint-placeholder-val="{{ false }}"><span style="text-align:center;font-size:14px;color:var(--muted);">가입한 신입사원이 없습니다.</span></sc-if>
 
@@ -496,6 +501,8 @@ class Component extends DCLogic {
           h: s ? pct(s.understanding) + '%' : '8px', bg: on ? BAR_HOVER : BAR_IDLE, hover: on,
           nameBg: on ? 'color-mix(in srgb, var(--accent) 18%, transparent)' : 'transparent', nameColor: on ? 'var(--accent)' : 'var(--muted)', nameWeight: on ? 700 : 500,
           enter: () => this.setState({ adminHover: i }), leave: () => { if (this.state.adminHover === i) this.setState({ adminHover: null }); } }; }),
+      // 사람당 60px. 패널보다 넓으면 그래프 영역만 가로로 스크롤된다.
+      adminChartWidth: `${Math.max(1, rows.length) * 60}px`,
       adminTableOpen: !!this.state.adminTable, adminTableLabel: this.state.adminTable ? '표 닫기 ▴' : '표로 보기 ▾',
       toggleAdminTable: () => this.setState({ adminTable: !this.state.adminTable }),
       adminEmpty: !!A && rows.length === 0,
