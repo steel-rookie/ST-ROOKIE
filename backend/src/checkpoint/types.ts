@@ -28,9 +28,24 @@ export interface Evaluation {
   /** recheck 단계에서는 assisted가 나오지 않는다(되묻기·힌트 요청은 wrong). */
   verdict: Verdict;
   misconception: string | null;
-  /** correct가 아니면 학습자가 처음 놓친 key_points 인덱스(0부터). correct면 null. */
+  /**
+   * correct가 아니면 학습자가 처음 놓친 key_points 인덱스(0부터). correct면 null.
+   * 핵심 요소를 모두 맞혔지만 사실 오류로 partial이면 null이고 misconception이 있어야 한다(오개념만 교정).
+   */
   explain_from: number | null;
   evidence: string;
+}
+
+/** verdict·misconception·explain_from이 서로 맞는지 본다. 틀리면 이유, 맞으면 null. 평가자 파싱과 엔진 검증이 함께 쓴다. */
+export function explainFromProblem(e: Pick<Evaluation, "verdict" | "misconception" | "explain_from">, keyPointCount: number): string | null {
+  const from = e.explain_from;
+  if (e.verdict === "correct") return from === null ? null : "correct인데 explain_from이 있음";
+  if (from === null) {
+    // 오개념만 교정하는 경우: partial이고 오개념이 기록되어 있어야 한다.
+    if (e.verdict !== "partial") return `${e.verdict}인데 explain_from이 없음`;
+    return e.misconception?.trim() ? null : "partial인데 explain_from과 misconception이 모두 없음";
+  }
+  return Number.isInteger(from) && from >= 0 && from < keyPointCount ? null : `explain_from 범위 오류: ${from}`;
 }
 
 /** 평가자. 응답 형식 검증과 1회 재시도까지 구현 안에서 처리하고, 끝까지 실패하면 EvaluationFormatError를 던진다. */
@@ -44,7 +59,8 @@ export interface Tutor {
   explanation(input: {
     rubric: Rubric;
     concept: RubricConcept;
-    explainFrom: number;
+    /** null이면 핵심 요소는 모두 맞혔고 오개념만 교정한다. */
+    explainFrom: number | null;
     misconception: string | null;
     answer: string;
   }): Promise<string>;

@@ -17,6 +17,7 @@ import type { AttemptPatch, AttemptRow, CheckpointRepository, ConceptResultRow }
 import {
   CheckpointError,
   EvaluationFormatError,
+  explainFromProblem,
   SECTION_NAMES,
   SECTION_ORDER,
   type CheckpointState,
@@ -207,7 +208,7 @@ export class CheckpointEngine {
     // 첫 판정이 correct가 아니면: explain_from부터 부가 설명 → 다른 각도의 재확인 질문.
     if (phase === "initial" && evaluation.verdict !== "correct") {
       const explanation = await this.tutor.explanation({
-        rubric, concept, explainFrom: evaluation.explain_from!, misconception, answer,
+        rubric, concept, explainFrom: evaluation.explain_from, misconception, answer,
       });
       const recheckQuestion = await this.tutor.recheckQuestion({ rubric, concept, previousQuestion: question });
       const tutor: Utterance[] = [
@@ -396,11 +397,9 @@ function toConceptResult(row: ConceptResultRow): ConceptResult {
 function checkEvaluation(e: Evaluation, concept: RubricConcept, phase: Phase): void {
   const allowed = phase === "recheck" ? ["correct", "partial", "wrong"] : ["correct", "partial", "wrong", "assisted"];
   if (!allowed.includes(e.verdict)) throw new EvaluationFormatError(`${phase} 단계에서 허용되지 않는 판정: ${e.verdict}`);
-  if (phase === "initial" && e.verdict !== "correct") {
-    const from = e.explain_from;
-    if (from === null || !Number.isInteger(from) || from < 0 || from >= concept.key_points.length) {
-      throw new EvaluationFormatError(`explain_from 범위 오류: ${from}`);
-    }
+  if (phase === "initial") {
+    const problem = explainFromProblem(e, concept.key_points.length);
+    if (problem) throw new EvaluationFormatError(problem);
   }
 }
 

@@ -10,7 +10,11 @@
     "start": "npm run build && node --env-file-if-exists=.env .build/backend/src/ironmaking-server.js",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test .build/backend/test/*.test.js",
-    "eval:evaluator": "npm run build && node --env-file-if-exists=.env .build/llm/eval/run-evaluator.js"
+    "eval:evaluator": "npm run build && node --env-file-if-exists=.env .build/llm/eval/run-evaluator.js",
+    "eval:export-human": "npm run build && node .build/llm/eval/export-human.js",
+    "eval:questions": "npm run build && node --env-file-if-exists=.env .build/llm/eval/sample-questions.js",
+    "tunnel": "node --env-file-if-exists=.env scripts/tunnel.mjs",
+    "db:reset-user": "npm run build && node --env-file-if-exists=.env .build/backend/src/db/reset-user.js"
   },
   "repository": {
     "type": "git",

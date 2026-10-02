@@ -96,6 +96,26 @@ test("partial → 부가 설명과 다른 각도 재확인 → 재확인 판정�
   assert.deepEqual(evaluator.calls.map((c) => c.phase), ["initial", "recheck", "initial", "recheck", "initial"]);
 });
 
+test("핵심 요소를 모두 맞혔지만 사실 오류로 partial이면 explain_from null로 오개념만 교정한 뒤 재확인한다", async () => {
+  const { engine, tutor } = setup();
+  const { view } = await engine.start(USER, "ironmaking");
+  await engine.respond(USER, view.attempt_id, "네");
+
+  const partial = await engine.respond(USER, view.attempt_id, "partial@null|불순물 제거를 잘못 앎");
+  assert.equal(partial.state, "awaiting_recheck");
+  assert.deepEqual(texts(partial), ["explanation:EX:a:null", "recheck_question:RQ:a"]);
+  assert.deepEqual(tutor.calls.find((c) => c.kind === "explanation")?.extra, { explainFrom: null, misconception: "불순물 제거를 잘못 앎" });
+});
+
+test("explain_from null인데 오개념이 없거나 partial이 아니면 채점 오류로 본다", async () => {
+  for (const answer of ["partial@null", "wrong@null|x"]) {
+    const { engine } = setup();
+    const { view } = await engine.start(USER, "ironmaking");
+    await engine.respond(USER, view.attempt_id, "네");
+    assert.equal((await engine.respond(USER, view.attempt_id, answer)).state, "error", answer);
+  }
+});
+
 test("assisted → 부가 설명 후 재확인 correct면 1점", async () => {
   const { engine, repo } = setup();
   const done = await runCheckpoint(engine, ["assisted", "correct", "correct", "correct"]);

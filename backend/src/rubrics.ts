@@ -11,6 +11,14 @@ export interface RubricConcept {
   partial: string;
   wrong: string;
   source: { file: string; ref?: string };
+  /** 튜터 질문에 쓰면 안 되는 정답 용어(선택). */
+  answer_terms?: string[];
+  /** 질문 은행: 첫 질문 후보 2~3개(선택). 비어 있으면 LLM이 질문을 만든다. */
+  questions?: string[];
+  /** 질문 은행: 재확인 질문 후보 2개(선택). questions와 겹치지 않는다. */
+  recheck_questions?: string[];
+  /** LLM이 만든 질문이 유출 검사에 두 번 걸리면 쓰는 고정 질문(선택). */
+  fallback_question?: string;
 }
 
 export interface GlossaryEntry {
@@ -42,6 +50,11 @@ export function loadRubric(path: string): Rubric {
   const ids = rubric.concepts.map((c) => c.concept_id);
   const duplicated = ids.filter((id, i) => ids.indexOf(id) !== i);
   if (duplicated.length) throw new Error(`루브릭 concept_id 중복: ${path}: ${[...new Set(duplicated)].join(", ")}`);
+  for (const c of rubric.concepts) {
+    // 재확인 질문은 첫 질문으로 쓰지 않은 질문이어야 한다.
+    const overlap = (c.recheck_questions ?? []).filter((q) => c.questions?.includes(q));
+    if (overlap.length) throw new Error(`루브릭 질문 은행 중복(questions와 recheck_questions): ${path}: ${c.concept_id}`);
+  }
   if (rubric.reviewed !== true) console.warn(`검수 전 루브릭을 사용합니다: ${path} (section=${rubric.section})`);
   return rubric;
 }

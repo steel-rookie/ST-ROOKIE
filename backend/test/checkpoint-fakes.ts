@@ -39,7 +39,7 @@ export const STEELMAKING: Rubric = {
  * 답변 문자열로 판정을 정한다.
  * - "correct" | "partial" | "wrong" | "assisted"
  * - "<판정>|<오개념 요약>": 오개념 포함
- * - "<판정>@<explain_from>": explain_from 지정(기본 0)
+ * - "<판정>@<explain_from>": explain_from 지정(기본 0). "partial@null|오개념"은 오개념만 교정하는 경우
  */
 export class FakeEvaluator implements Evaluator {
   calls: EvaluateInput[] = [];
@@ -57,7 +57,7 @@ export class FakeEvaluator implements Evaluator {
     return {
       verdict: verdict as Verdict,
       misconception,
-      explain_from: verdict === "correct" ? null : Number(from ?? 0),
+      explain_from: verdict === "correct" || from === "null" ? null : Number(from ?? 0),
       evidence: input.answer,
     };
   }
@@ -69,9 +69,12 @@ export class FakeTutor implements Tutor {
   failNext = 0;
   /** 응답 지연(ms). 겹친 요청 테스트용. */
   delay = 0;
+  /** 호출 직전 훅(사용량 제한 테스트용). */
+  beforeCall?: () => void;
 
   private async step(kind: string, conceptId: string, text: string, extra?: unknown): Promise<string> {
     this.calls.push({ kind, conceptId, extra });
+    this.beforeCall?.();
     if (this.delay) await new Promise((r) => setTimeout(r, this.delay));
     if (this.failNext > 0) {
       this.failNext--;

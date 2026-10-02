@@ -3,3 +3,5 @@ node_modules/
 .env
 *.log
 /data/
+/llm/eval/hard/pending/
+/llm/eval/results/

@@ -18,6 +18,29 @@ export interface GeminiOptions {
   model?: string;
   fetch?: typeof fetch;
   timeoutMs?: number;
+  /** 실제 호출 직전에 부른다(예: 사용자별 호출 수 제한). 예외를 던지면 호출하지 않는다. */
+  beforeCall?: () => void;
+}
+
+/** 연결·HTTP 오류의 종류. 재시도할지는 호출하는 쪽(예: 평가 스크립트)이 정한다. */
+export type GeminiFailure = "rate_limit" | "timeout" | "network" | "http";
+
+/** Gemini 호출 실패. 서버는 LlmUnavailableError로 처리하고, 평가 스크립트는 reason으로 재시도를 정한다. */
+export class GeminiCallError extends LlmUnavailableError {
+  constructor(message: string, readonly reason: GeminiFailure, readonly httpStatus?: number) {
+    super(message);
+  }
+
+  /** 429, 시간 초과, 연결 실패(fetch failed 등)는 잠시 뒤 다시 하면 될 수 있다. */
+  get retryable(): boolean {
+    return this.reason !== "http";
+  }
+}
+
+function connectionError(error: unknown): GeminiCallError {
+  const e = error as Error;
+  const timeout = e?.name === "TimeoutError" || e?.name === "AbortError";
+  return new GeminiCallError(`Gemini 연결 실패: ${e?.message ?? String(error)}`, timeout ? "timeout" : "network");
 }
 
 export class GeminiClient {
@@ -30,6 +53,7 @@ export class GeminiClient {
     if (!apiKey) throw new LlmUnavailableError("GEMINI_API_KEY가 설정되지 않았습니다.", 503);
     const model = this.options.model ?? (process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL);
     const doFetch = this.options.fetch ?? fetch;
+    this.options.beforeCall?.();
 
     let response: Response;
     try {
@@ -53,10 +77,18 @@ export class GeminiClient {
         },
       );
     } catch (error) {
-      throw new LlmUnavailableError(`Gemini 연결 실패: ${(error as Error).message}`);
+      throw connectionError(error);
     }
-    if (!response.ok) throw new LlmUnavailableError(`Gemini HTTP ${response.status}`);
-    const result = (await response.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+    if (!response.ok) {
+      throw new GeminiCallError(`Gemini HTTP ${response.status}`, response.status === 429 ? "rate_limit" : "http", response.status);
+    }
+    let result: { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+    try {
+      // 본문을 읽는 중에도 시간 초과·연결 끊김이 날 수 있다.
+      result = (await response.json()) as typeof result;
+    } catch (error) {
+      throw error instanceof SyntaxError ? new GeminiCallError("Gemini 응답이 JSON이 아님", "http", response.status) : connectionError(error);
+    }
     return result.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
   }
 }
