@@ -3,6 +3,10 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { z } from "zod";
 import { answerQuestion, DEFAULT_GEMINI_MODEL, GeminiApiError, type ChatTurn } from "../../llm/src/ironmaking-agent.js";
+import { loadFinalRubrics } from "./rubrics.js";
+
+// 루브릭 형식이 틀리면 여기서 예외가 나 서버가 시작되지 않는다.
+loadFinalRubrics();
 
 const app = express();
 app.disable("x-powered-by");
