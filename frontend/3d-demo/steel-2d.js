@@ -23,11 +23,11 @@ const STAGES = { steelmaking: [
     concept: '제강의 중심 장면. "장입 쪽 틸팅 → 수직 취련 → 출강 쪽 틸팅 → 슬래그 배출" 4자세가 공정의 핵심입니다.',
     steps: [['전로를 장입 쪽으로 기울여 고철 투입', '~2분'], ['장입 래들로 용선 투입', '~3분'], ['전로를 수직으로 세우고 후드 하강', ''], ['산소 랜스 하강 + 부원료 투입', '15~20분'], ['탈탄 반응·거품 슬래그·저취 교반', ''], ['서브랜스로 온도·탄소 측정', ''], ['출강 쪽으로 기울여 래들에 용강 출강', '4~8분'], ['슬래그 다트로 슬래그 유출 억제', ''], ['반대 방향으로 잔류 슬래그 배출', ''], ['슬래그 스플래싱 후 다음 회차', '총 35~45분']],
     design: '전로를 화면 중앙에 크게 두고, 좌=장입 / 상=랜스·후드 / 우=출강 / 좌하=슬래그 포트로 4방향 의미를 고정. 각 단계에서 해당 방향만 밝힙니다.' },
-  { id: 'og', name: '산소 랜스 · 배가스(OG)', en: 'Oxygen Lance & OG System', lane: 1, eq: 'bof_converter', match: /lance|off_?gas|\bOG\b|oxygen|hood/i,
+  { id: 'og', name: '산소 랜스 · 배가스(OG)', en: 'Oxygen Lance & OG System', lane: 1, eq: 'oxygen_lance_offgas', match: /lance|off_?gas|\bOG\b|oxygen|hood/i,
     concept: '랜스가 반응을 만들고, 후드/OG가 그 반응에서 나온 가스를 처리합니다. 전로 단면과 오른쪽 가스 배관을 한 화면에 붙입니다.',
     steps: [['랜스 3중 수냉 구조와 다공 노즐', ''], ['랜스 카가 취련 높이까지 랜스 하강', ''], ['초음속 산소 제트가 쇳물 표면에 캐비티 형성', ''], ['스커트 하강, CO계 배가스 포집', ''], ['수냉 후드→스프레이 쿨러→벤츄리→IDF', ''], ['고농도 가스는 LDG 회수, 낮은 구간은 플레어 처리', '']],
     design: '왼쪽은 랜스 끝 확대 단면, 오른쪽은 "후드 → 냉각 → 집진 → 팬 → 홀더/플레어" 배관 흐름. 점선 애니메이션으로 가스 방향을 고정 표시.' },
-  { id: 'ladle', name: '출강 래들 · 크레인', en: 'Teeming Ladle & Ladle Crane', lane: 2, eq: 'bof_converter', match: /tapping|crane|ladle_?system|teeming/i,
+  { id: 'ladle', name: '출강 래들 · 크레인', en: 'Teeming Ladle & Ladle Crane', lane: 2, eq: 'tapping_ladle_crane', match: /tapping|crane|ladle_?system|teeming/i,
     concept: '전로에서 나온 용강을 다음 공정으로 넘기는 운반 설비. "대차 → 크레인 → LF/RH" 이동이 보여야 공정이 끊기지 않습니다.',
     steps: [['빈 래들이 대차로 전로 아래 진입', ''], ['출강과 동시에 합금 투입 + 바닥 Ar 교반', '4~8분'], ['출강 종료 후 보온 처리, 대차 이탈', ''], ['천장 크레인이 래들을 인양', ''], ['LF/RH 또는 연주 방향으로 수평 이동', '~5분'], ['슬라이딩 게이트는 연주 전까지 닫힘', '']],
     design: '하단 레일의 래들 대차와 상단 크레인 레일을 동시에 그려 수평·수직 이동을 분리. 래들 단면에는 바닥 노즐과 Ar 기포를 표시.' },
@@ -35,7 +35,7 @@ const STAGES = { steelmaking: [
     concept: 'LF는 가열·합금 조정, RH는 진공 탈가스입니다. 같은 래들을 중심에 두고 상부 장치만 바뀌는 구조로 그리면 2D/3D 재사용성이 좋습니다.',
     steps: [['LF 수냉 루프 덮고 전극 3본 아크 가열', '~30분'], ['LF 합금·와이어 투입 + Ar 교반', ''], ['RH 진공조의 스노클 2본을 용강에 침지', ''], ['스팀 이젝터로 진공 형성', ''], ['Ar 상승관으로 용강을 순환', '15~25분'], ['탈가스·합금 조정 후 진공 해제', '']],
     design: '화면을 LF/RH 반반으로 나누되 래들 형상은 동일하게 재사용. RH는 두 다리와 순환 화살표만 명확하면 내부 원리가 바로 보입니다.' },
-  { id: 'transfer', name: '래들 이송 → 연주', en: 'Ladle Transfer to Caster', lane: 3, eq: 'secondary_refining', match: /transfer|caster|product|turret/i,
+  { id: 'transfer', name: '래들 이송 → 연주', en: 'Ladle Transfer to Caster', lane: 3, eq: 'ladle_transfer', match: /transfer|caster|product|turret/i,
     concept: '제강에서 연주로 넘어가는 연결 장면. "래들이 어느 경로로 터릿까지 가는지"를 평면도로 보여주는 게 핵심입니다.',
     steps: [['정련 완료 래들에 보온 커버, 온도 확인', ''], ['대차/크레인으로 연주 설비까지 이동', '~5~10분'], ['크레인이 래들 터릿 빈 팔에 거치', ''], ['슬라이딩 게이트 점검 + 롱 노즐 준비', '']],
     design: '공장 평면도를 단순화해 LF/RH → 이동 레일 → 연주 터릿 3영역만 표시. 래들 아이콘 자체를 이동시키면 충분합니다.' },
@@ -130,7 +130,7 @@ transfer: `<svg class="scene" viewBox="0 0 700 420" xmlns="http://www.w3.org/200
 // 장면 SVG 공용 스타일 (팝업과 공유)
 const SCENE_CSS = `
 /* 장면 SVG (어두운 배경 고정) */
-.lbl{fill:#9aa9b7;font-size:12px;text-anchor:middle;font-family:inherit}.lbl.s{font-size:10px}.lbl.strong{fill:#dce6ef;font-weight:700}
+.lbl{fill:#c3cfda!important;stroke:none!important;stroke-dasharray:none!important;font-size:13px;font-weight:500;text-anchor:middle;font-family:inherit;text-rendering:geometricPrecision;-webkit-font-smoothing:antialiased}.lbl.s{font-size:12px}.lbl.strong{fill:#eef3f8!important;font-weight:700;font-size:14px}
 .structure{fill:#313c48;stroke:#7c8b9a;stroke-width:2}.refractory{fill:#69472d;stroke:#9d6840;stroke-width:2}.liquid{fill:#ff8b2c}.slag{fill:#889b62}
 .have3d{stroke:#39d98a!important;stroke-width:2.6!important}
 .gap3d{stroke:#ff5d68!important;stroke-width:2.3!important;stroke-dasharray:7 5!important;fill:rgba(255,93,104,.04)!important}

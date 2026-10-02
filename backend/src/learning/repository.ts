@@ -29,6 +29,19 @@ export interface OpenMisconception {
   created_at: string;
 }
 
+/** 프롬프트·학습자 메모에 넣는 미해결 오개념 수. */
+export const MAX_OPEN_MISCONCEPTIONS = 5;
+
+/** 개념당 가장 최근 것 하나만 남겨 최근 것부터 limit개. 학습 채팅 프롬프트와 학습자 메모가 함께 쓴다. */
+export function latestPerConcept(items: OpenMisconception[], limit = MAX_OPEN_MISCONCEPTIONS): OpenMisconception[] {
+  const latest = new Map<string, OpenMisconception>();
+  for (const m of items) {
+    const prev = latest.get(m.concept_id);
+    if (!prev || m.created_at >= prev.created_at) latest.set(m.concept_id, m);
+  }
+  return [...latest.values()].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, limit);
+}
+
 type Row = Record<string, unknown>;
 const str = (v: unknown) => (v === null || v === undefined ? null : String(v));
 
@@ -76,8 +89,20 @@ export class LearningRepository {
     return rows.map(toTurn).reverse();
   }
 
-  /** 학습 모드에서 감지한 오개념을 기록한다(source = learning, 점수 반영 없음). */
+  /**
+   * 학습 모드에서 감지한 오개념을 기록한다(source = learning, 점수 반영 없음).
+   * 같은 사용자·섹션·개념에 미해결 learning 오개념이 이미 있으면 새로 넣지 않고 summary·답변 원문만 최신으로 바꾼다
+   * (미해결 오개념이 다시 프롬프트에 들어가 같은 오해가 질문마다 쌓이지 않게). 해결된 뒤 다시 나오면 새로 넣는다.
+   */
   recordMisconception(m: { user_id: string; section: Section; concept_id: string; answer_text: string; summary: string }, now: string): string {
+    const existing = this.db
+      .prepare("SELECT id FROM misconceptions WHERE user_id = ? AND section = ? AND concept_id = ? AND source = 'learning' AND resolved = 0 ORDER BY created_at DESC, id LIMIT 1")
+      .get(m.user_id, m.section, m.concept_id);
+    if (existing) {
+      const id = String(existing.id);
+      this.db.prepare("UPDATE misconceptions SET answer_text = ?, summary = ? WHERE id = ?").run(m.answer_text, m.summary, id);
+      return id;
+    }
     const id = randomUUID();
     this.db
       .prepare(
