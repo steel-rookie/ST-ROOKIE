@@ -2,3 +2,6 @@ node_modules/
 .build/
 .env
 *.log
+/data/
+/llm/eval/hard/pending/
+/llm/eval/results/
