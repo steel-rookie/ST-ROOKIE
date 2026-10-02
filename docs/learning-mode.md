@@ -2,12 +2,12 @@
 
 튜터의 학습 모드(자유 질문, 점수 없음)를 Gemini에 연결하는 설계와 결정 사항. 체크포인트 모드는 [checkpoint-api.md](checkpoint-api.md).
 
-구현은 PR #6과 `feature/checkpoint-api`가 `dev`에 병합된 뒤, `dev`에서 새 브랜치로 시작한다.
+체크포인트 작업은 PR #13으로 `dev`에 들어갔다. 학습 모드 구현은 `dev`에서 새 브랜치로 시작한다. 시작 안내는 [onboarding-learning-mode.md](onboarding-learning-mode.md).
 
 ## 현재 상태
 
 - 서버 `/api/chat`은 `ironmaking-agent.ts`가 공개 자료 메모(약 25문장)를 통째로 프롬프트에 넣어 Gemini를 1회 호출한다. 응답은 `{answer, status: grounded|unverified, sources, session_id}`, 대화는 서버 메모리에 6턴·2시간 보관한다.
-- 화면의 학습 모드 입력은 아직 가짜 튜터(`frontend/3d-demo/tutor.js`의 `mockTutor`)로 간다.
+- 화면(최종 페이지 v2)의 학습 모드 입력은 `frontend/3d-demo/learning-chat.js`가 아직 가짜 튜터(`tutor_v2.js`의 `mockTutor`)로 보낸다.
 - `ironmaking-agent.ts`는 체크포인트용 `GeminiClient`(responseSchema, 오류 처리, 사용량 제한 훅)를 쓰지 않는 예전 호출 코드다.
 
 ## 결정 사항
@@ -97,10 +97,10 @@ CREATE TABLE learning_turns (
 | `llm/src/learning-agent.ts` | `ironmaking-agent.ts` 대체. `GeminiClient` 사용, `LearningAgent` 인터페이스(테스트용 가짜 구현) |
 | `llm/src/retrieval.ts` | `retrieve()`: 섹션 문서 조각 나누기와 검색 |
 | `llm/prompts/learning.md` | 학습 모드 프롬프트 |
-| `backend/src/learning/` | 라우트, 안전 규칙, `buildLearnerNotes`, 대화 저장소 |
-| 프론트 `ask()` | `mockTutor` 대신 `/api/chat`. `session_id` 유지, 상태 표시와 출처 링크 |
+| `backend/src/learning/` | 라우트, 안전 규칙, `buildLearnerNotes`(`notes.ts`, 시그니처 고정), 대화 저장소 |
+| `frontend/3d-demo/learning-chat.js`의 `ask()` | `mockTutor` 대신 `/api/chat`. `session_id` 유지, 상태 표시와 출처 링크 |
 
 ## 다음 단계로 미룬 것
 
-- 학습 모드의 3D 화면 조작(`scene_actions`). 서버가 설비 id 목록을 알아야 한다(지금은 프론트 `data.js`에만 있음).
+- 학습 모드의 3D 화면 조작(`scene_actions`). 서버가 설비 id 목록을 알아야 한다(지금은 프론트 `data_v2.js`에만 있음, 목록과 v1 차이는 [equipment-ids.md](equipment-ids.md)).
 - 재학습 시 3D 하이라이트: 오개념이 있는 개념과 관련된 설비를 3D에서 강조해 다시 보게 한다.
