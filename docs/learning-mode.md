@@ -66,7 +66,7 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
 
 ## 저장
 
-`backend/src/db/migrations/003_learning.sql`
+`backend/src/db/migrations/004_learning.sql` (`003_users.sql`은 로그인 계정)
 
 ```sql
 CREATE TABLE learning_turns (
