@@ -1,0 +1,161 @@
+{
+  "$comment": "Steel Academy 관리자 대시보드 명세서. 화면: frontend/login_ui/Admin Dashboard.dc.html, 데이터: admin_data.js. 근거: CLAUDE.md '계정과 관리자'·'오개념 기록'·'점수 규칙', docs/auth-api.md '관리자 통계', backend/src/admin/trainee-stats.ts. 모든 교육 내용·기록은 샘플.",
+  "version": "0.1.0",
+  "updated": "2026-10-02",
+  "status": "draft",
+  "owners": {
+    "frontend": "viiin2 (Admin Dashboard.dc.html, admin_data.js, My Page.dc.html)",
+    "backend_admin_api": "미정 — backend/src/admin/ (trainees는 구현됨, concepts는 신규)",
+    "checkpoint_data": "수민 — attempts, concept_results, misconceptions 테이블"
+  },
+
+  "user": {
+    "role": "admin",
+    "description": "신입사원 교육 담당자. 신입사원 학습 통계 조회만 한다(수정·삭제·응시 없음).",
+    "demo_account": { "username": "admin01", "name": "관리자", "employee_no": "A2026001", "password": "DEMO_PASSWORD (기본 steel-2026-demo)" },
+    "entry": [
+      "/login (My Page.dc.html) 에서 관리자로 로그인 → 관리자 통계 → '관리자 대시보드 열기'",
+      "직접 접근: /Admin%20Dashboard.dc.html (토큰 없거나 trainee면 API가 403 → 샘플 표시. 운영 시 /login으로 보내도록 변경 필요)"
+    ],
+    "auth": {
+      "token_storage": "localStorage 또는 sessionStorage의 'st-rookie-token'",
+      "header": "Authorization: Bearer <token>",
+      "errors": { "401": "AUTH_REQUIRED | TOKEN_INVALID → 로그인 화면", "403": "ADMIN_ONLY → 권한 없음" }
+    }
+  },
+
+  "privacy_rules": [
+    "오개념 내용(설명·답변 원문)은 관리자에게 보내지 않는다. 사람별·개념별 개수만 보낸다.",
+    "사번(employee_no)은 관리자 화면에만 표시한다. 로그인 화면의 시연 계정 목록에는 내보내지 않는다.",
+    "관리자 화면은 조회 전용이다."
+  ],
+
+  "user_stories": [
+    { "id": "AD-01", "as": "관리자", "want": "전체 신입사원 수·수료자 수·평균 이해도·미해결 오개념 수를 한눈에 본다", "screen": "상단 요약 숫자 4개", "api": "trainees" },
+    { "id": "AD-02", "as": "관리자", "want": "신입사원들이 가장 많이 틀린 개념(설비)을 알아 교육 자료를 보강한다", "screen": "오답률 높은 개념 TOP 8 (공정 필터)", "api": "concepts" },
+    { "id": "AD-03", "as": "관리자", "want": "4개 공정을 모두 통과한 사람 명단을 본다", "screen": "전 과정 수료", "api": "trainees" },
+    { "id": "AD-04", "as": "관리자", "want": "재도전이 필요하거나 학습이 멈춘 사람을 찾아 연락한다", "screen": "확인이 필요한 사람", "api": "trainees" },
+    { "id": "AD-05", "as": "관리자", "want": "공정별 통과율·평균 이해도·평균 시도 횟수를 비교한다", "screen": "섹션별 진행 카드 4개", "api": "trainees" },
+    { "id": "AD-06", "as": "관리자", "want": "사람별 공정 이해도·진도·오개념 수·마지막 학습일을 표로 보고 검색·정렬·필터한다", "screen": "신입사원 명단 표", "api": "trainees" }
+  ],
+
+  "api": {
+    "trainees": {
+      "status": "implemented",
+      "method": "GET",
+      "path": "/api/admin/trainees",
+      "source": "backend/src/admin/routes.ts, trainee-stats.ts",
+      "response": {
+        "checkpoint_data": { "type": "boolean", "desc": "attempts·misconceptions 테이블이 없으면 false, 기록은 비어 있음" },
+        "sections": { "type": "string[]", "enum": ["ironmaking", "steelmaking", "continuous_casting", "rolling"], "desc": "공정 순서 그대로" },
+        "trainees": {
+          "type": "array",
+          "items": {
+            "id": { "type": "string", "format": "uuid" },
+            "username": { "type": "string" },
+            "name": { "type": "string" },
+            "employee_no": { "type": "string" },
+            "created_at": { "type": "string", "format": "ISO 8601" },
+            "last_activity": { "type": "string|null", "format": "ISO 8601", "desc": "attempts.updated_at 최댓값" },
+            "sections": {
+              "type": "object",
+              "keys": "sections의 각 id",
+              "value": {
+                "nullable": true,
+                "desc": "완료한 체크포인트가 없으면 null",
+                "understanding": { "type": "number", "range": "0~1", "desc": "마지막으로 끝낸 시도의 이해도" },
+                "passed": { "type": "boolean", "desc": "한 번이라도 80% 이상 통과" },
+                "attempts": { "type": "integer", "desc": "끝낸 체크포인트 횟수(첫 시도 + 재도전)" }
+              }
+            },
+            "passed_sections": { "type": "integer", "range": "0~4" },
+            "misconceptions": { "open": { "type": "integer" }, "resolved": { "type": "integer" } }
+          }
+        }
+      }
+    },
+    "concepts": {
+      "status": "proposed",
+      "method": "GET",
+      "path": "/api/admin/concepts",
+      "desc": "개념(=설비)별 체크포인트 첫 판정 분포. 오답률 순위에 쓴다. 없으면 화면은 샘플로 표시.",
+      "query": { "section": { "type": "string", "optional": true, "desc": "없으면 전체" } },
+      "aggregation": "concept_results JOIN attempts(state='completed', 사용자 role='trainee'). 첫 질문(verdict) 기준으로 센다. 재도전 시도도 포함.",
+      "response": {
+        "concepts": {
+          "type": "array",
+          "items": {
+            "section": { "type": "string", "desc": "공정 id" },
+            "concept_id": { "type": "string", "desc": "data_v2.js 설비 id (예: hot_stove)" },
+            "asked": { "type": "integer", "desc": "첫 질문을 받은 횟수" },
+            "partial": { "type": "integer", "desc": "첫 판정 partial 수" },
+            "wrong": { "type": "integer", "desc": "첫 판정 wrong 수" },
+            "assisted": { "type": "integer", "desc": "첫 판정 assisted(힌트 요청) 수" },
+            "final_wrong": { "type": "integer", "desc": "재확인 후에도 0점(recheck_verdict='wrong')인 수" },
+            "open": { "type": "integer", "desc": "이 개념의 미해결 오개념 수(전체 신입사원 합)" }
+          }
+        }
+      },
+      "example": { "concepts": [{ "section": "ironmaking", "concept_id": "hot_stove", "asked": 9, "partial": 2, "wrong": 4, "assisted": 1, "final_wrong": 2, "open": 3 }] },
+      "must_not_include": ["답변 원문", "오개념 설명", "사용자 id"]
+    }
+  },
+
+  "derived_metrics": {
+    "$comment": "화면(프론트)에서 계산. 서버로 옮길 경우 같은 정의를 쓴다.",
+    "pass_threshold": 0.8,
+    "kpi_trainees": "trainees.length",
+    "kpi_completed": "passed_sections === sections.length 인 사람 수",
+    "kpi_avg_understanding": "모든 사람 × 응시한 섹션의 understanding 평균 (null 제외)",
+    "kpi_open_misconceptions": "Σ misconceptions.open",
+    "concept_miss_rate": "(partial + wrong + assisted) / asked",
+    "concept_rank": "miss_rate 내림차순, 같으면 wrong 많은 순, 상위 8개",
+    "section_pass": "해당 섹션 passed=true 인원 / 전체 인원",
+    "section_avg_attempts": "응시자의 attempts 평균",
+    "locked_cell": "앞 섹션이 null이거나 미통과면 뒤 섹션은 '잠김'"
+  },
+
+  "trainee_status": {
+    "$comment": "위에서부터 먼저 맞는 것 하나",
+    "done": { "label": "수료", "rule": "passed_sections === 4" },
+    "retry": { "label": "재도전 필요", "rule": "완료했지만 passed=false인 섹션이 하나라도 있음" },
+    "active": { "label": "진행 중", "rule": "기록이 있는 섹션이 하나 이상" },
+    "idle": { "label": "미시작", "rule": "모든 섹션 null" }
+  },
+
+  "watch_list_rules": [
+    { "tag": "재도전 필요", "rule": "status = retry", "detail": "미통과 섹션명 · 이해도 · 시도 횟수", "priority": 3 },
+    { "tag": "N일 미접속", "rule": "status ∉ {done} 그리고 last_activity가 3일 이상 전", "priority": 2 },
+    { "tag": "오개념 많음", "rule": "status ∉ {done, retry} 그리고 misconceptions.open ≥ 3", "priority": 2 },
+    { "tag": "미시작", "rule": "status = idle", "priority": 1 }
+  ],
+
+  "ui_states": {
+    "loading": "헤더 '불러오는 중…'",
+    "sample": "API 실패 시 admin_data.js 샘플 사용. 헤더 배지 '샘플 데이터'",
+    "partial_live": "trainees만 성공 → 배지 '실시간 · 개념 통계는 샘플'",
+    "live": "둘 다 성공 → 배지 '실시간 데이터'",
+    "no_checkpoint_data": "checkpoint_data=false → 계정 목록만, 모든 칸 '미응시'",
+    "empty": "신입사원 0명 / 필터 결과 없음 문구"
+  },
+
+  "table_controls": {
+    "filter_status": ["all", "done", "active", "retry", "idle"],
+    "search": "name, username, employee_no 부분 일치(대소문자 무시)",
+    "sort": { "name": "이름 가나다", "progress": "passed_sections ↓, 평균 이해도 ↓ (기본)", "mis": "misconceptions.open ↓", "last": "last_activity 최신 순" }
+  },
+
+  "references": {
+    "section_names": "frontend/3d-demo/data_v2.js PROCESSES[].name",
+    "concept_names": "PROCESSES[].equipment[].name (개념 id = 설비 id, backend/src/db/demo-records.ts와 동일)",
+    "demo_records": "npm run db:seed-demo [seed] — trainee01~04 기록 생성"
+  },
+
+  "open_questions": [
+    { "id": "Q1", "q": "GET /api/admin/concepts 담당자와 일정", "to": "백엔드" },
+    { "id": "Q2", "q": "개념별 미해결 오개념 '개수'를 관리자에게 보여도 되는가(사람별 개수는 확정, 개념별은 미확정)", "to": "팀" },
+    { "id": "Q3", "q": "미접속 경고 기준 3일이 적절한가", "to": "교육 담당" },
+    { "id": "Q4", "q": "trainee가 대시보드 주소로 직접 들어올 때 /login으로 보낼지, 권한 없음 화면을 보여줄지", "to": "프론트" },
+    { "id": "Q5", "q": "명단 CSV 내보내기가 필요한가", "to": "교육 담당" }
+  ]
+}
