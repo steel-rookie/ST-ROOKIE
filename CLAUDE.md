@@ -87,9 +87,9 @@
 
 - 저장 항목: 자유 텍스트 설명, `concept_id`, 사용자 답변 원문, 상태.
 - 상태: `미해결` / `해결됨`. 나중에 같은 개념을 맞히면 `해결됨`으로 바뀐다.
-- 개인 페이지에서 **본인 것만** 보인다.
+- 오개념 내용(설명·답변 원문)은 개인 페이지에서 **본인 것만** 보인다. 관리자 화면에는 사람별 미해결·해결 **개수만** 나온다.
 - 학습 모드에서 감지된 오개념도 기록한다(점수 반영 없음).
-- 관리자 화면은 만들지 않는다.
+- 관리자 화면은 신입사원 통계 조회만 한다(아래 "계정과 관리자").
 
 ## 콘텐츠
 
@@ -104,6 +104,15 @@ content/
 - 루브릭은 `draft/` → 팀 검수 → `final/` 순서로만 옮긴다. 검수 없이 `final/`에 쓰지 않는다.
 - 루브릭 형식은 `content/rubrics/schema.json`. 최상위 `reviewed`는 팀 검수 여부이고, `false`인 루브릭을 로드하면 경고 로그를 남긴다(`backend/src/rubrics.ts`의 `loadRubric`). 스키마 검증은 서버 실행 중에도 `ajv`로 한다.
 - 현재 `final/01_제선.json`은 `reviewed: false`인 임시 루브릭이다. `section.md`가 생기면 그 문서를 근거로 다시 만든다.
+
+## 계정과 관리자
+
+- 역할은 `trainee`(신입사원)와 `admin`(관리자). 회원가입은 항상 `trainee`. API는 [docs/auth-api.md](docs/auth-api.md), 코드는 `backend/src/auth/`.
+- 시연 계정 `trainee01`~`04`, `admin01`은 서버 시작 때 만든다(`DEMO_ACCOUNTS=off`로 끔).
+- 아이디·비밀번호 찾기는 이름 + 사번으로 본인 확인을 한다(메일 발송 없음). 시연·사내용 수준이다.
+- 관리자는 `GET /api/admin/trainees`로 신입사원별 섹션 이해도·통과 여부·시도 횟수·오개념 개수·마지막 학습일을 본다(`backend/src/admin/`). 체크포인트 테이블(`attempts`, `misconceptions`)이 없으면 계정 목록만 준다.
+- 화면: `frontend/login_ui/My Page.dc.html`, 서버의 `/login`. 관리자로 로그인하면 개인 학습 기록 대신 통계를 보여 준다.
+- `npm run db:seed-demo [seed]`: 시연 신입사원(`trainee01`~`04`)의 체크포인트 기록을 지우고 무작위로 다시 만든다(`backend/src/db/demo-records.ts`). 테이블은 `feature/checkpoint-api`와 같은 `001_checkpoint.sql`, 점수는 `scoring.ts` 규칙. 다른 계정의 기록은 건드리지 않는다.
 
 ## 튜토리얼
 
@@ -128,6 +137,7 @@ content/
 - 루브릭에 `reviewed` 필드를 두고, 검수 전 루브릭은 경고 로그를 남긴다.
 - 채점 로직은 Node(TypeScript)로 옮겼다. Python 버전은 없다.
 - 로그인: 아이디 + 비밀번호(bcrypt 해시) + JWT.
+- 관리자 통계 화면을 만든다(처음 설계의 "관리자 화면 없음"을 바꿈). 오개념은 개수만 보여 준다.
 - LLM: Gemini를 유지한다. 평가자는 Gemini `responseSchema`로 판정 JSON 형식을 강제한다.
 - 체크포인트 결과 차트: 개념별 가로 막대(맞음/부분/틀림) + 전체 이해도 게이지(80% 기준선 표시).
 
