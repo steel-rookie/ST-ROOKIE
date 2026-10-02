@@ -28,7 +28,6 @@ package.json, tsconfig.json은 루트에 두고 npm 명령은 모두 루트에�
   - llm/src/ironmaking-sources.ts: 공식 자료 목록을 읽어 프롬프트용으로 정리합니다. 자료를 늘린 뒤 검색 기능을 붙이기 쉽도록 분리했습니다.
 - frontend/: 화면
   - frontend/3d-demo/: 서버 첫 화면(Steel Academy.dc.html). 4개 공정 3D 화면과 튜터 패널. 튜터는 아직 샘플 응답(mockTutor)을 사용합니다.
-  - frontend/steel-academy/, frontend/steel-academy.html: 기존 3D 열연 교육 데모(단독 실행).
 - models/: 3D 모델 파일(hot-rolling-education.glb).
 
 자료 범위
@@ -45,4 +44,3 @@ POST /api/chat
 
 검증: npm.cmd run typecheck / npm.cmd test
 
-기존 3D 열연 데모(frontend/steel-academy)는 저장소에 남아 있지만 서버 화면과 연결되지 않습니다.
