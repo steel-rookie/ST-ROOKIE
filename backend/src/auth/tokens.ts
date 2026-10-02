@@ -5,12 +5,21 @@ import type { User } from "./users.js";
 // 로그인 상태 유지를 켜면 7일, 끄면 12시간.
 export const TOKEN_TTL = { remember: "7d", session: "12h" } as const;
 
-/** .env의 JWT_SECRET. 없으면 실행할 때마다 새로 만들므로 서버를 다시 켜면 모든 로그인이 풀린다(로컬 개발용). */
+let cachedSecret: Uint8Array | null = null;
+
+/**
+ * .env의 JWT_SECRET. 없으면 프로세스마다 한 번 임시 키를 만들므로 서버를 다시 켜면 모든 로그인이 풀린다(로컬 개발용).
+ * 로그인 라우터와 요청 사용자 구분(request-user.ts)이 같은 키를 쓰도록 처음 만든 키를 계속 돌려준다.
+ */
 export function jwtSecret(): Uint8Array {
+  if (cachedSecret) return cachedSecret;
   const secret = process.env.JWT_SECRET?.trim();
-  if (secret) return new TextEncoder().encode(secret);
-  console.warn("JWT_SECRET이 없어 임시 키를 씁니다. 서버를 다시 켜면 로그인이 풀립니다.");
-  return randomBytes(32);
+  if (secret) cachedSecret = new TextEncoder().encode(secret);
+  else {
+    console.warn("JWT_SECRET이 없어 임시 키를 씁니다. 서버를 다시 켜면 로그인이 풀립니다.");
+    cachedSecret = randomBytes(32);
+  }
+  return cachedSecret;
 }
 
 export function signToken(user: User, secret: Uint8Array, ttl: string = TOKEN_TTL.session): Promise<string> {
