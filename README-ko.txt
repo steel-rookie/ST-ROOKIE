@@ -27,7 +27,7 @@ package.json, tsconfig.json은 루트에 두고 npm 명령은 모두 루트에�
   - llm/src/ironmaking-agent.ts: 소량의 공개 자료 메모를 프롬프트에 제공하고 Gemini GenerateContent API를 호출합니다.
   - llm/src/ironmaking-sources.ts: 공식 자료 목록을 읽어 프롬프트용으로 정리합니다. 자료를 늘린 뒤 검색 기능을 붙이기 쉽도록 분리했습니다.
 - frontend/: 화면
-  - frontend/3d-demo/: 서버 첫 화면(Steel Academy.dc.html). 4개 공정 3D 화면과 튜터 패널. 튜터는 아직 샘플 응답(mockTutor)을 사용합니다.
+  - frontend/3d-demo/: 서버 첫 화면(Steel Academy v2.dc.html). 4개 공정 3D 화면과 튜터 패널. 튜터는 아직 샘플 응답(mockTutor)을 사용합니다.
 - models/: 3D 모델 파일(hot-rolling-education.glb).
 
 자료 범위

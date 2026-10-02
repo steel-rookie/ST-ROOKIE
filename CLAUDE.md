@@ -19,7 +19,7 @@
 
 ## 프론트 구조 (`frontend/3d-demo`)
 
-**최종 페이지는 `Steel Academy v2.dc.html`(v2)이다.** 체크포인트 UI를 메인에 다시 적용할 대상도 v2다. `Steel Academy.dc.html`(v1, 서버 `/`가 아직 여는 페이지)과 `data.js`·`tutor.js`·`scene.js`는 옛 버전이라 고치지 않는다.
+**최종 페이지는 `Steel Academy v2.dc.html`(v2)이고, 서버 `/`가 이 페이지를 연다.** 체크포인트 UI를 메인에 다시 적용할 대상도 v2다. v1 페이지(`Steel Academy.dc.html`)는 지웠고, 남은 `data.js`·`tutor.js`·`scene.js`는 옛 버전이라 고치지 않는다.
 
 - `Steel Academy v2.dc.html`: 화면 템플릿과 로직. 로직은 `<script type="text/x-dc">` 안의 `class Component extends DCLogic`에 있고, `support.js`가 읽어서 실행한다(에디터에서 문법 강조가 안 됨). 주소는 `/Steel%20Academy%20v2.dc.html`.
   - `componentDidMount`: `data_v2.js`와 `learning-chat.js`를 불러와 `this.chat`을 만들고 3D 이벤트를 구독한다.
