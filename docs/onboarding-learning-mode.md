@@ -20,7 +20,7 @@
 | `llm/src/retrieval.ts` (새로 만듦) | `retrieve()`: 근거 조각 검색. |
 | `llm/prompts/learning*.md` (새로 만듦) | 학습 모드 프롬프트. |
 | `backend/src/learning/` | 라우트, 안전 규칙, 대화 저장소, `buildLearnerNotes` 구현. |
-| `backend/src/db/migrations/003_*.sql` | 학습 모드 테이블. **001·002는 이미 사용 중**이므로 003부터. |
+| `backend/src/db/migrations/004_*.sql` | 학습 모드 테이블. **001·002는 체크포인트, 003은 로그인(`003_users.sql`)이 사용 중**이므로 004부터. |
 | 위 파일들의 테스트 (`backend/test/learning-*.test.ts` 등) | |
 
 `backend/src/learning/notes.ts`는 체크포인트와의 **계약**입니다.

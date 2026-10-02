@@ -1,7 +1,14 @@
+import express from "express";
+import { join } from "node:path";
 import { GeminiEvaluator } from "../../llm/src/evaluator.js";
 import { GeminiClient } from "../../llm/src/gemini.js";
 import { GeminiTutor } from "../../llm/src/tutor.js";
+import { createAdminRouter } from "./admin/routes.js";
 import { createApp } from "./app.js";
+import { seedDemoAccounts } from "./auth/demo-accounts.js";
+import { createAuthRouter } from "./auth/routes.js";
+import { jwtSecret } from "./auth/tokens.js";
+import { UserRepository } from "./auth/users.js";
 import { CheckpointEngine } from "./checkpoint/engine.js";
 import { CheckpointRepository } from "./checkpoint/repository.js";
 import { openDatabase } from "./db/database.js";
@@ -24,9 +31,24 @@ const engine = new CheckpointEngine({
   rubrics,
 });
 
+const users = new UserRepository(db);
+const seeded = await seedDemoAccounts(users);
+if (seeded > 0) console.log(`시연 계정 ${seeded}개를 만들었습니다.`);
+
+const app = createApp({ engine, usage });
+// 로그인·관리자 API(docs/auth-api.md). createApp의 /api 접속 비밀번호 검사가 먼저 적용된다.
+const auth = { users, secret: jwtSecret() };
+app.use(createAuthRouter(auth));
+app.use(createAdminRouter(db, auth));
+// 로그인·마이페이지(frontend/login_ui)는 ../3d-demo/를 상대 경로로 읽으므로 두 폴더를 같은 깊이에 둔다.
+const webRoot = join(process.cwd(), "frontend", "3d-demo");
+app.use("/3d-demo", express.static(webRoot));
+app.use("/login_ui", express.static(join(process.cwd(), "frontend", "login_ui")));
+app.get("/login", (_req, res) => res.redirect("/login_ui/My%20Page.dc.html"));
+
 const port = Number(process.env.PORT ?? 3000);
 // 이 컴퓨터에서만 접속을 받는다. 원격 공유는 cloudflared 터널(npm run tunnel)이 localhost로 넘겨준다.
-createApp({ engine, usage }).listen(port, "127.0.0.1", () => {
+app.listen(port, "127.0.0.1", () => {
   console.log(`제선 공정 알아보기: http://localhost:${port}`);
   console.log(`접속 비밀번호: ${passcodeRequired() ? "사용(TEST_PASSCODE)" : "사용 안 함"} · 사용자별 하루 LLM 호출 한도: ${usage.dailyLimit > 0 ? `${usage.dailyLimit}회` : "제한 없음"}`);
 });

@@ -42,7 +42,7 @@
 | 담당 | 파일 |
 |---|---|
 | 수민: 체크포인트·평가자·튜터·질문 은행·eval | `backend/src/checkpoint/`, `backend/src/rubrics.ts`, `backend/src/db/migrations/001_checkpoint.sql`, `llm/src/evaluator.ts`, `llm/src/tutor.ts`, `llm/src/question-check.ts`, `llm/prompts/evaluator.md`, `llm/prompts/tutor-*.md`, `llm/eval/`, `content/rubrics/`(`schema.json` 제외), `frontend/3d-demo/checkpoint-test.html`, 원격 테스트 장치(`backend/src/test-access.ts`, `usage.ts`, `request-user.ts`, `db/migrations/002_llm_usage.sql`, `scripts/tunnel.mjs`), 이 파일들의 테스트 |
-| ssoyoum: 학습 모드 | `llm/src/learning-agent.ts`·`llm/src/retrieval.ts`(둘 다 새로 만듦), `llm/prompts/learning*.md`, `backend/src/learning/`(단, `notes.ts`의 `LearnerNotes` 타입과 `buildLearnerNotes` 시그니처는 수민과 합의 후 변경), `frontend/3d-demo/learning-chat.js`, `frontend/3d-demo/tutor_v2.js`, 학습 모드 마이그레이션(`003`부터), 이 파일들의 테스트 |
+| ssoyoum: 학습 모드 | `llm/src/learning-agent.ts`·`llm/src/retrieval.ts`(둘 다 새로 만듦), `llm/prompts/learning*.md`, `backend/src/learning/`(단, `notes.ts`의 `LearnerNotes` 타입과 `buildLearnerNotes` 시그니처는 수민과 합의 후 변경), `frontend/3d-demo/learning-chat.js`, `frontend/3d-demo/tutor_v2.js`, 학습 모드 마이그레이션(`004`부터, `003_users.sql`은 로그인), 이 파일들의 테스트 |
 | 공용: 고치면 작은 PR + 팀 공유 | `llm/src/gemini.ts`, `backend/src/scoring.ts`, `content/rubrics/schema.json`, `backend/src/app.ts`(라우트 등록), `backend/src/db/database.ts`, `backend/src/checkpoint/types.ts`, `package.json`, `CLAUDE.md`, 마이그레이션 번호 |
 | 프론트(viiin2) | `Steel Academy v2.dc.html`, `data_v2.js`, `scene_v2.js`, `steel-2d*.js`, `models/`, `frontend/login_ui/` |
 
@@ -125,9 +125,9 @@ API·상태 머신·DB·프롬프트의 상세 설계는 [docs/checkpoint-api.md
 
 - 저장 항목: 자유 텍스트 설명, `concept_id`, 사용자 답변 원문, 상태.
 - 상태: `미해결` / `해결됨`. 나중에 같은 개념을 맞히면 `해결됨`으로 바뀐다.
-- 개인 페이지에서 **본인 것만** 보인다.
+- 오개념 내용(설명·답변 원문)은 개인 페이지에서 **본인 것만** 보인다. 관리자 화면에는 사람별 미해결·해결 **개수만** 나온다.
 - 학습 모드에서 감지된 오개념도 기록한다(점수 반영 없음).
-- 관리자 화면은 만들지 않는다.
+- 관리자 화면은 신입사원 통계 조회만 한다(아래 "계정과 관리자").
 
 ## 콘텐츠
 
@@ -145,6 +145,15 @@ content/
 - 루브릭 최상위의 선택 필드 `glossary: [{term, aliases}]`는 섹션 단위 용어집이다(예: 용선 = 쇳물). 평가자 프롬프트에 들어가 동의어를 같은 말로 본다.
 - 현재 `final/01_제선.json`은 `reviewed: false`인 임시 루브릭이다. `section.md`가 생기면 그 문서를 근거로 다시 만든다. 질문 은행도 검수 전 초안이다.
 - 소결 개념 재설계 초안(정의 → 이유: 가루 원료의 통기성 문제와 덩어리화): `draft/sinter_purpose.v2.json`. 통기성 근거 문장이 현재 자료에 없어 출처 확보 전에는 final로 옮기지 않는다. 옮기면 smoke·hard의 소결 케이스 기대 판정도 새 핵심 요소에 맞게 다시 쓴다.
+
+## 계정과 관리자
+
+- 역할은 `trainee`(신입사원)와 `admin`(관리자). 회원가입은 항상 `trainee`. API는 [docs/auth-api.md](docs/auth-api.md), 코드는 `backend/src/auth/`.
+- 시연 계정 `trainee01`~`04`, `admin01`은 서버 시작 때 만든다(`DEMO_ACCOUNTS=off`로 끔).
+- 아이디·비밀번호 찾기는 이름 + 사번으로 본인 확인을 한다(메일 발송 없음). 시연·사내용 수준이다.
+- 관리자는 `GET /api/admin/trainees`로 신입사원별 섹션 이해도·통과 여부·시도 횟수·오개념 개수·마지막 학습일을 본다(`backend/src/admin/`). 체크포인트 테이블(`attempts`, `misconceptions`)이 없으면 계정 목록만 준다.
+- 화면: `frontend/login_ui/My Page.dc.html`, 서버의 `/login`. 관리자로 로그인하면 개인 학습 기록 대신 통계를 보여 준다.
+- `npm run db:seed-demo [seed]`: 시연 신입사원(`trainee01`~`04`)의 체크포인트 기록을 지우고 무작위로 다시 만든다(`backend/src/db/demo-records.ts`). 테이블은 `feature/checkpoint-api`와 같은 `001_checkpoint.sql`, 점수는 `scoring.ts` 규칙. 다른 계정의 기록은 건드리지 않는다.
 
 ## 튜토리얼
 
@@ -179,6 +188,7 @@ content/
 - 루브릭에 `reviewed` 필드를 두고, 검수 전 루브릭은 경고 로그를 남긴다.
 - 채점 로직은 Node(TypeScript)로 옮겼다. Python 버전은 없다.
 - 로그인: 아이디 + 비밀번호(bcrypt 해시) + JWT.
+- 관리자 통계 화면을 만든다(처음 설계의 "관리자 화면 없음"을 바꿈). 오개념은 개수만 보여 준다.
 - LLM: Gemini를 유지한다. 평가자는 Gemini `responseSchema`로 판정 JSON 형식을 강제한다.
 - 체크포인트 결과 차트: 개념별 가로 막대(맞음/부분/틀림) + 전체 이해도 게이지(80% 기준선 표시).
 - 재확인 단계에서 되묻기·힌트 요청은 `wrong`이다(재확인 평가자 스키마에 `assisted` 없음).
