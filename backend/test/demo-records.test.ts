@@ -49,6 +49,6 @@ test("the same seed gives the same records and reseeding replaces only demo trai
 
   seedDemoRecords(a.db, concepts, 7);
   const attemptsPerUser = a.db.prepare("SELECT COUNT(DISTINCT user_id) AS n FROM attempts").get();
-  assert.ok(Number(attemptsPerUser?.n) <= 4);
+  assert.ok(Number(attemptsPerUser?.n) <= 20);
   assert.ok(a.db.prepare("SELECT 1 FROM misconceptions WHERE id = 'keep'").get(), "other users' records were deleted");
 });

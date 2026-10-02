@@ -40,6 +40,18 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
 - 사용자 구분(`X-User-Id`, 로그인 후에는 JWT), 접속 비밀번호, 하루 LLM 호출 한도는 체크포인트와 같은 장치를 쓴다.
 - 학습 모드는 채점하지 않으므로 오개념을 해결 처리하지 않는다. 해결은 체크포인트에서 맞혔을 때만 일어난다.
 
+### 라우트 구현 (`backend/src/learning/routes.ts`)
+
+- `createLearningRouter({ repo, retriever, agent, rubrics })`를 `createApp({ learning })`에 넘긴다. `app.ts`는 이 라우터를 예전 제선 Q&A(`ironmaking-agent`)보다 먼저 등록하므로 `POST /api/chat`은 학습 모드가 답한다.
+- 요청 `{ question, session_id?, screen?: { process_id, equipment_id } }`, 응답 `{ answer, status, sources, follow_up, session_id }`. `process_id`가 없으면 제선.
+- 세션은 DB(`learning_turns`)로 이어진다. 없는 세션·다른 사람의 세션은 404, 같은 세션에서 답변 중 다시 질문하면 409.
+- 안전 질문(`safety.ts`)은 튜터를 부르지 않고 `safety_redirect`로 저장한다. 조작 방법·허락("밸브를 열어도 돼요?", "정지시키는 방법")과 비상 대응("비상 정지 버튼")만 막고, "고로가 정지하면 어떻게 되나요?" 같은 교육 질문은 통과시킨다(단어 하나로 막지 않음).
+- 프롬프트의 학습자 메모는 `latestPerConcept`로 개념당 최근 1개, 최대 5개만 넣는다(`buildLearnerNotes`와 같은 기준).
+- 같은 사용자·섹션·개념에 미해결 learning 오개념이 이미 있으면 새로 넣지 않고 summary·답변 원문만 갱신한다. 해결된 뒤 다시 나오면 새로 넣는다.
+- 질문만으로 근거를 못 찾고 직전 대화가 있으면, 직전 질문·답변을 붙여 한 번 더 검색한다("그럼 그건요?" 같은 후속 질문).
+- 오류: 하루 한도 429, Gemini 키 없음 503, 연결·형식 오류 502. 오류 때는 대화를 저장하지 않는다.
+- 화면: `frontend/3d-demo/learning-chat.js`의 `ask()`가 `/api/chat`을 부른다. 같은 페이지에서는 `session_id`를 이어 쓰고, 서버에 없는 세션(404)이면 새 대화로 한 번 다시 묻는다. 전체 보기(`site`)에서는 `process_id`를 보내지 않는다(서버 기본: 제선). 사용자 구분은 체크포인트 테스트 페이지와 같이 `?user=`와 저장된 접속 비밀번호를 쓴다. `tutor_v2.js`(가짜 튜터)는 더 이상 부르지 않는다.
+
 ### 튜터 구현 (`llm/src/learning-agent.ts`)
 
 - `LearningAgent.reply(input)` → `{ answer, status, source_ids, follow_up, detected_misconception }`. 구현은 `GeminiLearningAgent`, 프롬프트는 `llm/prompts/learning-system.md`.
@@ -77,6 +89,8 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
   - `conceptOrder`: 루브릭 순서 그대로.
   - `context`: 미해결 오개념 요약.
 - 학습 모드 → 체크포인트: 체크포인트 시작 시 엔진의 `options.notes`로 넘긴다. **튜터에게만** 주어 부가 설명에서 알려진 오해를 짚게 한다. **평가자에게는 넘기지 않는다**(평가자 입력은 루브릭·질문·답변뿐, 과거 기록으로 채점이 치우치지 않게).
+- 구현(`backend/src/learning/notes.ts`): 서버 시작 때 `useLearnerNotesSource(learningRepo)`로 기록 저장소를 넘긴다(시그니처가 고정이라 인자로 받을 수 없어서). `buildLearnerNotes`는 섹션의 미해결 오개념을 최근 것부터 개념당 하나, 최대 5개를 출처 라벨(대화 중 감지됨·이해도 확인)과 함께 `context`로 요약한다. `conceptOrder`는 넣지 않는다(루브릭 순서). 저장소가 없거나 오개념이 없으면 빈 메모.
+- 아직 체크포인트 쪽에서 `buildLearnerNotes`를 불러 `options.notes`로 넘기고, 튜터 프롬프트에 `context`를 넣는 연결은 없다(체크포인트 담당).
 - 체크포인트 → 학습 모드: 체크포인트에서 나온 미해결 오개념을 학습 모드 프롬프트에 넣어, 관련 질문이 오면 먼저 바로잡게 한다. 화면에는 "지난번 헷갈린 개념" 추천 질문으로 보여 준다.
 
 ## 저장

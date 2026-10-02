@@ -120,12 +120,12 @@ test("/me rejects missing, forged and orphaned tokens", async () => {
 
 test("demo accounts are seeded once with roles and can log in", async () => {
   const users = new UserRepository(db);
-  assert.equal(await seedDemoAccounts(users), 5);
+  assert.equal(await seedDemoAccounts(users), DEMO_ACCOUNTS.length);
   assert.equal(await seedDemoAccounts(users), 0);
 
   const list = await call("/api/auth/demo-accounts");
   assert.deepEqual(list.json.accounts.map((a: { username: string }) => a.username), DEMO_ACCOUNTS.map((a) => a.username));
-  assert.equal(list.json.accounts.filter((a: { role: string }) => a.role === "trainee").length, 4);
+  assert.equal(list.json.accounts.filter((a: { role: string }) => a.role === "trainee").length, 20);
   assert.equal(list.json.accounts[0].employee_no, undefined); // 사번은 목록에 내보내지 않는다
 
   const admin = await call("/api/auth/login", { username: "admin01", password: list.json.password });

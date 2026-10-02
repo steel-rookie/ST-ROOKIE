@@ -149,11 +149,11 @@ content/
 ## 계정과 관리자
 
 - 역할은 `trainee`(신입사원)와 `admin`(관리자). 회원가입은 항상 `trainee`. API는 [docs/auth-api.md](docs/auth-api.md), 코드는 `backend/src/auth/`.
-- 시연 계정 `trainee01`~`04`, `admin01`은 서버 시작 때 만든다(`DEMO_ACCOUNTS=off`로 끔).
+- 시연 계정 `trainee01`~`20`(신입사원 20명), `admin01`은 서버 시작 때 만든다(`DEMO_ACCOUNTS=off`로 끔).
 - 아이디·비밀번호 찾기는 이름 + 사번으로 본인 확인을 한다(메일 발송 없음). 시연·사내용 수준이다.
 - 관리자는 `GET /api/admin/trainees`로 신입사원별 섹션 이해도·통과 여부·시도 횟수·오개념 개수·마지막 학습일을 본다(`backend/src/admin/`). 체크포인트 테이블(`attempts`, `misconceptions`)이 없으면 계정 목록만 준다.
 - 화면: `frontend/login_ui/My Page.dc.html`, 서버의 `/login`. 관리자로 로그인하면 개인 학습 기록 대신 통계를 보여 준다.
-- `npm run db:seed-demo [seed]`: 시연 신입사원(`trainee01`~`04`)의 체크포인트 기록을 지우고 무작위로 다시 만든다(`backend/src/db/demo-records.ts`). 테이블은 `feature/checkpoint-api`와 같은 `001_checkpoint.sql`, 점수는 `scoring.ts` 규칙. 다른 계정의 기록은 건드리지 않는다.
+- `npm run db:seed-demo [seed]`: 시연 신입사원(`trainee01`~`20`)의 체크포인트 기록을 지우고 무작위로 다시 만든다(`backend/src/db/demo-records.ts`). 테이블은 `feature/checkpoint-api`와 같은 `001_checkpoint.sql`, 점수는 `scoring.ts` 규칙. 다른 계정의 기록은 건드리지 않는다.
 
 ## 튜토리얼
 

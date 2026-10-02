@@ -1,23 +1,23 @@
 // Express 앱 구성. 실행(포트·DB·Gemini 연결)은 ironmaking-server.ts가 한다.
 // 프론트(frontend/3d-demo)도 이 서버가 같은 출처로 서빙하고, 프론트는 API를 상대 경로(/api/...)로 부른다.
 import express from "express";
-import { randomUUID } from "node:crypto";
 import { join } from "node:path";
-import { z } from "zod";
-import { answerQuestion, DEFAULT_GEMINI_MODEL, GeminiApiError, type ChatTurn } from "../../llm/src/ironmaking-agent.js";
+import { DEFAULT_GEMINI_MODEL } from "../../llm/src/ironmaking-agent.js";
 import type { CheckpointEngine } from "./checkpoint/engine.js";
 import { createCheckpointRouter } from "./checkpoint/routes.js";
-import { currentUserId, withRequestUser } from "./request-user.js";
+import { withRequestUser } from "./request-user.js";
 import { passcodeGuard, passcodeRequired } from "./test-access.js";
-import { UsageLimitError, type LlmUsage } from "./usage.js";
+import type { LlmUsage } from "./usage.js";
 
 export interface AppDeps {
   engine: CheckpointEngine;
   usage: LlmUsage;
   webRoot?: string;
+  /** 학습 모드 라우터(POST /api/chat, backend/src/learning/routes.ts). */
+  learning?: express.Router;
 }
 
-export function createApp({ engine, usage, webRoot = join(process.cwd(), "frontend", "3d-demo") }: AppDeps): express.Express {
+export function createApp({ engine, usage, webRoot = join(process.cwd(), "frontend", "3d-demo"), learning }: AppDeps): express.Express {
   const app = express();
   app.disable("x-powered-by");
   app.use(express.json({ limit: "16kb" }));
@@ -29,11 +29,8 @@ export function createApp({ engine, usage, webRoot = join(process.cwd(), "fronte
   app.use("/api", passcodeGuard, withRequestUser);
 
   app.use(createCheckpointRouter(engine));
+  if (learning) app.use(learning);
   app.use(express.static(webRoot));
-
-  const sessions = new Map<string, { turns: ChatTurn[]; touched: number }>();
-  const busy = new Set<string>();
-  const MAX_AGE_MS = 2 * 60 * 60 * 1000;
 
   app.get("/api/status", (_req, res) => {
     res.json({ connected: Boolean(process.env.GEMINI_API_KEY), provider: "Gemini", model: process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL });
@@ -91,6 +88,7 @@ export function createApp({ engine, usage, webRoot = join(process.cwd(), "fronte
     }
   });
 
+  // 첫 화면은 최종 페이지(v2). 옛 페이지(v1)는 /Steel%20Academy.dc.html로 그대로 열 수 있다.
   app.get("/", (_req, res) => res.sendFile(join(webRoot, "Steel Academy v2.dc.html")));
   return app;
 }

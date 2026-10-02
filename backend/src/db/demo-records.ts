@@ -34,12 +34,30 @@ interface Profile {
   retries: number;
 }
 
+// trainee01~04는 처음 정한 그대로, 그 뒤는 아래 유형을 돌려 쓰며 실력을 조금씩 다르게 한다.
 const PROFILES: Record<string, Profile> = {
   trainee01: { skill: 0.8, reach: 4, stopMidway: false, retries: 2 }, // 잘하는 편, 끝까지 감
   trainee02: { skill: 0.6, reach: 3, stopMidway: true, retries: 2 }, // 세 번째 섹션을 하다 멈춤
   trainee03: { skill: 0.4, reach: 2, stopMidway: false, retries: 1 }, // 재도전해도 잘 안 됨
   trainee04: { skill: 0.5, reach: 2, stopMidway: false, retries: 0 }, // 아직 재도전 전
 };
+
+const ARCHETYPES: Profile[] = [
+  { skill: 0.8, reach: 4, stopMidway: false, retries: 2 }, // 잘하는 편
+  { skill: 0.65, reach: 3, stopMidway: true, retries: 2 }, // 하다 멈춤
+  { skill: 0.45, reach: 2, stopMidway: false, retries: 1 }, // 재도전해도 잘 안 됨
+  { skill: 0.55, reach: 2, stopMidway: false, retries: 0 }, // 아직 재도전 전
+  { skill: 0.7, reach: 4, stopMidway: true, retries: 1 }, // 꽤 하는 편, 마지막 섹션 진행 중
+];
+
+function profileOf(username: string, index: number): Profile {
+  const fixed = PROFILES[username];
+  if (fixed) return fixed;
+  const base = ARCHETYPES[index % ARCHETYPES.length];
+  // 같은 유형끼리도 결과가 갈리도록 사람마다 실력을 -0.05~+0.05 사이로 바꾼다(seed와 무관하게 고정).
+  const jitter = (((index * 37) % 11) - 5) / 100;
+  return { ...base, skill: Math.min(0.95, Math.max(0.2, base.skill + jitter)) };
+}
 
 const WRONG_ANSWERS = ["잘 모르겠어요.", "온도를 높이는 설비 같아요.", "쇳물을 식히는 곳이요.", "불순물을 넣는 단계예요."];
 const PARTIAL_ANSWERS = ["대략 재료를 가공하는 곳이에요.", "다음 공정으로 보내는 설비예요.", "열을 쓰는 곳인데 정확히는 모르겠어요."];
@@ -83,13 +101,13 @@ export function seedDemoRecords(db: DatabaseSync, concepts: SectionConcepts, see
 
   db.exec("BEGIN");
   try {
-    for (const username of DEMO_TRAINEES) {
+    for (const [index, username] of DEMO_TRAINEES.entries()) {
       const user = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
       if (!user) continue;
       const userId = String(user.id);
       clearUser(db, userId);
       clock = now.getTime() - (2 + random() * 1.5) * 24 * 3600_000;
-      const profile = PROFILES[username];
+      const profile = profileOf(username, index);
 
       for (const [sectionIndex, section] of SECTIONS.slice(0, profile.reach).entries()) {
         const sectionConcepts = concepts[section] ?? [];

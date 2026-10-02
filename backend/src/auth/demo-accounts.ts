@@ -9,11 +9,15 @@ export interface DemoAccount {
   employee_no: string;
 }
 
+// 시연 신입사원 20명(trainee01~20, 사번 T2026001~020)과 관리자 1명. 이름은 시연용으로 지은 것이다.
+const TRAINEE_NAMES = [
+  "김신입", "이신입", "박신입", "최신입", "정다은", "강민준", "조서연", "윤도현", "장하은", "임지호",
+  "한유진", "오승우", "서지민", "신예린", "권태윤", "황수아", "안준서", "송채원", "류현우", "전소율",
+];
+const pad = (n: number, width: number) => String(n).padStart(width, "0");
+
 export const DEMO_ACCOUNTS: DemoAccount[] = [
-  { username: "trainee01", role: "trainee", name: "김신입", employee_no: "T2026001" },
-  { username: "trainee02", role: "trainee", name: "이신입", employee_no: "T2026002" },
-  { username: "trainee03", role: "trainee", name: "박신입", employee_no: "T2026003" },
-  { username: "trainee04", role: "trainee", name: "최신입", employee_no: "T2026004" },
+  ...TRAINEE_NAMES.map((name, i): DemoAccount => ({ username: `trainee${pad(i + 1, 2)}`, role: "trainee", name, employee_no: `T2026${pad(i + 1, 3)}` })),
   { username: "admin01", role: "admin", name: "관리자", employee_no: "A2026001" },
 ];
 

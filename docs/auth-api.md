@@ -41,7 +41,7 @@
 - `sections.{섹션}`: 끝낸 체크포인트가 없으면 `null`. `understanding`은 마지막으로 끝낸 시도의 이해도, `passed`는 한 번이라도 통과했는지.
 - 오개념은 개수만 준다. 설명·답변 원문은 본인만 본다.
 - 체크포인트 테이블(`attempts`, `misconceptions`)이 아직 없으면 `checkpoint_data: false`와 빈 기록을 준다.
-- 시연 기록: `npm run db:seed-demo [seed]`가 `trainee01`~`04`의 기록을 지우고 다시 만든다. 사람마다 실력·진도·재도전 횟수를 달리해 통과, 재도전 필요, 진행 중이 섞이게 한다. seed가 같으면 같은 기록이 나온다(예: `npm run db:seed-demo -- 58`).
+- 시연 기록: `npm run db:seed-demo [seed]`가 `trainee01`~`20`의 기록을 지우고 다시 만든다. 01~04는 처음 정한 프로필, 05~20은 5가지 유형을 돌려 쓰며 실력을 조금씩 달리해 통과, 재도전 필요, 진행 중이 섞이게 한다. seed가 같으면 같은 기록이 나온다(예: `npm run db:seed-demo -- 58`).
 
 ## 아이디·비밀번호 찾기
 
@@ -58,7 +58,7 @@
 
 | 아이디 | 역할 | 이름 | 사번 |
 |---|---|---|---|
-| `trainee01` ~ `trainee04` | trainee | 김신입, 이신입, 박신입, 최신입 | `T2026001` ~ `T2026004` |
+| `trainee01` ~ `trainee20` | trainee | 김신입, 이신입, 박신입, 최신입, 정다은 … 전소율(20명, `demo-accounts.ts`) | `T2026001` ~ `T2026020` |
 | `admin01` | admin | 관리자 | `A2026001` |
 
 - 로그인 화면의 일반 사용자 / 관리자 토글이 `GET /api/auth/demo-accounts`로 계정을 받아, 누르면 아이디·비밀번호 칸을 채운다. 목록에 사번은 내보내지 않는다.
@@ -80,5 +80,21 @@
 
 ## 남은 연결
 
-- 체크포인트 API(`feature/checkpoint-api`)는 지금 `X-User-Id` 헤더로 사용자를 구분한다(`request-user.ts`). 두 브랜치가 dev에 모두 들어오면 `userIdOf()`가 토큰의 사용자 id를 쓰도록 바꾸고 헤더 방식은 지운다. 관리자 통계는 `attempts.user_id`·`misconceptions.user_id`를 `users.id`와 맞춰 보므로, 이 연결 전에 쌓인 기록(헤더 이름 기준)은 통계에 잡히지 않는다.
+## 개인 페이지
+
+`GET /api/me/misconceptions[?section=ironmaking]` (토큰 필요, 없으면 401 `AUTH_REQUIRED`)
+
+- 로그인한 본인의 오개념만 최근 것부터 준다(라우트 `backend/src/me/routes.ts`, SQL은 `me/repository.ts`). 다른 사람의 기록은 어떤 값을 넣어도 볼 수 없다(사용자는 토큰으로만 정한다).
+- 항목: `id, section, concept_id, source, label, summary, answer_text, resolved, created_at, resolved_at`.
+- `label`: 학습 모드(`source=learning`)는 "대화 중 감지됨", 체크포인트는 "이해도 확인"(`backend/src/learning/labels.ts`, 학습자 메모와 같은 라벨).
+
+## 요청 사용자 구분 (`backend/src/request-user.ts`)
+
+- `/api` 요청에 `Authorization: Bearer <token>`이 있으면 토큰의 사용자 id(`users.id`)로 구분한다. 체크포인트(`userIdOf(req)`), 학습 모드·LLM 사용량(`currentUserId()`)이 모두 이 id를 쓴다. 토큰이 틀리거나 만료됐으면 401 `TOKEN_INVALID`.
+- [임시] 토큰이 없으면 예전처럼 `X-User-Id` 헤더, 그것도 없으면 `demo-user`. 모든 화면이 토큰을 보내게 되면 지운다.
+- 관리자 통계는 `users.id` 기준이므로, 토큰을 보내기 전에 헤더 이름으로 쌓인 기록은 통계에 잡히지 않는다.
+
+## 남은 연결
+
+- 화면이 저장된 토큰(`st-rookie-token`)을 `/api` 요청에 붙여야 한다: 3D 페이지 학습 채팅(`learning-chat.js`), 체크포인트 테스트 페이지(`checkpoint-test.html`).
 - 마이페이지의 학습 기록(`RECORDS`, `QA`, `MIS`)은 아직 샘플이다.
