@@ -3,14 +3,26 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { z } from "zod";
 import { answerQuestion, DEFAULT_GEMINI_MODEL, GeminiApiError, type ChatTurn } from "../../llm/src/ironmaking-agent.js";
+import { seedDemoAccounts } from "./auth/demo-accounts.js";
+import { createAuthRouter } from "./auth/routes.js";
+import { jwtSecret } from "./auth/tokens.js";
+import { UserRepository } from "./auth/users.js";
+import { openDatabase } from "./db/database.js";
 import { loadFinalRubrics } from "./rubrics.js";
 
 // 루브릭 형식이 틀리면 여기서 예외가 나 서버가 시작되지 않는다.
 loadFinalRubrics();
 
+const db = openDatabase();
+const users = new UserRepository(db);
+const seeded = await seedDemoAccounts(users);
+if (seeded > 0) console.log(`시연 계정 ${seeded}개를 만들었습니다.`);
+
 const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "16kb" }));
+const auth = { users, secret: jwtSecret() };
+app.use(createAuthRouter(auth));
 
 const webRoot = join(process.cwd(), "frontend", "3d-demo");
 app.use(express.static(webRoot));

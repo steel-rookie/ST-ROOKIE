@@ -1,0 +1,84 @@
+# 로그인 API
+
+아이디 + 비밀번호(bcrypt 해시) + JWT. 화면은 `frontend/login_ui/My Page.dc.html`.
+
+## 엔드포인트
+
+| 요청 | 본문 | 성공 | 실패 |
+|---|---|---|---|
+| `POST /api/auth/signup` | `{ username, password, name, employee_no }` | `201 { token, user }` | `400` 형식 오류, `409 USERNAME_TAKEN`, `409 EMPLOYEE_NO_TAKEN` |
+| `POST /api/auth/login` | `{ username, password, remember? }` | `200 { token, user }` | `401 INVALID_CREDENTIALS` |
+| `POST /api/auth/find-id` | `{ name, employee_no }` | `200 { username }` | `400`, `404 NOT_FOUND` |
+| `POST /api/auth/reset-password` | `{ username, name, employee_no, password }` | `200 { ok: true }` | `400`, `404 NOT_FOUND`, `403 DEMO_ACCOUNT` |
+| `GET /api/auth/demo-accounts` | 없음 | `200 { accounts, password }` | 꺼져 있으면 `{ accounts: [], password: null }` |
+| `GET /api/auth/me` | 헤더 `Authorization: Bearer <token>` | `200 { user }` | `401 AUTH_REQUIRED`, `401 TOKEN_INVALID` |
+
+- `user`는 `{ id, username, role, name, employee_no }`. `role`은 `trainee`(신입사원) 또는 `admin`(관리자). 회원가입은 항상 `trainee`로 만든다.
+- `id`는 UUID이고, 다른 테이블의 `user_id`는 이 값을 쓴다.
+- 실패 응답은 `{ error, code? }`. `error`는 화면에 그대로 보여 줄 수 있는 한국어 문장이다.
+- 아이디: 영문 소문자·숫자·`_`, 4~20자. 비밀번호: 8자 이상, UTF-8 72바이트 이하(bcrypt 한도). 이름: 1~20자. 사번: 영문·숫자·`-` 3~20자, 대문자로 저장.
+- 없는 아이디와 틀린 비밀번호는 같은 응답을 준다(아이디 존재 여부를 알려 주지 않는다).
+- 토큰 유효기간: `remember: true`(로그인 상태 유지)면 7일, 아니면 12시간. 로그아웃은 프론트가 토큰을 지우는 것으로 한다.
+
+## 관리자 통계
+
+`GET /api/admin/trainees` (토큰 필요, `admin`만. 아니면 `403 ADMIN_ONLY`)
+
+```json
+{
+  "checkpoint_data": true,
+  "sections": ["ironmaking", "steelmaking", "continuous_casting", "rolling"],
+  "trainees": [{
+    "id": "uuid", "username": "trainee01", "name": "김신입", "employee_no": "T2026001",
+    "created_at": "ISO", "last_activity": "ISO | null",
+    "sections": { "ironmaking": { "understanding": 0.92, "passed": true, "attempts": 1 }, "steelmaking": null },
+    "passed_sections": 1,
+    "misconceptions": { "open": 0, "resolved": 1 }
+  }]
+}
+```
+
+- `sections.{섹션}`: 끝낸 체크포인트가 없으면 `null`. `understanding`은 마지막으로 끝낸 시도의 이해도, `passed`는 한 번이라도 통과했는지.
+- 오개념은 개수만 준다. 설명·답변 원문은 본인만 본다.
+- 체크포인트 테이블(`attempts`, `misconceptions`)이 아직 없으면 `checkpoint_data: false`와 빈 기록을 준다.
+- 시연 기록: `npm run db:seed-demo [seed]`가 `trainee01`~`04`의 기록을 지우고 다시 만든다. 사람마다 실력·진도·재도전 횟수를 달리해 통과, 재도전 필요, 진행 중이 섞이게 한다. seed가 같으면 같은 기록이 나온다(예: `npm run db:seed-demo -- 58`).
+
+## 아이디·비밀번호 찾기
+
+메일 발송 수단이 없어서 **이름 + 사번**으로 본인 확인을 한다.
+
+- 아이디 찾기: 이름과 사번이 맞으면 아이디를 그대로 보여 준다.
+- 비밀번호 찾기: 아이디·이름·사번이 모두 맞으면 바로 새 비밀번호로 바꾼다.
+- 확인에 실패하면 0.5초 늦게 답해 대입 시도를 느리게 한다.
+- 이름과 사번을 아는 사람은 비밀번호를 바꿀 수 있으므로 시연·사내용 수준이다. 실제 운영 전에 메일·관리자 승인 같은 확인 수단을 팀에서 정한다.
+
+## 시연 계정
+
+서버가 시작할 때 없는 계정만 만든다. 비밀번호는 모두 같다(기본 `steel-2026-demo`, `.env`의 `DEMO_PASSWORD`로 변경).
+
+| 아이디 | 역할 | 이름 | 사번 |
+|---|---|---|---|
+| `trainee01` ~ `trainee04` | trainee | 김신입, 이신입, 박신입, 최신입 | `T2026001` ~ `T2026004` |
+| `admin01` | admin | 관리자 | `A2026001` |
+
+- 로그인 화면의 일반 사용자 / 관리자 토글이 `GET /api/auth/demo-accounts`로 계정을 받아, 누르면 아이디·비밀번호 칸을 채운다. 목록에 사번은 내보내지 않는다.
+- 시연 계정은 여럿이 같이 쓰므로 비밀번호 재설정을 막는다(`403 DEMO_ACCOUNT`).
+- 외부에 열 때는 `DEMO_ACCOUNTS=off`로 끈다(계정 생성과 목록 모두 꺼짐).
+- `DEMO_PASSWORD`는 새로 만드는 계정에만 적용된다. 이미 만든 계정의 비밀번호는 바꾸지 않는다.
+
+## 화면 연결
+
+- 서버가 `/login`을 `frontend/login_ui/My Page.dc.html`로 보낸다. 파일을 브라우저에서 바로 열면 API를 부를 수 없다.
+- 토큰은 로그인 상태 유지면 `localStorage`, 아니면 `sessionStorage`의 `st-rookie-token`에 둔다.
+- 첫 화면에서 `GET /api/auth/me`로 확인하고, `401`이면 토큰을 지우고 로그인 화면을 보여 준다.
+- 다른 `/api` 요청에는 `Authorization: Bearer <token>` 헤더를 붙인다.
+
+## 서버 설정
+
+- `.env`의 `JWT_SECRET`으로 서명한다. 비어 있으면 실행할 때마다 임시 키를 만들어서, 서버를 다시 켜면 로그인이 모두 풀린다.
+- 계정은 SQLite `users` 테이블(`backend/src/db/migrations/003_users.sql`)에 저장한다. DB 위치는 `DB_PATH`, 기본값 `data/st-rookie.sqlite`.
+
+## 남은 연결
+
+- 체크포인트 API(`feature/checkpoint-api`)는 지금 `X-User-Id` 헤더로 사용자를 구분한다(`request-user.ts`). 두 브랜치가 dev에 모두 들어오면 `userIdOf()`가 토큰의 사용자 id를 쓰도록 바꾸고 헤더 방식은 지운다. 관리자 통계는 `attempts.user_id`·`misconceptions.user_id`를 `users.id`와 맞춰 보므로, 이 연결 전에 쌓인 기록(헤더 이름 기준)은 통계에 잡히지 않는다.
+- 마이페이지의 학습 기록(`RECORDS`, `QA`, `MIS`)은 아직 샘플이다.
