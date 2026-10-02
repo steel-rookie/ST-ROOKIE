@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { z } from "zod";
 import { answerQuestion, DEFAULT_GEMINI_MODEL, GeminiApiError, type ChatTurn } from "../../llm/src/ironmaking-agent.js";
+import { createAdminRouter } from "./admin/routes.js";
 import { seedDemoAccounts } from "./auth/demo-accounts.js";
 import { createAuthRouter } from "./auth/routes.js";
 import { jwtSecret } from "./auth/tokens.js";
@@ -23,6 +24,7 @@ app.disable("x-powered-by");
 app.use(express.json({ limit: "16kb" }));
 const auth = { users, secret: jwtSecret() };
 app.use(createAuthRouter(auth));
+app.use(createAdminRouter(db, auth));
 
 const webRoot = join(process.cwd(), "frontend", "3d-demo");
 app.use(express.static(webRoot));
