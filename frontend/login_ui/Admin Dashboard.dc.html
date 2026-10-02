@@ -105,7 +105,8 @@
             <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:18px;font-weight:700;">전 과정 수료</h2>
             <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ok);">{{ doneCount }}</span>
           </div>
-          <div style="display:flex;flex-direction:column;">
+          <!-- 수료자가 많으면 이 칸만 세로로 스크롤한다(약 4명분 높이). -->
+          <div style="display:flex;flex-direction:column;max-height:264px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent;padding-right:4px;">
             <sc-for list="{{ doneList }}" as="d" hint-placeholder-count="3">
               <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);">
                 <span style="width:32px;height:32px;border-radius:16px;flex:none;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb, var(--ok) 18%, transparent);color:var(--ok);font-size:13px;font-weight:700;">{{ d.initial }}</span>
