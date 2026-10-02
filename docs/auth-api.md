@@ -80,5 +80,13 @@
 
 ## 남은 연결
 
-- 체크포인트 API(`feature/checkpoint-api`)는 지금 `X-User-Id` 헤더로 사용자를 구분한다(`request-user.ts`). 두 브랜치가 dev에 모두 들어오면 `userIdOf()`가 토큰의 사용자 id를 쓰도록 바꾸고 헤더 방식은 지운다. 관리자 통계는 `attempts.user_id`·`misconceptions.user_id`를 `users.id`와 맞춰 보므로, 이 연결 전에 쌓인 기록(헤더 이름 기준)은 통계에 잡히지 않는다.
+## 요청 사용자 구분 (`backend/src/request-user.ts`)
+
+- `/api` 요청에 `Authorization: Bearer <token>`이 있으면 토큰의 사용자 id(`users.id`)로 구분한다. 체크포인트(`userIdOf(req)`), 학습 모드·LLM 사용량(`currentUserId()`)이 모두 이 id를 쓴다. 토큰이 틀리거나 만료됐으면 401 `TOKEN_INVALID`.
+- [임시] 토큰이 없으면 예전처럼 `X-User-Id` 헤더, 그것도 없으면 `demo-user`. 모든 화면이 토큰을 보내게 되면 지운다.
+- 관리자 통계는 `users.id` 기준이므로, 토큰을 보내기 전에 헤더 이름으로 쌓인 기록은 통계에 잡히지 않는다.
+
+## 남은 연결
+
+- 화면이 저장된 토큰(`st-rookie-token`)을 `/api` 요청에 붙여야 한다: 3D 페이지 학습 채팅(`learning-chat.js`), 체크포인트 테스트 페이지(`checkpoint-test.html`).
 - 마이페이지의 학습 기록(`RECORDS`, `QA`, `MIS`)은 아직 샘플이다.
