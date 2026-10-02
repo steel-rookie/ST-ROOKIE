@@ -5,7 +5,7 @@
   "status": "draft",
   "owners": {
     "frontend": "viiin2 (Admin Dashboard.dc.html, admin_data.js, My Page.dc.html)",
-    "backend_admin_api": "미정 — backend/src/admin/ (trainees는 구현됨, concepts는 신규)",
+    "backend_admin_api": "viiin2 — backend/src/admin/ (trainees는 구현됨, concepts는 작은 PR로 신규)",
     "checkpoint_data": "수민 — attempts, concept_results, misconceptions 테이블"
   },
 
@@ -78,7 +78,7 @@
       "status": "proposed",
       "method": "GET",
       "path": "/api/admin/concepts",
-      "desc": "개념(=설비)별 체크포인트 첫 판정 분포. 오답률 순위에 쓴다. 없으면 화면은 샘플로 표시.",
+      "desc": "개념별 체크포인트 첫 판정 분포. 오답률 순위에 쓴다. 없으면 화면은 샘플로 표시.",
       "query": { "section": { "type": "string", "optional": true, "desc": "없으면 전체" } },
       "aggregation": "concept_results JOIN attempts(state='completed', 사용자 role='trainee'). 첫 질문(verdict) 기준으로 센다. 재도전 시도도 포함.",
       "response": {
@@ -152,8 +152,8 @@
   },
 
   "open_questions": [
-    { "id": "Q1", "q": "GET /api/admin/concepts 담당자와 일정", "to": "백엔드" },
-    { "id": "Q2", "q": "개념별 미해결 오개념 '개수'를 관리자에게 보여도 되는가(사람별 개수는 확정, 개념별은 미확정)", "to": "팀" },
+    { "id": "Q1", "q": "GET /api/admin/concepts 담당자와 일정", "to": "백엔드", "answer": "viiin2가 작은 PR로 만든다 (2026-10-02)" },
+    { "id": "Q2", "q": "개념별 미해결 오개념 '개수'를 관리자에게 보여도 되는가(사람별 개수는 확정, 개념별은 미확정)", "to": "팀", "answer": "개념별 개수는 보여 준다. 팀 공유와 CLAUDE.md 반영 대기 (2026-10-02)" },
     { "id": "Q3", "q": "미접속 경고 기준 3일이 적절한가", "to": "교육 담당" },
     { "id": "Q4", "q": "trainee가 대시보드 주소로 직접 들어올 때 /login으로 보낼지, 권한 없음 화면을 보여줄지", "to": "프론트" },
     { "id": "Q5", "q": "명단 CSV 내보내기가 필요한가", "to": "교육 담당" }
