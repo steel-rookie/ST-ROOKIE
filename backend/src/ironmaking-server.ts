@@ -15,6 +15,7 @@ import { createMeRouter } from "./me/routes.js";
 import { CheckpointEngine } from "./checkpoint/engine.js";
 import { CheckpointRepository } from "./checkpoint/repository.js";
 import { openDatabase } from "./db/database.js";
+import { useLearnerNotesSource } from "./learning/notes.js";
 import { LearningRepository } from "./learning/repository.js";
 import { createLearningRouter } from "./learning/routes.js";
 import { currentUserId } from "./request-user.js";
@@ -41,8 +42,11 @@ const seeded = await seedDemoAccounts(users);
 if (seeded > 0) console.log(`시연 계정 ${seeded}개를 만들었습니다.`);
 
 // 학습 모드: 같은 GeminiClient를 써서 하루 호출 한도를 체크포인트와 함께 센다.
+const learningRepo = new LearningRepository(db);
+// 체크포인트에 넘길 학습자 메모(buildLearnerNotes)도 같은 기록을 읽는다.
+useLearnerNotesSource(learningRepo);
 const learning = createLearningRouter({
-  repo: new LearningRepository(db),
+  repo: learningRepo,
   retriever: new Retriever({ glossaryFor: (s) => rubrics.find((r) => r.section === s)?.glossary ?? [] }),
   agent: new GeminiLearningAgent(gemini),
   rubrics,

@@ -89,6 +89,8 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
   - `conceptOrder`: 루브릭 순서 그대로.
   - `context`: 미해결 오개념 요약.
 - 학습 모드 → 체크포인트: 체크포인트 시작 시 엔진의 `options.notes`로 넘긴다. **튜터에게만** 주어 부가 설명에서 알려진 오해를 짚게 한다. **평가자에게는 넘기지 않는다**(평가자 입력은 루브릭·질문·답변뿐, 과거 기록으로 채점이 치우치지 않게).
+- 구현(`backend/src/learning/notes.ts`): 서버 시작 때 `useLearnerNotesSource(learningRepo)`로 기록 저장소를 넘긴다(시그니처가 고정이라 인자로 받을 수 없어서). `buildLearnerNotes`는 섹션의 미해결 오개념을 최근 것부터 개념당 하나, 최대 5개를 출처 라벨(대화 중 감지됨·이해도 확인)과 함께 `context`로 요약한다. `conceptOrder`는 넣지 않는다(루브릭 순서). 저장소가 없거나 오개념이 없으면 빈 메모.
+- 아직 체크포인트 쪽에서 `buildLearnerNotes`를 불러 `options.notes`로 넘기고, 튜터 프롬프트에 `context`를 넣는 연결은 없다(체크포인트 담당).
 - 체크포인트 → 학습 모드: 체크포인트에서 나온 미해결 오개념을 학습 모드 프롬프트에 넣어, 관련 질문이 오면 먼저 바로잡게 한다. 화면에는 "지난번 헷갈린 개념" 추천 질문으로 보여 준다.
 
 ## 저장
