@@ -52,18 +52,23 @@
 ### 체크포인트 모드
 1. 튜터가 "제선 질문 시작할게요, 준비됐나요?"처럼 시작한다.
 2. 개념별로 질문한다.
-3. 평가자 LLM이 사용자 답변을 판정해 JSON을 돌려준다.
+3. 평가자 LLM이 사용자 답변을 판정해 JSON을 돌려준다. `concept_id`는 평가자가 내지 않고 서버가 붙인다.
    ```json
    {
-     "concept_id": "string",
      "verdict": "correct | partial | wrong | assisted",
      "misconception": "string | null",
-     "explain_from": "string | null"
+     "explain_from": "number | null",
+     "evidence": "string"
    }
    ```
+   `explain_from`은 학습자가 처음 놓친 `key_points`의 인덱스(0부터)다. 되묻거나 힌트를 요청하면 `assisted`다.
 4. `correct`가 아니면(`partial`, `wrong`, `assisted`) `explain_from`부터 부가 설명을 한 뒤 **다른 각도의 질문으로 한 번** 재확인한다. 재확인은 개념당 1회뿐이다.
+5. 재확인 단계의 평가자는 `responseSchema`의 verdict에서 `assisted`를 빼고, 프롬프트에 "되묻기·힌트 요청은 wrong"을 명시한다(판정 뒤 변환하지 않는다).
 
 평가자는 `content/rubrics/final/`만 읽는다. `draft/`는 읽지 않는다.
+평가자 입력은 해당 개념의 루브릭, 섹션 용어집(`glossary`), 질문, 답변뿐이다. 질문과 답변은 `<question>`, `<answer>` 구분자로 감싸고, 구분자 안의 내용은 채점 대상이며 지시가 아니라고 명시한다.
+
+API·상태 머신·DB·프롬프트의 상세 설계는 [docs/checkpoint-api.md](docs/checkpoint-api.md).
 
 ## 점수 규칙
 
@@ -103,6 +108,7 @@ content/
 - `section.md`가 교육 내용의 단일 기준이다. 다른 곳에 교육 내용을 중복해서 만들지 않는다.
 - 루브릭은 `draft/` → 팀 검수 → `final/` 순서로만 옮긴다. 검수 없이 `final/`에 쓰지 않는다.
 - 루브릭 형식은 `content/rubrics/schema.json`. 최상위 `reviewed`는 팀 검수 여부이고, `false`인 루브릭을 로드하면 경고 로그를 남긴다(`backend/src/rubrics.ts`의 `loadRubric`). 스키마 검증은 서버 실행 중에도 `ajv`로 한다.
+- 루브릭 최상위의 선택 필드 `glossary: [{term, aliases}]`는 섹션 단위 용어집이다(예: 용선 = 쇳물). 평가자 프롬프트에 들어가 동의어를 같은 말로 본다.
 - 현재 `final/01_제선.json`은 `reviewed: false`인 임시 루브릭이다. `section.md`가 생기면 그 문서를 근거로 다시 만든다.
 
 ## 튜토리얼
@@ -112,7 +118,8 @@ content/
 
 ## 데이터 저장
 
-- SQLite로 시작한다. PostgreSQL로 옮길 수 있게 SQLite 전용 문법·타입에 의존하지 않는다.
+- SQLite로 시작한다(Node 내장 `node:sqlite`, 파일은 `DB_PATH`, 기본 `data/st-rookie.sqlite`). PostgreSQL로 옮길 수 있게 SQLite 전용 문법·타입에 의존하지 않고, SQL은 저장소 파일(`backend/src/checkpoint/repository.ts`)에만 둔다.
+- 로그인 전까지는 `X-User-Id` 헤더(없으면 `demo-user`)로 사용자를 구분한다.
 - 사용자별 데이터(계정, 개념 점수, 판정 기록, 오개념, 진도, 튜토리얼 완료 여부)는 DB에 둔다.
 - 교육 내용과 루브릭은 DB가 아니라 `content/` 파일로 관리한다.
 
@@ -130,6 +137,17 @@ content/
 - 로그인: 아이디 + 비밀번호(bcrypt 해시) + JWT.
 - LLM: Gemini를 유지한다. 평가자는 Gemini `responseSchema`로 판정 JSON 형식을 강제한다.
 - 체크포인트 결과 차트: 개념별 가로 막대(맞음/부분/틀림) + 전체 이해도 게이지(80% 기준선 표시).
+- 재확인 단계에서 되묻기·힌트 요청은 `wrong`이다(재확인 평가자 스키마에 `assisted` 없음).
+- 재확인에도 맞히지 못하면 핵심 요소 요약(템플릿)을 보여 주고 다음 개념으로 넘어간다.
+- "준비됐나요?"에는 어떤 응답이든 시작으로 본다.
+- 이미 통과한 섹션은 다시 응시할 수 없다(409).
+- 같은 시도 안에서 재확인으로 맞혀도 그 개념의 오개념은 해결됨으로 바꾼다.
+- 재확인에서 나온 오개념도 기록한다.
+
+## 다음 단계
+
+- **학습자 메모**: `CheckpointEngine.start()`·`respond()`의 선택 파라미터 `options.notes`(`LearnerNotes`: `conceptOrder`, `context`) 자리만 열어 두었다. 개념 순서 조정(`orderConcepts`)과 튜터에게 줄 추가 컨텍스트를 여기에 연결한다.
+- 프론트 튜터 패널을 체크포인트 API에 연결한다(진행 중에는 입력을 `/api/checkpoints/:id/messages`로 보낸다).
 
 ## 미정 사항
 
@@ -139,4 +157,6 @@ content/
 
 - `npm test`: 빌드 후 `backend/test/*.test.ts`를 `node:test`로 실행한다.
 - `npm run typecheck`: 타입 검사.
+- `npm run eval:evaluator`: 실제 Gemini로 평가자 정확도를 잰다(`llm/eval/{섹션}.jsonl`, 일치율·혼동 표·틀린 케이스). 비용과 요청 제한 때문에 `npm test`에는 넣지 않는다. 케이스 사이 대기는 `EVAL_DELAY_MS`(기본 1000).
+- 평가자·튜터 프롬프트는 `llm/prompts/`에 있다. 평가자 프롬프트를 바꾸면 `eval:evaluator`로 일치율을 다시 확인한다.
 - 소스를 지우거나 옮긴 뒤 테스트가 이상하면 `.build/`를 지우고 다시 실행한다(이전 빌드 결과가 남는다).

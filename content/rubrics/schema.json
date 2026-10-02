@@ -11,6 +11,24 @@
       "description": "팀 검수를 마쳤는지. false인 루브릭을 로드하면 경고 로그를 남긴다.",
       "type": "boolean"
     },
+    "glossary": {
+      "description": "섹션 단위 용어집(선택). 평가자는 같은 용어의 동의어를 같은 말로 본다.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["term", "aliases"],
+        "additionalProperties": false,
+        "properties": {
+          "term": { "description": "루브릭에서 쓰는 기준 용어.", "type": "string", "minLength": 1 },
+          "aliases": {
+            "description": "같은 뜻으로 인정하는 표현.",
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
     "section": {
       "description": "섹션(공정) id. frontend/3d-demo/data.js의 PROCESSES[].id와 같다.",
       "enum": ["ironmaking", "steelmaking", "continuous_casting", "rolling"]
