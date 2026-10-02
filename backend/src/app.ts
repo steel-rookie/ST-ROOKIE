@@ -91,6 +91,6 @@ export function createApp({ engine, usage, webRoot = join(process.cwd(), "fronte
     }
   });
 
-  app.get("/", (_req, res) => res.sendFile(join(webRoot, "Steel Academy.dc.html")));
+  app.get("/", (_req, res) => res.sendFile(join(webRoot, "Steel Academy v2.dc.html")));
   return app;
 }
