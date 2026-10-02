@@ -244,6 +244,7 @@ async function refreshProgress(section) {
     S.progress[section] = { unavailable: true, status: e.status ?? 0 };
   }
   renderSections();
+  if (S.cp?.state === 'completed') renderCheckpoint();
 }
 
 function entryFor(id) {
@@ -323,7 +324,12 @@ async function call(action, text) {
     S.cp = view;
     if (text !== undefined) { S.msgs.push({ role: 'user', type: null, text }); $('cp-input').value = ''; }
     S.msgs.push(...view.tutor.map((u) => ({ role: 'tutor', type: u.type, text: u.text })));
-    if (view.state === 'completed') refreshProgress(view.section);
+    if (view.state === 'completed') {
+      // 통과 문구에 다음 섹션이 열렸는지(루브릭이 있는지) 반영하려고 다음 섹션도 다시 확인한다.
+      const next = SECTIONS[SECTIONS.findIndex((s) => s.id === view.section) + 1];
+      refreshProgress(view.section);
+      if (next) refreshProgress(next.id);
+    }
   } catch (e) {
     S.notice = e.message;
   } finally {
@@ -391,7 +397,11 @@ function renderResult(r) {
   $('gauge-threshold').style.left = `${threshold}%`;
   $('gauge-threshold').querySelector('span').textContent = `기준 ${threshold}%`;
   const pass = $('pass-label');
-  pass.textContent = r.unlocked ? (next ? `통과 · ${next.name} 섹션이 열렸어요` : '통과 · 모든 섹션을 마쳤어요') : `${threshold}% 미달 · 섹션을 다시 살펴본 뒤 재도전해요`;
+  // 다음 섹션에 루브릭이 없으면 progress가 404다.
+  const nextReady = next && !(S.progress[next.id]?.unavailable && S.progress[next.id].status === 404);
+  pass.textContent = !r.unlocked ? `${threshold}% 미달 · 섹션을 다시 살펴본 뒤 재도전해요`
+    : !next ? '통과 · 모든 섹션을 마쳤어요'
+    : nextReady ? `통과 · ${next.name} 섹션이 열렸어요` : '통과 · 다음 섹션은 준비 중이에요';
   pass.style.background = r.unlocked ? 'var(--ok-bg)' : 'var(--warn-bg)';
   pass.style.color = r.unlocked ? 'var(--ok)' : 'var(--warn)';
   $('bars').replaceChildren(...r.concepts.map((c) => {
