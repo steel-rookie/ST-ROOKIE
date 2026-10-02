@@ -4,6 +4,7 @@
 
 커밋 메시지 규칙은 [agent.md](agent.md)를 따른다.
 보고는 한국어로 한다.
+작업 시작 전과 커밋 전에 현재 브랜치를 확인한다(`git branch --show-current`). IDE 등에서 브랜치가 바뀌어 커밋이 엉뚱한 브랜치에 쌓인 적이 있다.
 
 ## 현재 상태와 목표
 
@@ -24,7 +25,7 @@
   - `componentDidMount`: `data_v2.js`와 `learning-chat.js`를 불러와 `this.chat`을 만들고 3D 이벤트를 구독한다.
   - `ask(text)`, `screenContext()`: `this.chat`에 넘기는 한 줄짜리 위임(설비 패널·개발자 패널이 부른다).
   - `renderVals()`: 템플릿 값과 클릭 핸들러(공정 탭, 설비 목록, 재생 제어, 튜터 패널, 개발자 패널). 튜터 패널 값은 `...this.chat.vals(D)`.
-  - 알려진 문제: `componentDidUpdate(_, prev)`는 `support.js`가 인자를 하나만 넘겨 매번 콘솔 오류를 낸다(화면에는 영향 없음).
+  - 알려진 문제: `componentDidUpdate(_, prev)`는 `support.js`가 인자를 하나만 넘겨 매번 콘솔 오류를 낸다([#15](https://github.com/viiin2/ST-ROOKIE/issues/15)). 아래 '알려진 문제' 참고.
 - `learning-chat.js`: 학습 모드 채팅. `createLearningChat(c)`가 `ask`(질문 → 가짜 튜터 → 화면 조작 → 메시지), `runActions`(`goto_process`, `highlight`, `focus`, `play_animation`), `screenContext`, `vals`(메시지·추천 질문·입력창)를 돌려준다. 상태는 페이지 컴포넌트 state에 그대로 있다. 실제 학습 모드 API로 바꿀 때 `ask`의 `mockTutor` 호출을 바꾼다.
 - `tutor_v2.js`: `mockTutor(req)`(가짜 튜터). `data_v2.js`: `PROCESSES`(공정 4개·설비 24개), `SUGGESTED`, `findProcess`, `findEquipment`. 3D 표시용 값과 교육 내용이 섞여 있다.
 - `scene_v2.js`: `<steel-scene>` 커스텀 엘리먼트(Three.js). 메서드 `jumpTo`, `tour`, `next`, `stopTour`, `play`, `stop`, `toggle`, `focus`, `overview`, `reset`, `setLeftLimit`. 이벤트 `steel-select`, `steel-goto`, `steel-overview`, `steel-layer`, `steel-model`, `steel-progress`, `steel-tour`, `steel-tour-end`. `steel-2d.js`·`steel-2d-popup.js`는 2D 공정 팝업.
@@ -198,7 +199,17 @@ content/
 
 - **학습자 메모**: `CheckpointEngine.start()`·`respond()`의 선택 파라미터 `options.notes`는 `backend/src/learning/notes.ts`의 `LearnerNotes`(`conceptOrder`, `context`)를 받는다. `buildLearnerNotes(userId, section)`은 시그니처만 고정했고 구현은 TODO(지금은 빈 메모). 엔진의 개념 순서 조정(`orderConcepts`)과 튜터에게 줄 추가 컨텍스트에 연결한다.
 - **학습 모드 연결**: 설계와 결정은 `docs/learning-mode.md`. 오개념은 같은 응답에서 단정할 때만 감지하고, 대화는 DB에 저장(보관 기간 없음), 근거는 `retrieve()`로 분리해 공개 자료 메모로 먼저 연결한다. 학습 모드 오개념은 체크포인트 튜터의 context로만 쓰고 평가자에게는 넘기지 않는다. 개인 페이지에서 `source = learning`은 "대화 중 감지됨"으로 표시한다.
+- **개념 ↔ 설비 연결(수민 담당)**: 루브릭 스키마의 개념에 `equipment_ids`(선택, `data_v2.js`의 설비 id 배열)를 추가한다. 재학습 시 3D 하이라이트(오개념이 있는 개념의 설비 강조)에 쓴다. 스키마는 공용 파일이므로 작은 PR로 내고 공유한다. id 목록은 [docs/equipment-ids.md](docs/equipment-ids.md).
 - **3D 화면 조작**: 학습 모드의 `scene_actions`와 "재학습 시 3D 하이라이트"(오개념이 있는 개념의 설비를 강조)를 함께 진행한다.
+
+## 알려진 문제
+
+고치지 않고 이슈로 남긴 것. 고치면 이 목록에서 지운다.
+
+- 테스트 `HTTP: 시작 201·재시작 200, 입력 오류 400, LLM 연결 실패 502`(`backend/test/checkpoint.test.ts`)가 전체 실행에서 가끔 실패한다(26회 중 1회, 단독 실행은 통과): [#14](https://github.com/viiin2/ST-ROOKIE/issues/14)
+- v2 `componentDidUpdate` 콘솔 오류(`support.js`가 인자 하나만 넘김, 설비 선택 시 `setLeftLimit` 미실행): [#15](https://github.com/viiin2/ST-ROOKIE/issues/15)
+- 제강 신규 설비 3개(`oxygen_lance_offgas`, `tapping_ladle_crane`, `ladle_transfer`)의 앵커가 `anchors-v2b.json`에 없음: [#16](https://github.com/viiin2/ST-ROOKIE/issues/16)
+- `models/README.md`의 `EQ_<id>` 노드 규칙이 현재 앵커 방식과 다름(GLB에 `EQ_` 노드 없음): [#17](https://github.com/viiin2/ST-ROOKIE/issues/17)
 
 ## 미정 사항
 

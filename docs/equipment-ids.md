@@ -5,7 +5,7 @@
 - 기준 파일: `frontend/3d-demo/data_v2.js`의 `PROCESSES[].equipment[].id` (공정 4개, 설비 24개). 최종 페이지 `Steel Academy v2.dc.html`이 쓴다.
 - v1(`data.js`, 설비 16개)은 `Steel Academy.dc.html`(옛 페이지)용이다. v1의 id 16개는 v2에 모두 같은 id로 있고, v2에 8개가 새로 생겼다. 없어진 id는 없다.
 - 3D 위치: v2 화면(`scene_v2.js`)은 `models/anchors-v2b.json`의 앵커로 설비를 찾는다. 현재 GLB 4개에는 `EQ_<설비 id>` 노드가 없다(`models/README.md`의 노드 규칙은 아직 적용되지 않음).
-- 루브릭(`content/rubrics/final/`)과 `docs/learning-mode.md`에는 설비 id가 없다. 루브릭은 개념 id(`concept_id`)만 쓴다. 개념 ↔ 설비 연결(재학습 시 3D 하이라이트에 필요)은 아직 정해지지 않았다.
+- 루브릭(`content/rubrics/final/`)과 `docs/learning-mode.md`에는 설비 id가 없다. 루브릭은 개념 id(`concept_id`)만 쓴다. 개념 ↔ 설비 연결(재학습 시 3D 하이라이트에 필요)은 루브릭 스키마에 개념별 `equipment_ids`를 추가하는 방향으로 정했다(수민 담당, CLAUDE.md '다음 단계').
 
 | 공정 | v2 순서 | id | v2 이름 | v1(`data.js`) 이름 | v1 순서 | v2 앵커 |
 |---|---|---|---|---|---|---|
@@ -38,5 +38,5 @@
 
 - 순서가 실제로 바뀐 곳: 제선의 `blast_furnace`(고로)와 `hot_stove`(열풍로). v1은 열풍로 → 고로, v2는 고로 → 열풍로. 나머지 순서 차이는 새 설비가 끼어든 결과다.
 - 이름이 바뀐 설비가 있다(예: 고로 → 고로·장입 장치). 튜터 답변이나 콘텐츠에서 설비를 가리킬 때는 이름이 아니라 id를 쓴다.
-- 제강의 새 설비 3개(`oxygen_lance_offgas`, `tapping_ladle_crane`, `ladle_transfer`)는 `anchors-v2b.json`에 앵커가 없다. 이 설비로 `focus`·`highlight`가 되는지는 3D 담당과 확인한다.
+- 제강의 새 설비 3개(`oxygen_lance_offgas`, `tapping_ladle_crane`, `ladle_transfer`)는 `anchors-v2b.json`에 앵커가 없다([#16](https://github.com/viiin2/ST-ROOKIE/issues/16)). 이 설비로 `focus`·`highlight`가 되는지는 3D 담당과 확인한다.
 - 추천 질문(`SUGGESTED`)은 v1·v2가 같다.

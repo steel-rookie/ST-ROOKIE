@@ -47,6 +47,7 @@
   - 꼭 PR을 쌓아야 하면, 앞 PR이 병합된 직후 다음 PR의 base를 `dev`로 바꾼 뒤 병합합니다.
 - PR은 작게 나눕니다. 예: 저장소(마이그레이션) → 검색 → 에이전트 → 라우트 → 화면 연결.
 - 작업 중에 `dev`를 자주 받아 옵니다(`git fetch && git merge origin/dev`).
+- 작업 시작 전과 커밋 전에 현재 브랜치를 확인합니다(`git branch --show-current`).
 - 새 마이그레이션 번호는 PR을 열기 전에 팀에 알립니다(같은 번호 충돌 방지).
 - 커밋 메시지는 [agent.md](../agent.md) 형식을 따릅니다.
 
@@ -74,4 +75,4 @@ cp .env.example .env   # GEMINI_API_KEY 채우기(실제 호출이 필요할 때
 
 - 기준: `frontend/3d-demo/data_v2.js`(24개).
 - 표: [docs/equipment-ids.md](equipment-ids.md).
-- 현재 루브릭에는 개념 ↔ 설비 연결이 없습니다. "재학습 시 3D 하이라이트"를 하려면 이 연결을 어디에 둘지 먼저 정해야 합니다(`CLAUDE.md` '다음 단계').
+- 현재 루브릭에는 개념 ↔ 설비 연결이 없습니다. 루브릭 스키마에 개념별 `equipment_ids`를 추가할 예정입니다(수민 담당). "재학습 시 3D 하이라이트"는 그 뒤에 이 값을 읽어 씁니다.
