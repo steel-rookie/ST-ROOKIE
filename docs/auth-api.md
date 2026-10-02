@@ -84,9 +84,9 @@
 
 `GET /api/me/misconceptions[?section=ironmaking]` (토큰 필요, 없으면 401 `AUTH_REQUIRED`)
 
-- 로그인한 본인의 오개념만 최근 것부터 준다(`backend/src/me/routes.ts`). 다른 사람의 기록은 어떤 값을 넣어도 볼 수 없다(사용자는 토큰으로만 정한다).
+- 로그인한 본인의 오개념만 최근 것부터 준다(라우트 `backend/src/me/routes.ts`, SQL은 `me/repository.ts`). 다른 사람의 기록은 어떤 값을 넣어도 볼 수 없다(사용자는 토큰으로만 정한다).
 - 항목: `id, section, concept_id, source, label, summary, answer_text, resolved, created_at, resolved_at`.
-- `label`: 학습 모드(`source=learning`)는 "대화 중 감지됨", 체크포인트는 "이해도 확인".
+- `label`: 학습 모드(`source=learning`)는 "대화 중 감지됨", 체크포인트는 "이해도 확인"(`backend/src/learning/labels.ts`, 학습자 메모와 같은 라벨).
 
 ## 요청 사용자 구분 (`backend/src/request-user.ts`)
 
