@@ -11,7 +11,7 @@ import { LlmUnavailableError, SECTION_ORDER, type Section } from "../checkpoint/
 import { currentUserId } from "../request-user.js";
 import type { Rubric } from "../rubrics.js";
 import { UsageLimitError } from "../usage.js";
-import type { LearningRepository } from "./repository.js";
+import { latestPerConcept, type LearningRepository } from "./repository.js";
 import { isSafetyQuestion, SAFETY_ANSWER } from "./safety.js";
 
 /** 모델에 넘기는 같은 세션의 최근 대화 수. */
@@ -87,7 +87,8 @@ export function createLearningRouter({ repo, retriever, agent, rubrics, now = ()
         screen,
         chunks,
         history,
-        openMisconceptions: repo.openMisconceptions(userId, section).map((m) => ({ concept_id: m.concept_id, summary: m.summary })),
+        // 개념당 최근 1개, 최대 5개(학습자 메모와 같은 기준). 프롬프트가 계속 길어지지 않게 한다.
+        openMisconceptions: latestPerConcept(repo.openMisconceptions(userId, section)).map((m) => ({ concept_id: m.concept_id, summary: m.summary })),
         concepts: rubric?.concepts.map((c) => ({ concept_id: c.concept_id, name: c.name })) ?? [],
         glossary: rubric?.glossary ?? [],
       });

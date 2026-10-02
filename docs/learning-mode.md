@@ -45,7 +45,9 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
 - `createLearningRouter({ repo, retriever, agent, rubrics })`를 `createApp({ learning })`에 넘긴다. `app.ts`는 이 라우터를 예전 제선 Q&A(`ironmaking-agent`)보다 먼저 등록하므로 `POST /api/chat`은 학습 모드가 답한다.
 - 요청 `{ question, session_id?, screen?: { process_id, equipment_id } }`, 응답 `{ answer, status, sources, follow_up, session_id }`. `process_id`가 없으면 제선.
 - 세션은 DB(`learning_turns`)로 이어진다. 없는 세션·다른 사람의 세션은 404, 같은 세션에서 답변 중 다시 질문하면 409.
-- 안전 질문(`safety.ts`, mockTutor와 같은 키워드)은 튜터를 부르지 않고 `safety_redirect`로 저장한다.
+- 안전 질문(`safety.ts`)은 튜터를 부르지 않고 `safety_redirect`로 저장한다. 조작 방법·허락("밸브를 열어도 돼요?", "정지시키는 방법")과 비상 대응("비상 정지 버튼")만 막고, "고로가 정지하면 어떻게 되나요?" 같은 교육 질문은 통과시킨다(단어 하나로 막지 않음).
+- 프롬프트의 학습자 메모는 `latestPerConcept`로 개념당 최근 1개, 최대 5개만 넣는다(`buildLearnerNotes`와 같은 기준).
+- 같은 사용자·섹션·개념에 미해결 learning 오개념이 이미 있으면 새로 넣지 않고 summary·답변 원문만 갱신한다. 해결된 뒤 다시 나오면 새로 넣는다.
 - 질문만으로 근거를 못 찾고 직전 대화가 있으면, 직전 질문·답변을 붙여 한 번 더 검색한다("그럼 그건요?" 같은 후속 질문).
 - 오류: 하루 한도 429, Gemini 키 없음 503, 연결·형식 오류 502. 오류 때는 대화를 저장하지 않는다.
 
