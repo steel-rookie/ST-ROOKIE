@@ -43,7 +43,11 @@
 - 체크포인트 테이블(`attempts`, `misconceptions`)이 아직 없으면 `checkpoint_data: false`와 빈 기록을 준다.
 - 시연 기록: `npm run db:seed-demo [seed]`가 `trainee01`~`20`의 기록을 지우고 다시 만든다. 01~04는 처음 정한 프로필, 05~20은 5가지 유형을 돌려 쓰며 실력을 조금씩 달리해 통과, 재도전 필요, 진행 중이 섞이게 한다. seed가 같으면 같은 기록이 나온다(예: `npm run db:seed-demo -- 58`).
 
-`GET /api/admin/concepts` (토큰 필요, `admin`만): 완료된 첫 체크포인트 판정으로 섹션·개념별 `asked`, `partial`, `wrong`, `assisted`, `final_wrong`을 집계하고 미해결 오개념 수 `open`을 돌려준다. 관리자 화면의 개념 순위는 이 DB 응답으로 계산한다.
+`GET /api/admin/concepts?section=ironmaking` (토큰 필요, `admin`만. `section`은 선택): 신입사원이 끝낸 체크포인트(재도전 포함)의 첫 질문 판정으로 섹션·개념별 `asked`, `partial`, `wrong`, `assisted`, `final_wrong`을 집계하고 미해결 오개념 수 `open`을 돌려준다. 관리자 화면의 개념 순위는 이 DB 응답으로 계산한다.
+
+- `final_wrong`: 재확인 판정도 `wrong`인 수. `open`: 신입사원 전체의 미해결 오개념 수(체크포인트·학습 모드 모두).
+- `concept_id`는 루브릭 개념 id다(시연 기록은 설비 id). 답변 원문·오개념 설명·사용자 id는 주지 않는다.
+- `section`이 섹션 4개 중 하나가 아니면 `400 INVALID_SECTION`. 체크포인트 테이블(`attempts`, `concept_results`)이 없으면 빈 목록을 준다.
 
 ## 아이디·비밀번호 찾기
 
