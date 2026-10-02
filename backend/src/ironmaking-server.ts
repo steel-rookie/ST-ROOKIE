@@ -28,6 +28,10 @@ app.use(createAdminRouter(db, auth));
 
 const webRoot = join(process.cwd(), "frontend", "3d-demo");
 app.use(express.static(webRoot));
+// 로그인·마이페이지(frontend/login_ui)는 ../3d-demo/를 상대 경로로 읽으므로 두 폴더를 같은 깊이에 둔다.
+app.use("/3d-demo", express.static(webRoot));
+app.use("/login_ui", express.static(join(process.cwd(), "frontend", "login_ui")));
+app.get("/login", (_req, res) => res.redirect("/login_ui/My%20Page.dc.html"));
 
 const sessions = new Map<string, { turns: ChatTurn[]; touched: number }>();
 const busy = new Set<string>();
