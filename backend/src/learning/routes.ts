@@ -1,6 +1,6 @@
 // 학습 모드 API: POST /api/chat. 흐름은 docs/learning-mode.md '흐름'.
 // 안전 질문 차단 → retrieve() → 최근 대화·미해결 오개념 → 튜터 1회 → 오개념 기록(source=learning) → 대화 저장.
-// 예전 /api/chat(ironmaking-agent)의 요청·응답 필드는 유지하고 screen, follow_up을 더했다.
+// 예전 /api/chat(제선 Q&A, 지금은 삭제)의 요청·응답 필드는 유지하고 screen, follow_up을 더했다.
 import express from "express";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";

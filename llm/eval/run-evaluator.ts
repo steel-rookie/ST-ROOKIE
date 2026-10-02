@@ -9,7 +9,7 @@
 import { join } from "node:path";
 import { loadFinalRubrics } from "../../backend/src/rubrics.js";
 import { evaluatorSystemPrompt, evaluatorUserPrompt, GeminiEvaluator } from "../src/evaluator.js";
-import { DEFAULT_GEMINI_MODEL } from "../src/ironmaking-agent.js";
+import { DEFAULT_GEMINI_MODEL } from "../src/gemini.js";
 import { EVAL_SETS, loadEvalSet, SOURCES, type EvalCase, type EvalSetName } from "./eval-set.js";
 import { fingerprint, flag, InfraStreak, MAX_CONSECUTIVE_INFRA, isInfraError, option, openRecordFile, RESULTS_DIR, RetryingGeminiClient, sleep, type RunRecord } from "./run-log.js";
 

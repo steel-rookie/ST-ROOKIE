@@ -2,7 +2,9 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { LlmUnavailableError } from "../../backend/src/checkpoint/types.js";
-import { DEFAULT_GEMINI_MODEL } from "./ironmaking-agent.js";
+
+/** GEMINI_MODEL이 비어 있을 때 쓰는 모델. */
+export const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite";
 
 export interface GenerateRequest {
   system: string;

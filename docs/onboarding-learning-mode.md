@@ -16,7 +16,7 @@
 |---|---|
 | `frontend/3d-demo/learning-chat.js` | 화면의 학습 채팅. 지금은 `tutor_v2.js`의 가짜 튜터를 부른다. `ask()`를 `/api/chat` 호출로 바꾼다. |
 | `frontend/3d-demo/tutor_v2.js` | 가짜 튜터. 실제 API로 바꾼 뒤 지우거나 테스트용으로 남긴다. |
-| `llm/src/learning-agent.ts` (새로 만듦) | 학습 모드 Gemini 호출. `llm/src/ironmaking-agent.ts`(기존 `/api/chat`)를 대체한다. |
+| `llm/src/learning-agent.ts` (새로 만듦) | 학습 모드 Gemini 호출. `llm/src/ironmaking-agent.ts`(기존 `/api/chat`, 지금은 삭제)를 대체했다. |
 | `llm/src/retrieval.ts` (새로 만듦) | `retrieve()`: 근거 조각 검색. |
 | `llm/prompts/learning*.md` (새로 만듦) | 학습 모드 프롬프트. |
 | `backend/src/learning/` | 라우트, 안전 규칙, 대화 저장소, `buildLearnerNotes` 구현. |

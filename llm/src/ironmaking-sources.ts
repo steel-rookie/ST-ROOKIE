@@ -26,10 +26,3 @@ const sourcesById = new Map(publicSources.map((source) => [source.id, source]));
 export function getPublicSources(ids: string[]): PublicSource[] {
   return [...new Set(ids)].map((id) => sourcesById.get(id)).filter((source): source is PublicSource => Boolean(source));
 }
-
-export function sourcePrompt(): string {
-  return publicSources.map((source) =>
-    `[${source.id}] ${source.title} (${source.date_type} ${source.date}; ${source.route} 경로)\n` +
-    source.notes.map((note) => `- ${note}`).join("\n"),
-  ).join("\n\n");
-}
