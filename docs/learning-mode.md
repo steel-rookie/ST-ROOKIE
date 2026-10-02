@@ -40,6 +40,14 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
 - 사용자 구분(`X-User-Id`, 로그인 후에는 JWT), 접속 비밀번호, 하루 LLM 호출 한도는 체크포인트와 같은 장치를 쓴다.
 - 학습 모드는 채점하지 않으므로 오개념을 해결 처리하지 않는다. 해결은 체크포인트에서 맞혔을 때만 일어난다.
 
+### 튜터 구현 (`llm/src/learning-agent.ts`)
+
+- `LearningAgent.reply(input)` → `{ answer, status, source_ids, follow_up, detected_misconception }`. 구현은 `GeminiLearningAgent`, 프롬프트는 `llm/prompts/learning-system.md`.
+- 입력: 섹션, 질문, 화면(공정·설비), `retrieve()` 조각, 같은 세션 최근 대화, 미해결 오개념(학습자 메모), 루브릭 개념 목록·용어집.
+- `responseSchema`의 enum으로 `source_ids`는 이번 조각 id, `concept_id`는 루브릭 개념만 고르게 하고, 서버에서 한 번 더 걸러 낸다. grounded인데 남는 근거가 없으면 unverified 고정 답변으로 바꾼다.
+- 형식 오류는 1회 다시 부르고(`LearningFormatError`), 연결 오류는 다시 부르지 않는다(`LlmUnavailableError`).
+- `source_ids`는 조각 id(`자료id#번호`)다. 화면의 출처 링크는 라우트가 조각의 `source_ids`(자료 id)로 `ironmaking-sources.json`에서 찾는다.
+
 ### 오개념 감지 기준
 
 - 기록한다: 학습자가 틀린 내용을 사실로 단정한 경우. 예: "코크스가 불순물 없애는 거죠?", "소결은 쇳물 만드는 거잖아요."
