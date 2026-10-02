@@ -1,0 +1,85 @@
+{
+  "source": "tripo_convert_650b87a0-17e2-4167-9592-ce66716a92c8.fbx",
+  "variant": "outfit_only",
+  "model_unit": "metre",
+  "shell_pull_m": 0.002,
+  "shell_wall_thickness_m": 0.002,
+  "waist_cut_source_z_m": 0.205,
+  "zipper_gap_m": 0.004,
+  "jacket_texture": "posukho_cloth_paint.png",
+  "pants_texture": "posukho_pants_paint.png",
+  "material_ids": {
+    "0": "OUTFIT_ID_00_CLOTH_OUTER_PAINT",
+    "1": "OUTFIT_ID_01_CLOTH_LINING_AND_EDGES",
+    "2": "OUTFIT_ID_02_ZIPPER_TAPE",
+    "3": "OUTFIT_ID_03_ZIPPER_METAL",
+    "4": "OUTFIT_ID_04_COLLAR_ORANGE",
+    "5": "OUTFIT_ID_05_CLOTH_PANTS_PAINT"
+  },
+  "parts": {
+    "CLOTH_jacket_front_left": {
+      "surface_triangles": 15067,
+      "boundary_edges": 473,
+      "nonmanifold_edges": 0,
+      "pull_m": 0.002,
+      "wall_m": 0.002,
+      "material_ids": [
+        0,
+        1
+      ]
+    },
+    "CLOTH_jacket_front_right": {
+      "surface_triangles": 14921,
+      "boundary_edges": 475,
+      "nonmanifold_edges": 0,
+      "pull_m": 0.002,
+      "wall_m": 0.002,
+      "material_ids": [
+        0,
+        1
+      ]
+    },
+    "CLOTH_jacket_back": {
+      "surface_triangles": 38152,
+      "boundary_edges": 848,
+      "nonmanifold_edges": 0,
+      "pull_m": 0.002,
+      "wall_m": 0.002,
+      "material_ids": [
+        0,
+        1
+      ]
+    },
+    "CLOTH_pants": {
+      "surface_triangles": 45031,
+      "boundary_edges": 1119,
+      "nonmanifold_edges": 0,
+      "pull_m": 0.002,
+      "wall_m": 0.002,
+      "material_ids": [
+        5,
+        1
+      ]
+    },
+    "CLOTH_collar_left": {
+      "triangles": 12,
+      "material_id": 4
+    },
+    "CLOTH_collar_right": {
+      "triangles": 12,
+      "material_id": 4
+    },
+    "CLOTH_zipper_left_tape": {
+      "triangles": 160,
+      "material_id": 2
+    },
+    "CLOTH_zipper_right_tape": {
+      "triangles": 160,
+      "material_id": 2
+    },
+    "CLOTH_zipper_teeth": {
+      "triangles": 32,
+      "material_id": 3
+    }
+  }
+}

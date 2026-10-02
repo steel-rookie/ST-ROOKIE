@@ -1,0 +1,99 @@
+{
+  "source": "tripo_convert_650b87a0-17e2-4167-9592-ce66716a92c8.fbx",
+  "variant": "styled",
+  "model_unit": "metre",
+  "shell_pull_m": 0.002,
+  "shell_wall_thickness_m": 0.002,
+  "waist_cut_source_z_m": 0.205,
+  "zipper_gap_m": 0.004,
+  "character_texture": "posukho_character_paint.png",
+  "jacket_texture": "posukho_cloth_paint.png",
+  "pants_texture": "posukho_pants_paint.png",
+  "material_ids": {
+    "0": "ID_00_CHARACTER_PAINT",
+    "1": "ID_01_CLOTH_OUTER_PAINT",
+    "2": "ID_02_CLOTH_LINING_AND_EDGES",
+    "3": "ID_03_ZIPPER_TAPE",
+    "4": "ID_04_ZIPPER_METAL",
+    "5": "ID_05_COLLAR_ORANGE",
+    "6": "ID_06_CLOTH_PANTS_PAINT"
+  },
+  "parts": {
+    "CHARACTER_head": {
+      "triangles": 335162,
+      "material_id": 0
+    },
+    "CHARACTER_hands": {
+      "triangles": 17201,
+      "material_id": 0
+    },
+    "CHARACTER_feet": {
+      "triangles": 24424,
+      "material_id": 0
+    },
+    "CLOTH_jacket_front_left": {
+      "surface_triangles": 17756,
+      "boundary_edges": 540,
+      "nonmanifold_edges": 0,
+      "pull_m": 0.002,
+      "wall_m": 0.002,
+      "material_ids": [
+        1,
+        2
+      ]
+    },
+    "CLOTH_jacket_front_right": {
+      "surface_triangles": 17642,
+      "boundary_edges": 540,
+      "nonmanifold_edges": 0,
+      "pull_m": 0.002,
+      "wall_m": 0.002,
+      "material_ids": [
+        1,
+        2
+      ]
+    },
+    "CLOTH_jacket_back": {
+      "surface_triangles": 43701,
+      "boundary_edges": 903,
+      "nonmanifold_edges": 0,
+      "pull_m": 0.002,
+      "wall_m": 0.002,
+      "material_ids": [
+        1,
+        2
+      ]
+    },
+    "CLOTH_pants": {
+      "surface_triangles": 45031,
+      "boundary_edges": 1119,
+      "nonmanifold_edges": 0,
+      "pull_m": 0.002,
+      "wall_m": 0.002,
+      "material_ids": [
+        6,
+        2
+      ]
+    },
+    "CLOTH_collar_left": {
+      "triangles": 12,
+      "material_id": 5
+    },
+    "CLOTH_collar_right": {
+      "triangles": 12,
+      "material_id": 5
+    },
+    "CLOTH_zipper_left_tape": {
+      "triangles": 160,
+      "material_id": 3
+    },
+    "CLOTH_zipper_right_tape": {
+      "triangles": 160,
+      "material_id": 3
+    },
+    "CLOTH_zipper_teeth": {
+      "triangles": 52,
+      "material_id": 4
+    }
+  }
+}
