@@ -27,9 +27,10 @@
     <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:3px 8px;border-radius:999px;border:1px dashed {{ srcColor }};color:{{ srcColor }};white-space:nowrap;">{{ srcLabel }}</span>
     <div style="flex:1;"></div>
     <nav style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-      <a href="../3d-demo/Steel%20Academy%20v2.dc.html" style="padding:7px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--muted);" style-hover="color:var(--text);border-color:var(--accent);">학습 화면</a>
-      <a href="./My Page.dc.html" style="padding:7px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--muted);" style-hover="color:var(--text);border-color:var(--accent);">마이페이지</a>
+      <a href="../3d-demo/Steel%20Academy%20v2.dc.html" target="_top" style="padding:7px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--muted);" style-hover="color:var(--text);border-color:var(--accent);">학습 화면</a>
+      <a href="./My Page.dc.html" target="_top" style="padding:7px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--muted);" style-hover="color:var(--text);border-color:var(--accent);">마이페이지</a>
       <button type="button" onClick="{{ toggleTheme }}" aria-label="테마 전환" style="width:34px;height:34px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:14px;cursor:pointer;" style-hover="border-color:var(--accent);">{{ themeIcon }}</button>
+      <button type="button" onClick="{{ logout }}" style="padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;" style-hover="color:var(--text);border-color:var(--accent);">로그아웃</button>
     </nav>
   </header>
 
@@ -41,6 +42,9 @@
       </div>
       <span style="font-size:12px;color:var(--muted);">{{ updatedLabel }}</span>
     </div>
+    <sc-if value="{{ loadError }}" hint-placeholder-val="{{ false }}">
+      <div role="alert" style="padding:14px 18px;border:1px solid var(--bad);border-radius:12px;color:var(--bad);font-size:13px;">{{ loadError }}</div>
+    </sc-if>
 
     <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:18px;overflow:hidden;">
       <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
@@ -90,8 +94,8 @@
             </li>
           </sc-for>
         </ol>
-        <sc-if value="{{ conceptsSample }}" hint-placeholder-val="{{ true }}">
-          <span style="font-size:11px;color:var(--muted);line-height:1.6;">개념별 집계 API(<span style="font-family:'IBM Plex Mono',monospace;">GET /api/admin/concepts</span>)는 아직 없어 샘플로 표시합니다. 형식은 <span style="font-family:'IBM Plex Mono',monospace;">admin_data.js</span> 참고.</span>
+        <sc-if value="{{ conceptsEmpty }}" hint-placeholder-val="{{ false }}">
+          <span style="font-size:13px;color:var(--muted);line-height:1.6;">아직 완료한 체크포인트 기록이 없습니다.</span>
         </sc-if>
       </section>
 
@@ -218,11 +222,13 @@ const days = iso => iso ? Math.floor((Date.now() - new Date(iso)) / 864e5) : nul
 const ago = iso => { const d = days(iso); return d == null ? '기록 없음' : d === 0 ? '오늘' : d === 1 ? '어제' : `${d}일 전`; };
 
 class Component extends DCLogic {
-  state = { P: null, data: null, theme: this.props.theme ?? 'dark', sec: 'all', status: 'all', q: '', sort: 'progress', loadedAt: null };
+  state = { P: null, data: null, error: null, theme: this.props.theme ?? 'dark', sec: 'all', status: 'all', q: '', sort: 'progress', loadedAt: null };
   componentDidMount() {
     document.body.dataset.theme = this.state.theme;
     import('../3d-demo/data_v2.js').then(m => this.setState({ P: m.PROCESSES }));
-    import('./admin_data.js').then(m => m.loadAdminData()).then(data => this.setState({ data, loadedAt: new Date() }));
+    import('./admin_data.js').then(m => m.loadAdminData())
+      .then(data => this.setState({ data, error: null, loadedAt: new Date() }),
+        () => this.setState({ error: '관리자 통계를 DB에서 불러오지 못했습니다. 로그인 상태와 서버 연결을 확인해 주세요.' }));
   }
   statusOf(t, secs) {
     if (t.passed_sections === secs.length) return 'done';
@@ -242,7 +248,6 @@ class Component extends DCLogic {
     const openMis = T.reduce((a, t) => a + t.misconceptions.open, 0);
     const doneN = st.filter(x => x === 'done').length;
     const tab = (on, label, onClick) => ({ on, label, onClick, bg: on ? 'var(--panel)' : 'transparent', color: on ? 'var(--text)' : 'var(--muted)' });
-    const src = D ? D.source : { trainees: 'sample', concepts: 'sample' };
 
     // 오답률 높은 개념
     const C = (D ? D.concepts.concepts : []).filter(c => S.sec === 'all' || c.section === S.sec)
@@ -301,11 +306,16 @@ class Component extends DCLogic {
 
     const statusCount = k => k === 'all' ? N : st.filter(x => x === k).length;
     return {
-      srcLabel: src.trainees === 'api' ? (src.concepts === 'api' ? '실시간 데이터' : '실시간 · 개념 통계는 샘플') : '샘플 데이터',
-      srcColor: src.trainees === 'api' ? 'var(--ok)' : 'var(--mid)',
-      updatedLabel: S.loadedAt ? `불러온 시각 ${S.loadedAt.getHours()}:${String(S.loadedAt.getMinutes()).padStart(2, '0')}` : '불러오는 중…',
+      srcLabel: D ? 'DB 데이터' : S.error ? '연결 오류' : '불러오는 중',
+      srcColor: D ? 'var(--ok)' : S.error ? 'var(--bad)' : 'var(--muted)',
+      loadError: S.error,
+      updatedLabel: S.loadedAt ? `불러온 시각 ${S.loadedAt.getHours()}:${String(S.loadedAt.getMinutes()).padStart(2, '0')}` : S.error ? '불러오기 실패' : '불러오는 중…',
       themeIcon: S.theme === 'dark' ? '☀' : '☾',
       toggleTheme: () => { const theme = S.theme === 'dark' ? 'light' : 'dark'; document.body.dataset.theme = theme; this.setState({ theme }); },
+      logout: () => {
+        try { localStorage.removeItem('st-rookie-token'); sessionStorage.removeItem('st-rookie-token'); } catch (e) {}
+        window.top.location.href = './My%20Page.dc.html';
+      },
       kpis: [
         { label: '신입사원', value: String(N), unit: '명', sub: '가입한 trainee 계정', color: 'var(--text)' },
         { label: '전 과정 수료', value: String(doneN), unit: `명 · ${N ? pct(doneN / N) : '0%'}`, sub: '4개 섹션 모두 통과', color: 'var(--ok)' },
@@ -313,7 +323,7 @@ class Component extends DCLogic {
         { label: '미해결 오개념', value: String(openMis), unit: '개', sub: '내용은 본인만 볼 수 있음', color: openMis ? 'var(--bad)' : 'var(--text)' },
       ],
       secTabs: [tab(S.sec === 'all', '전체', () => this.setState({ sec: 'all' })), ...secs.map(s => tab(S.sec === s, meta(s).name, () => this.setState({ sec: s })))],
-      concepts, conceptsSample: src.concepts !== 'api',
+      concepts, conceptsEmpty: !!D && concepts.length === 0,
       doneCount: `${doneN}명`, doneEmpty: !!D && done.length === 0,
       doneList: done.map(t => ({ initial: t.name.slice(0, 1), name: t.name, emp: t.employee_no, avg: pct(avgOf(t)),
         sub: `${ago(t.last_activity)} 마지막 학습 · 재도전 ${secs.reduce((a, s) => a + (t.sections[s]?.attempts || 1) - 1, 0)}회` })),
