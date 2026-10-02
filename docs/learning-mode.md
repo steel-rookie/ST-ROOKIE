@@ -55,6 +55,13 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
   - 검색: 같은 섹션 안에서 키워드 점수(용어집 동의어 포함), 현재 설비 관련 조각에 가중치. 조각이 100개를 넘으면 임베딩 검색으로 바꾼다.
 - `section.md`가 생기면 루브릭의 `quote`도 그 문서 기준으로 다시 만든다.
 
+구현(`llm/src/retrieval.ts`)
+
+- `new Retriever({ glossaryFor }).retrieve(section, question, screen)` → 점수 순 조각 최대 5개(`MAX_RESULTS`). 겹치는 조각이 없으면 빈 배열이고, 이때 모델은 `unverified`로 답한다. 개수를 채우려고 관련 없는 조각을 넣지 않는다.
+- 공개 자료 메모(20개, 모두 제선)는 메모 하나가 조각 하나이고, 메모에 나온 말(소결·코크스·고로·열풍로·출선·토페도 등)로 제선 설비 태그를 붙인다.
+- 점수: 질문과 조각의 두 글자 조각(bigram) 겹침 비율. 조사가 붙어도(고로에서·고로를) 맞도록 단어 대신 bigram을 쓴다. 제목은 같은 자료의 메모가 공유하므로 0.3배로 센다. 용어집 동의어를 질문에 붙여 넣는다(쇳물 → 용선). 현재 설비 태그가 있는 조각은 +0.15(질문과 겹칠 때만). 0.08 미만은 버린다.
+- `loadSectionChunks(section)`: `content/materials/{섹션}/section.md`가 있으면 `parseSectionMarkdown`으로 나누고, 없으면 제선만 공개 자료 메모를 쓴다.
+
 ## 학습자 메모 (체크포인트와 공유)
 
 - 새 테이블 없이 `misconceptions`(`source`: learning | checkpoint)를 중심으로 쓴다.
