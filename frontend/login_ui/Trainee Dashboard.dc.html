@@ -76,8 +76,9 @@
     <section class="card" style="display:flex;flex-direction:column;gap:14px;padding:22px;">
       <h2 class="section-title">학습 모듈 · 제강</h2>
       <span style="font-size:13px;color:var(--muted);">설비별 2D 공정 동작을 단계별로 따라갑니다.</span>
-      <div style="height:min(900px,calc(100vh - 160px));min-height:560px;border-radius:14px;overflow:hidden;border:1px solid var(--line);">
-        <x-import component-from-global-scope="steel-2d" process="steelmaking" theme="{{ theme }}" hint-size="100%,100%" style="display:block;width:100%;height:100%;"></x-import>
+      <!-- 높이를 고정하지 않는다: 2D 모듈(steel-2d)이 내용만큼 늘어나 모듈 안에 스크롤이 생기지 않게 한다. -->
+      <div style="border-radius:14px;overflow:hidden;border:1px solid var(--line);">
+        <x-import component-from-global-scope="steel-2d" process="steelmaking" theme="{{ theme }}" hint-size="100%,100%" style="display:block;width:100%;height:auto;"></x-import>
       </div>
     </section>
 
