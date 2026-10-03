@@ -137,5 +137,7 @@ export interface SectionProgressView {
   unlocked: boolean;
   understanding: number | null;
   retry_concept_ids: string[];
+  /** 통과한 섹션에서 아직 확인하지 않은 개념(통과 뒤 루브릭에 새로 생긴 개념). 다시 묻지 않고 미확인으로 보여 준다. */
+  unconfirmed_concept_ids: string[];
   in_progress_attempt_id: string | null;
 }

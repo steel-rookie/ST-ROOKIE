@@ -94,6 +94,61 @@ SELECT m.user_id, COUNT(DISTINCT m.concept_id) AS n
     - 해결 규칙은 같다. 체크포인트에서 그 개념을 맞히면 학습 모드 메모도 해결되어 튜터가 다시 짚지 않는다.
 - '학습자 메모' 절의 출처 라벨(대화 중 감지됨·이해도 확인)은 튜터 프롬프트용이므로 그대로 둔다.
 
+## 4. 지금 final 루브릭의 개념만 보기 (2026-10-03 추가)
+
+결정([CLAUDE.md](../CLAUDE.md) '콘텐츠'·'점수 규칙'):
+- 핵심 요소나 정답 기준이 바뀌면 새 `concept_id`를 만든다. 예전 id의 기록은 지우지 않는다.
+- 읽는 쪽은 지금 final 루브릭의 개념만 본다.
+- 한 번 통과한 섹션은 통과로 유지하고, 통과 뒤 새로 생긴 개념은 **미확인**으로 보여 준다(재응시 경로는 미정).
+
+이해도·통과는 직접 계산하지 말고 `backend/src/checkpoint/section-summary.ts`의 `summarizeSection(rubric, completed)`을 쓴다. 엔진도 이 함수를 쓴다. 이 함수는 DB를 읽지 않으므로 시연 기록(`seed`)을 넣을지는 부르는 쪽이 정한다(관리자·대시보드는 시연을 위해 넣는다).
+
+```ts
+summarizeSection(rubric, [
+  { unlocked: true | false | null, results: [{ concept_id, verdict, recheck_verdict }, ...] }, // 완료 시도, 오래된 순서
+])
+// → { passed, understanding, retry_concept_ids, unconfirmed_concept_ids }
+```
+
+루브릭은 서버 시작 때 읽은 것(`ironmaking-server.ts`의 `rubrics`)을 라우터에 넘긴다. 루브릭이 없는 섹션은 미시작(`null`)이다.
+
+### 4-1. 관리자 통계 `trainee-stats.ts` (viiin2): 신입사원 대시보드도 이 함수를 같이 쓴다
+
+- 지금은 섹션 이해도·통과로 마지막 완료 시도의 `attempts.understanding`·`unlocked`를 그대로 읽는다. 루브릭 개념이 바뀌어도 예전 값이 남는다.
+- 바꿀 것: 사람×섹션별로 완료 시도(`state = 'completed'`, `completed_at` 순서)와 그 `concept_results`를 읽어 `summarizeSection`에 넣는다.
+  - `passed`, `understanding`은 함수 결과를 쓴다.
+  - 시도 횟수는 지금처럼 센다.
+  - `unconfirmed_concept_ids`를 응답에 추가하면 화면에 "미확인 n개"를 보여 줄 수 있다.
+- `traineeStats(db)` → `traineeStats(db, rubrics)`. `createAdminRouter(db, auth, rubrics)`와 `createMeRouter(db, auth, rubrics)`에 넘긴다.
+- 오개념 개수(1-1절)에 조건을 더한다: `concept_id`가 그 섹션의 지금 루브릭 개념일 것. 개념 목록이 루브릭에서 오므로 SQL보다 코드에서 거르는 편이 쉽다.
+
+### 4-2. 관리자 개념 통계 `concept-stats.ts` (viiin2)
+
+- 결과 행 중 `(section, concept_id)`가 지금 루브릭에 없는 것은 뺀다. `open`도 같다.
+- 응답에 루브릭 개념 이름(`name`)을 붙이면, [admin-dashboard.md](admin-dashboard.md)의 `name`(제안, 미구현) 항목도 함께 해결된다.
+
+### 4-3. 신입사원 대시보드 `backend/src/me/` (ssoyoum)
+
+- 섹션 이해도·통과는 4-1의 `traineeStats`에서 온다. 따로 바꿀 것 없음.
+- `review_concepts`: 지금 루브릭에 없는 `concept_id`는 뺀다.
+- `misconceptions`: 지금 루브릭에 없는 `concept_id`는 뺀다.
+- 화면: 통과한 섹션의 `unconfirmed_concept_ids`는 "미확인"으로 표시한다. 재응시 버튼은 두지 않는다.
+
+### 4-4. 학습자 메모·학습 모드 프롬프트 (ssoyoum)
+
+- `buildLearnerNotes`(시그니처 고정)는 바꾸지 않는다. 서버 시작 때 넘기는 기록 저장소를 감싸서 거른다.
+
+  ```ts
+  // ironmaking-server.ts
+  const current = new Map(rubrics.map((r) => [r.section, new Set(r.concepts.map((c) => c.concept_id))]));
+  useLearnerNotesSource({
+    openMisconceptions: (userId, section) =>
+      learningRepo.openMisconceptions(userId, section).filter((m) => current.get(section)?.has(m.concept_id)),
+  });
+  ```
+
+- `learning/routes.ts`: 프롬프트의 `openMisconceptions`도 같은 방식으로 `rubric.concepts`에 있는 것만 넘긴다. 오개념을 감지할 때는 이미 루브릭 개념만 고르므로 그대로 둔다.
+
 ## 이미 반영한 것 (수민)
 
 - `005_record_origin.sql`: `origin` 컬럼을 추가했다. 이전에 만든 시연 기록도 `seed`로 표시한다.
@@ -107,3 +162,4 @@ SELECT m.user_id, COUNT(DISTINCT m.concept_id) AS n
 - 체크포인트 엔진(시작·진행·`sectionProgress`)은 `origin = 'live'` 시도만 읽는다. 시연 기록 때문에 409 "이미 통과한 섹션"이 나지 않는다.
 - 학습 모드 오개념 조회(`LearningRepository.openMisconceptions`, 학습자 메모 `buildLearnerNotes`)와 중복 확인(`recordMisconception`)은 `origin = 'live'`만 본다. `backend/src/learning/repository.ts`는 ssoyoum 담당이다. 이 두 쿼리에 조건 한 줄씩만 추가했다.
 - `eval:export-human`은 `origin = 'live'`만 내보낸다. `origin`이 없는 예전 DB는 대화 기록이 있는 시도만 내보낸다.
+- 체크포인트 엔진은 지금 final 루브릭의 개념만으로 결과를 합친다(`section-summary.ts`). 이전에는 바뀌거나 빠진 `concept_id`의 결과가 있으면 `applyRetry`가 "재도전 대상이 아닌 개념" 오류를 내서 그 사람의 시작·진행 조회가 500이었다. 한 번 통과한 섹션은 통과로 유지하고, 새 개념은 `/api/sections/:section/progress`의 `unconfirmed_concept_ids`로 돌려준다.

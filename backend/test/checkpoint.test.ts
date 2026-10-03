@@ -291,3 +291,33 @@ test("시연 기록(origin = 'seed')은 진행·해금·재도전·진행 중 �
   assert.ok(created);
   assert.equal(view.kind, "first");
 });
+
+test("루브릭 개념 id가 바뀌면: 예전 결과는 버리고, 통과한 섹션은 통과로 두고 새 개념은 미확인", async () => {
+  const db = openDatabase(":memory:");
+  const repo = new CheckpointRepository(db);
+  const before = new CheckpointEngine({ repo, evaluator: new FakeEvaluator(), tutor: new FakeTutor(), rubrics: [IRONMAKING, STEELMAKING] });
+  // 통과한 사람(a·b·c 정답)과 미달인 사람(a만 정답)
+  await runCheckpoint(before, ["correct", "correct", "correct"], "passed");
+  await runCheckpoint(before, ["correct", "wrong", "wrong", "wrong", "wrong"], "failed");
+
+  // 핵심 요소가 바뀌어 b → b2로 새 id
+  const changed = { ...IRONMAKING, concepts: IRONMAKING.concepts.map((c) => (c.concept_id === "b" ? { ...c, concept_id: "b2" } : c)) };
+  const after = new CheckpointEngine({ repo, evaluator: new FakeEvaluator(), tutor: new FakeTutor(), rubrics: [changed, STEELMAKING] });
+
+  const passed = after.sectionProgress("passed", "ironmaking");
+  assert.equal(passed.unlocked, true);
+  assert.deepEqual(passed.unconfirmed_concept_ids, ["b2"]);
+  assert.deepEqual(passed.retry_concept_ids, []);
+  assert.equal(after.sectionProgress("passed", "steelmaking").open, true);
+  await assert.rejects(after.start("passed", "ironmaking"), (e: unknown) => e instanceof CheckpointError && e.status === 409);
+
+  // 미달인 사람은 예전 b 결과 없이 재도전: 맞힌 a는 빼고 b2·c를 묻는다.
+  const failed = after.sectionProgress("failed", "ironmaking");
+  assert.equal(failed.unlocked, false);
+  assert.deepEqual(failed.retry_concept_ids, ["b2", "c"]);
+  const { view } = await after.start("failed", "ironmaking");
+  assert.equal(view.kind, "retry");
+  assert.equal(view.concept, null);
+  const ready = await after.respond("failed", view.attempt_id, "네");
+  assert.equal(ready.concept?.id, "b2");
+});
