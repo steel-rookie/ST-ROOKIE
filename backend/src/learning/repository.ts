@@ -96,7 +96,7 @@ export class LearningRepository {
    */
   recordMisconception(m: { user_id: string; section: Section; concept_id: string; answer_text: string; summary: string }, now: string): string {
     const existing = this.db
-      .prepare("SELECT id FROM misconceptions WHERE user_id = ? AND section = ? AND concept_id = ? AND source = 'learning' AND resolved = 0 ORDER BY created_at DESC, id LIMIT 1")
+      .prepare("SELECT id FROM misconceptions WHERE user_id = ? AND section = ? AND concept_id = ? AND source = 'learning' AND origin = 'live' AND resolved = 0 ORDER BY created_at DESC, id LIMIT 1")
       .get(m.user_id, m.section, m.concept_id);
     if (existing) {
       const id = String(existing.id);
@@ -113,10 +113,10 @@ export class LearningRepository {
     return id;
   }
 
-  /** 섹션의 미해결 오개념(학습·체크포인트 모두). 학습자 메모와 학습 모드 프롬프트에 쓴다. */
+  /** 섹션의 미해결 오개념(학습·체크포인트 모두, 실제 기록만). 학습자 메모와 학습 모드 프롬프트에 쓴다. 시연 기록(origin = 'seed')은 뺀다. */
   openMisconceptions(userId: string, section: Section): OpenMisconception[] {
     return this.db
-      .prepare("SELECT concept_id, summary, source, created_at FROM misconceptions WHERE user_id = ? AND section = ? AND resolved = 0 ORDER BY created_at, id")
+      .prepare("SELECT concept_id, summary, source, created_at FROM misconceptions WHERE user_id = ? AND section = ? AND origin = 'live' AND resolved = 0 ORDER BY created_at, id")
       .all(userId, section)
       .map((row) => ({
         concept_id: String(row.concept_id),
