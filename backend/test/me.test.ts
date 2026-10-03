@@ -70,7 +70,8 @@ test("학습 현황은 로그인한 신입사원의 DB 기록만 돌려준다", 
   const { status, json } = await get("/api/me/dashboard", kim);
   assert.equal(status, 200);
   assert.equal(json.trainee.username, "trainee01");
-  assert.equal(json.trainee.misconceptions.open, 2);
+  // 개수는 체크포인트 기록·지금 루브릭 개념만 센다: m1은 학습 모드, m3(bof)는 루브릭이 없는 제강이라 빠진다(CLAUDE.md '오개념 기록').
+  assert.equal(json.trainee.misconceptions.open, 0);
   assert.deepEqual(json.review_concepts, []);
   assert.deepEqual(json.misconceptions.map((m: { id: string }) => m.id), ["m3", "m2", "m1"]);
   assert.ok(!JSON.stringify(json).includes("다른 사람"));

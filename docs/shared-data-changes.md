@@ -15,6 +15,8 @@
 
 ### 1-1. `GET /api/admin/trainees`: `trainee-stats.ts`
 
+> **반영함(수민, viiin2 리뷰 요청).** 아래 규칙과 4-1(이해도 기준)을 함께 고쳤다. 바꾸기 전과 후의 집계 차이는 `backend/test/admin.test.ts`의 "before → after" 테스트에 있다.
+
 지금은 두 출처를 합쳐 행 수를 센다([trainee-stats.ts:78](../backend/src/admin/trainee-stats.ts#L78)).
 
 ```sql
@@ -113,6 +115,8 @@ summarizeSection(rubric, [
 루브릭은 서버 시작 때 읽은 것(`ironmaking-server.ts`의 `rubrics`)을 라우터에 넘긴다. 루브릭이 없는 섹션은 미시작(`null`)이다.
 
 ### 4-1. 관리자 통계 `trainee-stats.ts` (viiin2): 신입사원 대시보드도 이 함수를 같이 쓴다
+
+> **반영함(수민).** `traineeStats(db, rubrics = final 루브릭)`. 루브릭 인자를 기본값으로 두어 `admin/routes.ts`·`me/routes.ts`는 바꾸지 않았다. 섹션 결과에 `unconfirmed_concept_ids`를 추가했다.
 
 - 지금은 섹션 이해도·통과로 마지막 완료 시도의 `attempts.understanding`·`unlocked`를 그대로 읽는다. 루브릭 개념이 바뀌어도 예전 값이 남는다.
 - 바꿀 것: 사람×섹션별로 완료 시도(`state = 'completed'`, `completed_at` 순서)와 그 `concept_results`를 읽어 `summarizeSection`에 넣는다.

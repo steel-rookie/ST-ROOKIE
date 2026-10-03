@@ -6,10 +6,13 @@ import { seedDemoAccounts } from "../src/auth/demo-accounts.js";
 import { UserRepository } from "../src/auth/users.js";
 import { openDatabase } from "../src/db/database.js";
 import { seedDemoRecords, type SectionConcepts } from "../src/db/demo-records.js";
+import type { Rubric, RubricConcept } from "../src/rubrics.js";
 
 const concepts: SectionConcepts = Object.fromEntries(
   SECTION_ORDER.map((s) => [s, Array.from({ length: 6 }, (_, i) => ({ id: `${s}_${i}`, name: `${s} 설비 ${i}` }))]),
 );
+/** 관리자 통계는 지금 루브릭 개념만 보므로, 시연 개념으로 만든 루브릭을 넘긴다. */
+const rubrics = Object.entries(concepts).map(([section, list]) => ({ section, reviewed: true, concepts: list.map((c) => ({ concept_id: c.id, name: c.name }) as RubricConcept) }) as Rubric);
 
 async function seeded(seed: number) {
   const db = openDatabase(":memory:");
@@ -24,7 +27,7 @@ async function seeded(seed: number) {
 test("seeded records follow the unlock order and scoring rules", async () => {
   for (const seed of [1, 2, 3, 42, 777]) {
     const { db } = await seeded(seed);
-    const stats = traineeStats(db);
+    const stats = traineeStats(db, rubrics);
     for (const t of stats.trainees.filter((x) => x.username.startsWith("trainee"))) {
       // 앞 섹션을 통과해야 다음 섹션 기록이 있다.
       SECTION_ORDER.forEach((s, i) => {
@@ -44,7 +47,7 @@ test("seeded records follow the unlock order and scoring rules", async () => {
 test("the same seed gives the same records and reseeding replaces only demo trainees", async () => {
   const a = await seeded(42);
   const b = await seeded(42);
-  const strip = (db: typeof a.db) => traineeStats(db).trainees.map(({ id, created_at, last_activity, ...rest }) => rest);
+  const strip = (db: typeof a.db) => traineeStats(db, rubrics).trainees.map(({ id, created_at, last_activity, ...rest }) => rest);
   assert.deepEqual(a.counts, b.counts);
   assert.deepEqual(strip(a.db), strip(b.db));
 
