@@ -23,8 +23,21 @@ export interface ModelVerdict {
 }
 
 /**
- * 여러 DB를 함께 내보낸다. 사용자 id는 DB와 사용자 조합별로 p01, p02…로 바꾸고,
- * case_id는 원래 id를 알 수 없게 해시로 만든다.
+ * 실제 기록(origin = 'live')만 고르는 조건. 시연 기록(db:seed-demo)은 사람 답변이 아니므로 뺀다.
+ * 005_record_origin.sql 전의 DB(읽기 전용이라 마이그레이션하지 않음)는 같은 기준으로 고른다: 엔진이 만든 시도에만 대화 기록이 있다.
+ */
+function liveAttempts(db: DatabaseSync): string {
+  try {
+    db.prepare("SELECT origin FROM attempts WHERE 1 = 0").all();
+    return "a.origin = 'live'";
+  } catch {
+    return "EXISTS (SELECT 1 FROM attempt_messages am WHERE am.attempt_id = a.id)";
+  }
+}
+
+/**
+ * 여러 DB를 함께 내보낸다. 실제 기록(origin = 'live')만 내보낸다.
+ * 사용자 id는 DB와 사용자 조합별로 p01, p02…로 바꾸고, case_id는 원래 id를 알 수 없게 해시로 만든다.
  */
 export function exportHumanAnswers(sources: { label: string; db: DatabaseSync }[], section: string): { cases: ExportedCase[]; verdicts: ModelVerdict[] } {
   const respondents = new Map<string, string>();
@@ -37,7 +50,7 @@ export function exportHumanAnswers(sources: { label: string; db: DatabaseSync }[
               (SELECT m.summary FROM misconceptions m
                 WHERE m.attempt_id = r.attempt_id AND m.concept_id = r.concept_id AND m.phase = 'initial' LIMIT 1) AS misconception
          FROM concept_results r JOIN attempts a ON a.id = r.attempt_id
-        WHERE a.section = ?
+        WHERE a.section = ? AND ${liveAttempts(db)}
         ORDER BY a.created_at, r.created_at`,
     ).all(section);
 
