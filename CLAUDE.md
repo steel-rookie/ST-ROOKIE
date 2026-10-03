@@ -46,7 +46,7 @@
 | 공용: 고치면 작은 PR + 팀 공유 | `llm/src/gemini.ts`, `backend/src/scoring.ts`, `content/rubrics/schema.json`, `backend/src/app.ts`(라우트 등록), `backend/src/db/database.ts`, `backend/src/checkpoint/types.ts`, `package.json`, `CLAUDE.md`, 마이그레이션 번호 |
 | 프론트(viiin2) | `Steel Academy v2.dc.html`, `data_v2.js`, `scene_v2.js`, `steel-2d*.js`, `models/`, `frontend/login_ui/` |
 
-- 마이그레이션 번호 규칙: `backend/src/db/migrations/NNN_이름.sql`을 파일 이름 순서로 한 번씩 적용하고 `schema_migrations`에 이름을 남긴다. 001·002는 사용 중이다. 새 번호는 지금 가장 큰 번호 + 1로 정하고, 같은 번호를 두 사람이 쓰지 않게 PR을 열기 전에 팀에 알린다. 이미 병합된 마이그레이션 파일은 고치지 않고 새 번호로 추가한다.
+- 마이그레이션 번호 규칙: `backend/src/db/migrations/NNN_이름.sql`을 파일 이름 순서로 한 번씩 적용하고 `schema_migrations`에 이름을 남긴다. 001~005는 사용 중이다(005: 기록 출처 `origin`). 새 번호는 지금 가장 큰 번호 + 1로 정하고, 같은 번호를 두 사람이 쓰지 않게 PR을 열기 전에 팀에 알린다. 이미 병합된 마이그레이션 파일은 고치지 않고 새 번호로 추가한다.
 - 기존 `/api/chat`(`llm/src/ironmaking-agent.ts`)은 학습 모드로 대체되어 지웠다. 기본 모델 상수 `DEFAULT_GEMINI_MODEL`은 `llm/src/gemini.ts`에 있다. `ironmaking-sources.ts`(공개 자료 메모)는 학습 모드 검색(`retrieval.ts`)과 출처 표시(`learning/routes.ts`)가 쓰므로 남긴다.
 - 학습 모드 시작 안내: [docs/onboarding-learning-mode.md](docs/onboarding-learning-mode.md).
 
@@ -124,9 +124,14 @@ API·상태 머신·DB·프롬프트의 상세 설계는 [docs/checkpoint-api.md
 ## 오개념 기록
 
 - 저장 항목: 자유 텍스트 설명, `concept_id`, 사용자 답변 원문, 상태.
-- 상태: `미해결` / `해결됨`. 나중에 같은 개념을 맞히면 `해결됨`으로 바뀐다.
-- 오개념 내용(설명·답변 원문)은 개인 페이지에서 **본인 것만** 보인다. 관리자 화면에는 사람별 미해결·해결 **개수만** 나온다.
-- 학습 모드에서 감지된 오개념도 기록한다(점수 반영 없음).
+- 상태: `미해결` / `해결됨`. 해결은 개념 단위다: 체크포인트에서 그 개념이 1점으로 확정되면 그 사람의 그 개념 미해결 행을 출처(`checkpoint`·`learning`) 상관없이 모두 해결한다(`CheckpointRepository.resolveMisconceptions`). 학습 모드 메모도 해결해 같은 것을 다시 짚지 않게 한다.
+- 저장은 출처마다 다르다: 체크포인트는 판정마다 새 행, 학습 모드는 같은 개념의 미해결 행이 있으면 그 행을 갱신. 행은 모두 남긴다.
+- 용도가 다르다: `checkpoint`는 판정 결과, `learning`은 튜터가 설명할 때 참고하는 메모(학습자 메모, 점수 반영 없음).
+- **개수는 체크포인트 기록(`source = checkpoint`)만으로 센다.** 행 수가 아니라 개념 수(`users.id` 기준 `COUNT(DISTINCT concept_id)`)다.
+  - 미해결: 미해결 행이 하나라도 있는 개념의 수.
+  - 해결: 체크포인트 오개념 기록이 있었고 지금 미해결 행이 하나도 없는 개념의 수. 미해결 + 해결 = 체크포인트 오개념이 있었던 개념 수.
+  - 학습 모드 감지(`source = learning`)는 개수에 합치지 않고 출처별 비교도 하지 않는다. 필요하면 "튜터가 짚은 개념" 참고 목록으로만 따로 보여 준다.
+- 오개념 내용(설명·답변 원문)은 개인 페이지에서 **본인 것만** 보인다. 개인 페이지는 개념별로 묶어 최근 설명을 먼저 보여 주고 이전 기록은 접어 둔다. 관리자 화면에는 사람별 미해결·해결 **개수만** 나온다.
 - 관리자 화면은 신입사원 통계 조회만 한다(아래 "계정과 관리자").
 
 ## 콘텐츠
@@ -153,7 +158,13 @@ content/
 - 아이디·비밀번호 찾기는 이름 + 사번으로 본인 확인을 한다(메일 발송 없음). 시연·사내용 수준이다.
 - 관리자는 `GET /api/admin/trainees`로 신입사원별 섹션 이해도·통과 여부·시도 횟수·오개념 개수·마지막 학습일을 본다(`backend/src/admin/`). 체크포인트 테이블(`attempts`, `misconceptions`)이 없으면 계정 목록만 준다.
 - 화면: `frontend/login_ui/My Page.dc.html`, 서버의 `/login`. 관리자로 로그인하면 개인 학습 기록 대신 통계를 보여 준다.
-- `npm run db:seed-demo [seed]`: 시연 신입사원(`trainee01`~`20`)의 체크포인트 기록을 지우고 무작위로 다시 만든다(`backend/src/db/demo-records.ts`). 테이블은 `feature/checkpoint-api`와 같은 `001_checkpoint.sql`, 점수는 `scoring.ts` 규칙. 다른 계정의 기록은 건드리지 않는다.
+- `npm run db:seed-demo [seed]`: 시연 기록을 무작위로 다시 만든다(`backend/src/db/demo-records.ts`). 점수는 `scoring.ts` 규칙.
+  - **계정 분리**: 시연 기록은 `trainee11`~`20`에만 넣는다. `trainee01`~`10`은 팀원 실제 테스트용이라 시연 기록이 없고, 실행할 때 남아 있는 `seed` 기록을 지운다.
+  - 개념은 `loadFinalRubrics()`에서 읽는다. 루브릭이 있는 섹션에만 기록을 만들고 나머지는 미시작으로 둔다(지금은 제선만). 루브릭이 추가되면 자동으로 채워진다.
+  - 시연 기록은 `attempts`·`misconceptions`의 `origin = 'seed'`이고, 실제 기록은 `live`(기본값, `005_record_origin.sql`)다. 시연 계정으로 실제 테스트도 하므로 계정이 아니라 기록 단위로 구분한다.
+  - 다시 만들 때 `seed` 기록만 지운다. 실제 기록(`live`)과 다른 계정의 기록은 건드리지 않는다.
+  - 실제 기록만 읽는 곳: 체크포인트 엔진(시작·진행·`sectionProgress`, `CheckpointRepository`의 시도 조회)과 학습 모드 오개념 조회(`LearningRepository.openMisconceptions`·`recordMisconception`, 학습자 메모 포함). 관리자 통계는 시연을 위해 `seed`도 센다.
+  - `eval:export-human`은 `origin = 'live'`만 내보낸다.
 
 ## 튜토리얼
 
@@ -163,7 +174,12 @@ content/
 ## 데이터 저장
 
 - SQLite로 시작한다(Node 내장 `node:sqlite`, 파일은 `DB_PATH`, 기본 `data/st-rookie.sqlite`). PostgreSQL로 옮길 수 있게 SQLite 전용 문법·타입에 의존하지 않고, SQL은 저장소 파일(`backend/src/checkpoint/repository.ts`)에만 둔다.
-- 로그인 전까지는 `X-User-Id` 헤더(없으면 `demo-user`)로 사용자를 구분한다.
+- 사용자 구분(`backend/src/request-user.ts`의 `withRequestUser`, 테스트 `backend/test/request-user.test.ts`):
+  - 로그인 토큰(`Authorization: Bearer`)이 있으면 토큰의 `users.id`(UUID)로 구분하고 `X-User-Id`는 무시한다.
+  - 토큰이 만료됐거나 잘못됐으면 헤더로 넘어가지 않고 401(`TOKEN_INVALID`)이다.
+  - [임시] 토큰이 없을 때만 `X-User-Id` 헤더(없으면 `demo-user`)로 구분한다. 헤더 방식은 v2 메인 페이지에 체크포인트 UI를 다시 붙일 때 지운다.
+- 공용 테이블의 `user_id`는 `users.id`(UUID)가 기준이다. 헤더 이름으로 쌓인 기록은 지우지 않고 그대로 둔다(eval 사람 답변 원천). 관리자 통계·개인 페이지에는 나오지 않아도 된다. 꼭 지워야 하면 `eval:export-human`으로 백업한 뒤 지운다.
+- `misconceptions`는 체크포인트 담당(수민)이 관리한다. 다른 모듈은 정해진 쓰기 함수로만 쓰고, 읽기 SELECT는 각자 둘 수 있다.
 
 ## 원격 팀원 테스트 (임시 장치, 로그인이 생기면 지운다)
 
@@ -208,7 +224,7 @@ content/
 ## 다음 단계
 
 - **학습자 메모**: `CheckpointEngine.start()`·`respond()`의 선택 파라미터 `options.notes`는 `backend/src/learning/notes.ts`의 `LearnerNotes`(`conceptOrder`, `context`)를 받는다. `buildLearnerNotes(userId, section)`은 시그니처만 고정했고 구현은 TODO(지금은 빈 메모). 엔진의 개념 순서 조정(`orderConcepts`)과 튜터에게 줄 추가 컨텍스트에 연결한다.
-- **학습 모드 연결**: 설계와 결정은 `docs/learning-mode.md`. 오개념은 같은 응답에서 단정할 때만 감지하고, 대화는 DB에 저장(보관 기간 없음), 근거는 `retrieve()`로 분리해 공개 자료 메모로 먼저 연결한다. 학습 모드 오개념은 체크포인트 튜터의 context로만 쓰고 평가자에게는 넘기지 않는다. 개인 페이지에서 `source = learning`은 "대화 중 감지됨"으로 표시한다.
+- **학습 모드 연결**: 설계와 결정은 `docs/learning-mode.md`. 오개념은 같은 응답에서 단정할 때만 감지하고, 대화는 DB에 저장(보관 기간 없음), 근거는 `retrieve()`로 분리해 공개 자료 메모로 먼저 연결한다. 학습 모드 오개념은 체크포인트 튜터의 context로만 쓰고 평가자에게는 넘기지 않는다. 개인 페이지에서 `source = learning`은 오개념 목록·개수에 섞지 않고 "튜터가 짚은 개념" 참고 목록으로 따로 보여 준다(위 '오개념 기록').
 - **개념 ↔ 설비 연결(수민 담당)**: 루브릭 스키마의 개념에 `equipment_ids`(선택, `data_v2.js`의 설비 id 배열)를 추가한다. 재학습 시 3D 하이라이트(오개념이 있는 개념의 설비 강조)에 쓴다. 스키마는 공용 파일이므로 작은 PR로 내고 공유한다. id 목록은 [docs/equipment-ids.md](docs/equipment-ids.md).
 - **3D 화면 조작**: 학습 모드의 `scene_actions`와 "재학습 시 3D 하이라이트"(오개념이 있는 개념의 설비를 강조)를 함께 진행한다.
 
