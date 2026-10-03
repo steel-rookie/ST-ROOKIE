@@ -105,3 +105,14 @@ test("latestPerConcept: 개념당 최근 1개만 남겨 최근 것부터 최대 
   assert.deepEqual(picked.map((m) => m.concept_id), ["c0", "c6", "c5", "c4", "c3"]);
   assert.equal(picked[0].summary, "c0 최신");
 });
+
+test("openMisconceptions·recordMisconception: 시연 기록(origin = 'seed')은 읽지도 갱신하지도 않는다", () => {
+  const { db, repo } = setup();
+  db.prepare("INSERT INTO misconceptions (id, user_id, section, concept_id, source, answer_text, summary, created_at, origin) VALUES ('seed1', 'minsu', 'ironmaking', 'coke_role', 'learning', 'x', '시연 오개념', '2026-10-01T00:00:00Z', 'seed')").run();
+  assert.deepEqual(repo.openMisconceptions("minsu", "ironmaking"), []);
+
+  const id = repo.recordMisconception({ user_id: "minsu", section: "ironmaking", concept_id: "coke_role", answer_text: "코크스는 연료죠?", summary: "실제 오개념" }, "2026-10-02T01:00:00Z");
+  assert.notEqual(id, "seed1");
+  assert.equal(db.prepare("SELECT summary FROM misconceptions WHERE id = 'seed1'").get()?.summary, "시연 오개념");
+  assert.deepEqual(repo.openMisconceptions("minsu", "ironmaking").map((m) => m.summary), ["실제 오개념"]);
+});
