@@ -269,3 +269,25 @@ test("HTTP: 시작 201·재시작 200, 입력 오류 400, LLM 연결 실패 502"
   const progress = await fetch(`${base}/api/sections/ironmaking/progress`, { headers: { "X-User-Id": "http-user" } });
   assert.equal(((await progress.json()) as { in_progress_attempt_id: string }).in_progress_attempt_id, view.attempt_id);
 });
+
+test("시연 기록(origin = 'seed')은 진행·해금·재도전·진행 중 시도에 쓰지 않는다", async () => {
+  const db = openDatabase(":memory:");
+  const engine = new CheckpointEngine({ repo: new CheckpointRepository(db), evaluator: new FakeEvaluator(), tutor: new FakeTutor(), rubrics: [IRONMAKING, STEELMAKING] });
+
+  // 시연 기록: 제선 통과(완료) + 제강 진행 중
+  const passed = await runCheckpoint(engine, ["correct", "correct", "correct"]);
+  assert.equal(passed.result?.unlocked, true);
+  const { view: open } = await engine.start(USER, "steelmaking");
+  db.prepare("UPDATE attempts SET origin = 'seed'").run();
+
+  const progress = engine.sectionProgress(USER, "ironmaking");
+  assert.equal(progress.unlocked, false);
+  assert.equal(progress.understanding, null);
+  assert.equal(engine.sectionProgress(USER, "steelmaking").open, false);
+  assert.throws(() => engine.get(USER, open.attempt_id), (e: unknown) => e instanceof CheckpointError && e.status === 404);
+
+  // 실제 체크포인트는 409 없이 처음부터 시작한다.
+  const { created, view } = await engine.start(USER, "ironmaking");
+  assert.ok(created);
+  assert.equal(view.kind, "first");
+});
