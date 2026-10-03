@@ -52,7 +52,7 @@
 
 ## 학습 구조
 
-- **섹션 = 공정 하나.** `ironmaking`, `steelmaking`, `continuous_casting`, `rolling` 순서.
+- **섹션 = 공정 하나.** `ironmaking`, `steelmaking`, `continuous_casting`, `rolling` 순서. 코드의 섹션 목록·순서는 `backend/src/checkpoint/types.ts`의 `SECTION_ORDER` 하나만 쓴다(루브릭 스키마 `section` enum과 같은지 테스트로 확인).
 - 각 섹션 마지막에 **이해도 확인 체크포인트**가 있고, 결과를 차트로 보여 준다.
 - 다음 섹션은 앞 섹션의 체크포인트를 통과해야 열린다.
 
@@ -120,6 +120,8 @@ API·상태 머신·DB·프롬프트의 상세 설계는 [docs/checkpoint-api.md
 - **해금 조건**: 섹션의 모든 개념이 확정됐고, 이해도가 80% 이상.
 - **80% 미달**: 섹션 첫 화면으로 돌아간다. 재도전 때는 만점(1점)이 아닌 개념만 다시 묻고(`partial` 포함), 맞힌 개념의 점수는 유지한다.
 - 재도전한 개념은 새 결과로 **덮어쓴다**(이전보다 낮아질 수 있다). 이미 맞힌 개념의 결과를 다시 넣으면 에러다.
+- 이해도·통과는 **지금 final 루브릭의 개념만**으로 계산한다. 바뀌거나 빠진 `concept_id`의 결과는 버린다(행은 DB에 남김). 계산은 `backend/src/checkpoint/section-summary.ts`의 `summarizeSection` 하나로 하고, 엔진·관리자 통계·신입사원 대시보드가 같이 쓴다.
+- 한 번 통과(완료 시점에 해금)한 섹션은 루브릭이 바뀌어도 통과로 둔다. 통과 뒤 새로 생긴 개념은 다시 묻지 않고 **미확인**으로 보여 준다(`/api/sections/:section/progress`의 `unconfirmed_concept_ids`). 미확인 개념은 0점이라 이해도는 낮아질 수 있다.
 
 ## 오개념 기록
 
@@ -145,6 +147,8 @@ content/
 
 - `section.md`가 교육 내용의 단일 기준이다. 다른 곳에 교육 내용을 중복해서 만들지 않는다.
 - 루브릭은 `draft/` → 팀 검수 → `final/` 순서로만 옮긴다. 검수 없이 `final/`에 쓰지 않는다.
+- `concept_id`는 섹션과 상관없이 전체에서 고유하다. 오개념 해결·점수가 `concept_id`로 이어지므로 `loadFinalRubrics()`가 겹치면 오류를 내고 서버가 시작하지 않는다.
+- **`concept_id` 변경 규칙**: 핵심 요소(`key_points`)나 정답 기준(correct·partial·wrong 기준)이 바뀌면 새 `concept_id`를 만든다(예: `sinter_purpose` → `sinter_purpose_v2`). 문구 수정(오탈자, 질문 은행·`fallback_question` 다듬기, `quote` 출처 교체로 뜻이 같은 경우)은 id를 그대로 둔다. 예전 id의 기록은 지우지 않고, 읽는 쪽이 지금 final 루브릭의 개념만 본다('점수 규칙').
 - 루브릭 형식은 `content/rubrics/schema.json`. 최상위 `reviewed`는 팀 검수 여부이고, `false`인 루브릭을 로드하면 경고 로그를 남긴다(`backend/src/rubrics.ts`의 `loadRubric`). 스키마 검증은 서버 실행 중에도 `ajv`로 한다.
 - 개념의 선택 필드 `questions`·`recheck_questions`는 튜터 질문 은행이다(위 '튜터' 절).
 - 루브릭 최상위의 선택 필드 `glossary: [{term, aliases}]`는 섹션 단위 용어집이다(예: 용선 = 쇳물). 평가자 프롬프트에 들어가 동의어를 같은 말로 본다.
@@ -188,7 +192,7 @@ content/
 - 사용량: 사용자별 하루 LLM 호출 수를 `llm_usage`에 세고 `LLM_DAILY_LIMIT`(기본 150, 0 이하면 무제한)를 넘으면 429(`backend/src/usage.ts`). `GeminiClient`의 `beforeCall` 훅으로 센다.
 - 서버는 `127.0.0.1`에만 바인딩한다. 외부 공유는 `npm run tunnel`(cloudflared quick tunnel)로만 하고, `TEST_PASSCODE`가 없으면 터널이 열리지 않는다.
 - 앱 구성은 `backend/src/app.ts`의 `createApp()`, 실행은 `ironmaking-server.ts`.
-- 사용자 기록 삭제: `npm run db:reset-user -- 이름`. 진행 방법은 `docs/team-test.md`.
+- 사용자 기록 삭제: `npm run db:reset-user -- 이름 --origin seed|live|all [--yes]`(`--origin` 필수, 없으면 사용법을 보이고 종료). 이름이 로그인 아이디면 그 계정(`users.id`)의 기록과 같은 이름의 헤더 기록을 함께 지운다. 계정은 지우지 않는다. 실제 기록(live)은 eval 사람 답변 원천이라 필요하면 `eval:export-human`으로 먼저 백업한다. 진행 방법은 `docs/team-test.md`.
 - 사용자별 데이터(계정, 개념 점수, 판정 기록, 오개념, 진도, 튜토리얼 완료 여부)는 DB에 둔다.
 - 교육 내용과 루브릭은 DB가 아니라 `content/` 파일로 관리한다.
 
@@ -223,7 +227,7 @@ content/
 
 ## 다음 단계
 
-- **학습자 메모**: `CheckpointEngine.start()`·`respond()`의 선택 파라미터 `options.notes`는 `backend/src/learning/notes.ts`의 `LearnerNotes`(`conceptOrder`, `context`)를 받는다. `buildLearnerNotes(userId, section)`은 시그니처만 고정했고 구현은 TODO(지금은 빈 메모). 엔진의 개념 순서 조정(`orderConcepts`)과 튜터에게 줄 추가 컨텍스트에 연결한다.
+- **학습자 메모**: 연결됨. 서버가 `buildLearnerNotes`를 엔진의 `learnerNotes`로 넘기고(`options.notes`를 주면 그것을 우선), 엔진은 부가 설명(첫 판정이 correct가 아닐 때)에서만 메모를 읽어 `context`를 튜터의 `explanation`에 `learnerNotes`로 넘긴다. 프롬프트(`tutor-explanation.md`, `tutor-correction.md`)에는 `<learner_notes>` 구분자로 넣고, 관련 있는 항목만 짚게 한다. 평가자에게는 넘기지 않는다. 메모는 지금 final 루브릭 개념의 미해결 오개념만 담는다(`ironmaking-server.ts`에서 거름). `conceptOrder`(개념 순서 조정)는 루브릭 순서를 유지하기로 해서 쓰지 않는다.
 - **학습 모드 연결**: 설계와 결정은 `docs/learning-mode.md`. 오개념은 같은 응답에서 단정할 때만 감지하고, 대화는 DB에 저장(보관 기간 없음), 근거는 `retrieve()`로 분리해 공개 자료 메모로 먼저 연결한다. 학습 모드 오개념은 체크포인트 튜터의 context로만 쓰고 평가자에게는 넘기지 않는다. 개인 페이지에서 `source = learning`은 오개념 목록·개수에 섞지 않고 "튜터가 짚은 개념" 참고 목록으로 따로 보여 준다(위 '오개념 기록').
 - **개념 ↔ 설비 연결(수민 담당)**: 루브릭 스키마의 개념에 `equipment_ids`(선택, `data_v2.js`의 설비 id 배열)를 추가한다. 재학습 시 3D 하이라이트(오개념이 있는 개념의 설비 강조)에 쓴다. 스키마는 공용 파일이므로 작은 PR로 내고 공유한다. id 목록은 [docs/equipment-ids.md](docs/equipment-ids.md).
 - **3D 화면 조작**: 학습 모드의 `scene_actions`와 "재학습 시 3D 하이라이트"(오개념이 있는 개념의 설비를 강조)를 함께 진행한다.
@@ -239,7 +243,9 @@ content/
 
 ## 미정 사항
 
-현재 없음. 새로 생기면 여기에 적고, 구현할 때 추측하지 말고 팀에 확인한다.
+새로 생기면 여기에 적고, 구현할 때 추측하지 말고 팀에 확인한다.
+
+- 통과한 섹션의 미확인 개념(루브릭 변경으로 새로 생긴 개념)을 다시 묻는 재응시 경로: 지금은 만들지 않고 미확인 표시만 한다. 실제 사용자가 생기면 다시 정한다.
 
 ## 테스트
 

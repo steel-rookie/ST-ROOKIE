@@ -87,9 +87,9 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
 - `buildLearnerNotes(userId, section)` → `LearnerNotes { conceptOrder, context }`
   - `conceptOrder`: 루브릭 순서 그대로.
   - `context`: 미해결 오개념 요약.
-- 학습 모드 → 체크포인트: 체크포인트 시작 시 엔진의 `options.notes`로 넘긴다. **튜터에게만** 주어 부가 설명에서 알려진 오해를 짚게 한다. **평가자에게는 넘기지 않는다**(평가자 입력은 루브릭·질문·답변뿐, 과거 기록으로 채점이 치우치지 않게).
-- 구현(`backend/src/learning/notes.ts`): 서버 시작 때 `useLearnerNotesSource(learningRepo)`로 기록 저장소를 넘긴다(시그니처가 고정이라 인자로 받을 수 없어서). `buildLearnerNotes`는 섹션의 미해결 오개념을 최근 것부터 개념당 하나, 최대 5개를 출처 라벨(대화 중 감지됨·이해도 확인)과 함께 `context`로 요약한다. `conceptOrder`는 넣지 않는다(루브릭 순서). 저장소가 없거나 오개념이 없으면 빈 메모.
-- 아직 체크포인트 쪽에서 `buildLearnerNotes`를 불러 `options.notes`로 넘기고, 튜터 프롬프트에 `context`를 넣는 연결은 없다(체크포인트 담당).
+- 학습 모드 → 체크포인트: 엔진이 부가 설명(첫 판정이 correct가 아닐 때)을 할 때 메모를 읽어 **튜터에게만** 주고, 부가 설명에서 알려진 오해를 짚게 한다. **평가자에게는 넘기지 않는다**(평가자 입력은 루브릭·질문·답변뿐, 과거 기록으로 채점이 치우치지 않게).
+- 구현(`backend/src/learning/notes.ts`): 서버 시작 때 `useLearnerNotesSource(...)`로 기록 저장소를 넘긴다(시그니처가 고정이라 인자로 받을 수 없어서). 서버(`ironmaking-server.ts`)는 `learningRepo`를 감싸 지금 final 루브릭에 없는 개념의 오개념을 빼고 넘긴다. `buildLearnerNotes`는 섹션의 미해결 오개념을 최근 것부터 개념당 하나, 최대 5개를 출처 라벨(대화 중 감지됨·이해도 확인)과 함께 `context`로 요약한다. `conceptOrder`는 넣지 않는다(루브릭 순서). 저장소가 없거나 오개념이 없으면 빈 메모.
+- 체크포인트 쪽 연결(체크포인트 담당, #48): 서버가 `buildLearnerNotes`를 엔진 의존성 `learnerNotes`로 넘긴다. 엔진은 부가 설명 때만 이 함수를 불러(`respond`·`retryEvaluation`에 `options.notes`를 주면 그 메모를 우선) `context`를 `Tutor.explanation`의 `learnerNotes`로 넘긴다. 튜터 프롬프트(`tutor-explanation.md`, `tutor-correction.md`)에는 `<learner_notes>` 구분자로 감싸 이스케이프해 넣고, 이 개념과 관련된 항목만 짚게 한다.
 - 체크포인트 → 학습 모드: 체크포인트에서 나온 미해결 오개념을 학습 모드 프롬프트에 넣어, 관련 질문이 오면 먼저 바로잡게 한다. 화면에는 "지난번 헷갈린 개념" 추천 질문으로 보여 준다.
 
 ## 저장

@@ -1,18 +1,23 @@
 // 관리자 화면의 신입사원 통계. 오개념은 개수만 내보내고 내용·답변 원문은 내보내지 않는다(본인만 봄).
-// 체크포인트 기록(attempts, misconceptions 테이블)은 feature/checkpoint-api의 001_checkpoint.sql이 만든다.
-// 그 테이블이 아직 없으면 checkpoint_data: false와 빈 기록을 돌려준다.
+// 체크포인트 기록(attempts, misconceptions 테이블)은 001_checkpoint.sql이 만든다. 그 테이블이 아직 없으면 checkpoint_data: false와 빈 기록을 돌려준다.
+// - 섹션 이해도·통과는 체크포인트 엔진과 같은 summarizeSection으로 계산한다(CLAUDE.md '점수 규칙'). 지금 final 루브릭 개념만 보고,
+//   루브릭이 없는 섹션은 미시작(null)이다.
+// - 오개념 개수는 체크포인트 기록(source = 'checkpoint')만, 개념 수로 센다(CLAUDE.md '오개념 기록').
+// - 관리자 화면은 시연을 위해 시연 기록(origin = 'seed')도 센다.
 import type { DatabaseSync } from "node:sqlite";
-
-export const SECTIONS = ["ironmaking", "steelmaking", "continuous_casting", "rolling"] as const;
-export type Section = (typeof SECTIONS)[number];
+import { summarizeSection, type CompletedAttemptInput, type ResultInput } from "../checkpoint/section-summary.js";
+import { SECTION_ORDER, type Section } from "../checkpoint/types.js";
+import { loadFinalRubrics, type Rubric } from "../rubrics.js";
 
 export interface SectionStat {
-  /** 마지막으로 끝낸 체크포인트의 이해도(0~1). */
+  /** 지금 루브릭 개념 기준 이해도(0~1). 재도전 결과를 합친 값이다. */
   understanding: number;
-  /** 한 번이라도 80% 이상으로 통과했는지. */
+  /** 통과했는지. 한 번 통과하면 루브릭이 바뀌어도 통과로 둔다. */
   passed: boolean;
   /** 끝낸 체크포인트 횟수(첫 시도 + 재도전). */
   attempts: number;
+  /** 통과한 섹션에서 아직 확인하지 않은 개념(통과 뒤 루브릭에 새로 생긴 개념). */
+  unconfirmed_concept_ids: string[];
 }
 
 export interface TraineeStat {
@@ -24,6 +29,7 @@ export interface TraineeStat {
   last_activity: string | null;
   sections: Record<Section, SectionStat | null>;
   passed_sections: number;
+  /** 체크포인트 오개념이 있었던 개념 수. open: 미해결 행이 있는 개념, resolved: 미해결 행이 하나도 없는 개념. */
   misconceptions: { open: number; resolved: number };
 }
 
@@ -33,7 +39,11 @@ export interface TraineeStats {
   trainees: TraineeStat[];
 }
 
-export function traineeStats(db: DatabaseSync): TraineeStats {
+let finalRubrics: Rubric[] | null = null;
+/** 서버가 시작할 때 검증한 것과 같은 final 루브릭. 처음 부를 때 한 번 읽는다. */
+const defaultRubrics = (): Rubric[] => (finalRubrics ??= loadFinalRubrics());
+
+export function traineeStats(db: DatabaseSync, rubrics: readonly Rubric[] = defaultRubrics()): TraineeStats {
   const users = db
     .prepare("SELECT id, username, name, employee_no, created_at FROM users WHERE role = 'trainee' ORDER BY username")
     .all();
@@ -46,27 +56,52 @@ export function traineeStats(db: DatabaseSync): TraineeStats {
     employee_no: String(u.employee_no),
     created_at: String(u.created_at),
     last_activity: null,
-    sections: Object.fromEntries(SECTIONS.map((s) => [s, null])) as Record<Section, SectionStat | null>,
+    sections: Object.fromEntries(SECTION_ORDER.map((s) => [s, null])) as Record<Section, SectionStat | null>,
     passed_sections: 0,
     misconceptions: { open: 0, resolved: 0 },
   }));
-  if (!checkpointData) return { checkpoint_data: false, sections: SECTIONS, trainees };
+  if (!checkpointData) return { checkpoint_data: false, sections: SECTION_ORDER, trainees };
 
   const byId = new Map(trainees.map((t) => [t.id, t]));
-  // 완료 순서대로 읽어서 마지막 시도의 이해도가 남게 한다.
-  const done = db
-    .prepare("SELECT user_id, section, understanding, unlocked FROM attempts WHERE state = 'completed' ORDER BY completed_at, created_at")
-    .all();
-  for (const row of done) {
-    const t = byId.get(String(row.user_id));
-    const section = String(row.section) as Section;
-    if (!t || !SECTIONS.includes(section)) continue;
-    const prev = t.sections[section];
-    t.sections[section] = {
-      understanding: Number(row.understanding ?? 0),
-      passed: Boolean(prev?.passed) || Number(row.unlocked) === 1,
-      attempts: (prev?.attempts ?? 0) + 1,
-    };
+  const rubricOf = new Map(rubrics.map((r) => [r.section, r]));
+  const currentConcepts = new Map(rubrics.map((r) => [r.section, new Set(r.concepts.map((c) => c.concept_id))]));
+
+  // 사람×섹션별 완료 시도(오래된 순서)와 그 개념 결과를 모아 엔진과 같은 함수로 계산한다.
+  const results = new Map<string, ResultInput[]>();
+  for (const row of db
+    .prepare(`SELECT r.attempt_id, r.concept_id, r.verdict, r.recheck_verdict
+                FROM concept_results r JOIN attempts a ON a.id = r.attempt_id
+               WHERE a.state = 'completed'`)
+    .all()) {
+    const id = String(row.attempt_id);
+    if (!results.has(id)) results.set(id, []);
+    results.get(id)!.push({
+      concept_id: String(row.concept_id),
+      verdict: String(row.verdict) as ResultInput["verdict"],
+      recheck_verdict: row.recheck_verdict == null ? null : (String(row.recheck_verdict) as ResultInput["recheck_verdict"]),
+    });
+  }
+  const completed = new Map<string, CompletedAttemptInput[]>();
+  for (const row of db
+    .prepare("SELECT id, user_id, section, unlocked FROM attempts WHERE state = 'completed' ORDER BY completed_at, created_at")
+    .all()) {
+    const key = `${String(row.user_id)}\u0000${String(row.section)}`;
+    if (!completed.has(key)) completed.set(key, []);
+    completed.get(key)!.push({ unlocked: row.unlocked == null ? null : Number(row.unlocked) === 1, results: results.get(String(row.id)) ?? [] });
+  }
+  for (const t of trainees) {
+    for (const section of SECTION_ORDER) {
+      const rubric = rubricOf.get(section);
+      const attempts = completed.get(`${t.id}\u0000${section}`);
+      if (!rubric || !attempts) continue;
+      const summary = summarizeSection(rubric, attempts);
+      t.sections[section] = {
+        understanding: summary.understanding ?? 0,
+        passed: summary.passed,
+        attempts: attempts.length,
+        unconfirmed_concept_ids: summary.unconfirmed_concept_ids,
+      };
+    }
   }
 
   const activity = db.prepare("SELECT user_id, MAX(updated_at) AS last FROM attempts GROUP BY user_id").all();
@@ -75,16 +110,23 @@ export function traineeStats(db: DatabaseSync): TraineeStats {
     if (t) t.last_activity = row.last == null ? null : String(row.last);
   }
 
-  const mis = db.prepare("SELECT user_id, resolved, COUNT(*) AS n FROM misconceptions GROUP BY user_id, resolved").all();
-  for (const row of mis) {
-    const t = byId.get(String(row.user_id));
-    if (!t) continue;
-    if (Number(row.resolved) === 1) t.misconceptions.resolved = Number(row.n);
-    else t.misconceptions.open = Number(row.n);
+  // 개념마다 미해결 행이 하나라도 있으면 미해결, 없으면 해결로 센다. 지금 루브릭에 없는 개념은 뺀다.
+  const conceptOpen = new Map<string, Map<string, boolean>>();
+  for (const row of db.prepare("SELECT user_id, section, concept_id, resolved FROM misconceptions WHERE source = 'checkpoint'").all()) {
+    const userId = String(row.user_id);
+    const conceptId = String(row.concept_id);
+    if (!byId.has(userId) || !currentConcepts.get(String(row.section) as Section)?.has(conceptId)) continue;
+    if (!conceptOpen.has(userId)) conceptOpen.set(userId, new Map());
+    const concepts = conceptOpen.get(userId)!;
+    concepts.set(conceptId, (concepts.get(conceptId) ?? false) || Number(row.resolved) !== 1);
+  }
+  for (const [userId, concepts] of conceptOpen) {
+    const open = [...concepts.values()].filter(Boolean).length;
+    byId.get(userId)!.misconceptions = { open, resolved: concepts.size - open };
   }
 
-  for (const t of trainees) t.passed_sections = SECTIONS.filter((s) => t.sections[s]?.passed).length;
-  return { checkpoint_data: true, sections: SECTIONS, trainees };
+  for (const t of trainees) t.passed_sections = SECTION_ORDER.filter((s) => t.sections[s]?.passed).length;
+  return { checkpoint_data: true, sections: SECTION_ORDER, trainees };
 }
 
 // PostgreSQL로 옮겨도 쓸 수 있게 시스템 테이블 대신 빈 조회로 테이블 존재를 확인한다.

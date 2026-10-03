@@ -59,7 +59,21 @@ export function loadRubric(path: string): Rubric {
   return rubric;
 }
 
-/** 평가자가 읽는 final/ 루브릭을 모두 읽는다. 서버 시작 시 호출해 잘못된 파일이 있으면 시작을 멈춘다. */
+/**
+ * 평가자가 읽는 final/ 루브릭을 모두 읽는다. 서버 시작 시 호출해 잘못된 파일이 있으면 시작을 멈춘다.
+ * concept_id는 섹션과 상관없이 전체에서 고유해야 한다. 오개념 해결·점수 기록이 concept_id로 이어지기 때문이다.
+ */
 export function loadFinalRubrics(dir = join(RUBRIC_ROOT, "final")): Rubric[] {
-  return readdirSync(dir).filter((name) => name.endsWith(".json")).sort().map((name) => loadRubric(join(dir, name)));
+  const rubrics = readdirSync(dir).filter((name) => name.endsWith(".json")).sort().map((name) => loadRubric(join(dir, name)));
+  const owner = new Map<string, Rubric["section"]>();
+  const duplicated: string[] = [];
+  for (const r of rubrics) {
+    for (const c of r.concepts) {
+      const first = owner.get(c.concept_id);
+      if (first && first !== r.section) duplicated.push(`${c.concept_id}(${first}, ${r.section})`);
+      else owner.set(c.concept_id, r.section);
+    }
+  }
+  if (duplicated.length) throw new Error(`루브릭 concept_id는 섹션이 달라도 겹치면 안 됩니다: ${dir}: ${duplicated.join(", ")}`);
+  return rubrics;
 }

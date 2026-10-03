@@ -104,7 +104,7 @@ test("핵심 요소를 모두 맞혔지만 사실 오류로 partial이면 explai
   const partial = await engine.respond(USER, view.attempt_id, "partial@null|불순물 제거를 잘못 앎");
   assert.equal(partial.state, "awaiting_recheck");
   assert.deepEqual(texts(partial), ["explanation:EX:a:null", "recheck_question:RQ:a"]);
-  assert.deepEqual(tutor.calls.find((c) => c.kind === "explanation")?.extra, { explainFrom: null, misconception: "불순물 제거를 잘못 앎" });
+  assert.deepEqual(tutor.calls.find((c) => c.kind === "explanation")?.extra, { explainFrom: null, misconception: "불순물 제거를 잘못 앎", learnerNotes: null });
 });
 
 test("explain_from null인데 오개념이 없거나 partial이 아니면 채점 오류로 본다", async () => {
@@ -290,4 +290,62 @@ test("시연 기록(origin = 'seed')은 진행·해금·재도전·진행 중 �
   const { created, view } = await engine.start(USER, "ironmaking");
   assert.ok(created);
   assert.equal(view.kind, "first");
+});
+
+test("루브릭 개념 id가 바뀌면: 예전 결과는 버리고, 통과한 섹션은 통과로 두고 새 개념은 미확인", async () => {
+  const db = openDatabase(":memory:");
+  const repo = new CheckpointRepository(db);
+  const before = new CheckpointEngine({ repo, evaluator: new FakeEvaluator(), tutor: new FakeTutor(), rubrics: [IRONMAKING, STEELMAKING] });
+  // 통과한 사람(a·b·c 정답)과 미달인 사람(a만 정답)
+  await runCheckpoint(before, ["correct", "correct", "correct"], "passed");
+  await runCheckpoint(before, ["correct", "wrong", "wrong", "wrong", "wrong"], "failed");
+
+  // 핵심 요소가 바뀌어 b → b2로 새 id
+  const changed = { ...IRONMAKING, concepts: IRONMAKING.concepts.map((c) => (c.concept_id === "b" ? { ...c, concept_id: "b2" } : c)) };
+  const after = new CheckpointEngine({ repo, evaluator: new FakeEvaluator(), tutor: new FakeTutor(), rubrics: [changed, STEELMAKING] });
+
+  const passed = after.sectionProgress("passed", "ironmaking");
+  assert.equal(passed.unlocked, true);
+  assert.deepEqual(passed.unconfirmed_concept_ids, ["b2"]);
+  assert.deepEqual(passed.retry_concept_ids, []);
+  assert.equal(after.sectionProgress("passed", "steelmaking").open, true);
+  await assert.rejects(after.start("passed", "ironmaking"), (e: unknown) => e instanceof CheckpointError && e.status === 409);
+
+  // 미달인 사람은 예전 b 결과 없이 재도전: 맞힌 a는 빼고 b2·c를 묻는다.
+  const failed = after.sectionProgress("failed", "ironmaking");
+  assert.equal(failed.unlocked, false);
+  assert.deepEqual(failed.retry_concept_ids, ["b2", "c"]);
+  const { view } = await after.start("failed", "ironmaking");
+  assert.equal(view.kind, "retry");
+  assert.equal(view.concept, null);
+  const ready = await after.respond("failed", view.attempt_id, "네");
+  assert.equal(ready.concept?.id, "b2");
+});
+
+test("학습자 메모: 부가 설명 때만 읽어 튜터에게 넘기고, 평가자에게는 넘기지 않는다", async () => {
+  const evaluator = new FakeEvaluator();
+  const tutor = new FakeTutor();
+  const asked: string[] = [];
+  const engine = new CheckpointEngine({
+    repo: new CheckpointRepository(openDatabase(":memory:")), evaluator, tutor, rubrics: [IRONMAKING, STEELMAKING],
+    learnerNotes: async (userId, section) => {
+      asked.push(`${userId}:${section}`);
+      return { context: "- b (대화 중 감지됨): 코크스를 연료로만 앎" };
+    },
+  });
+
+  // a는 correct(부가 설명 없음) → b는 wrong(부가 설명) → 재확인
+  await runCheckpoint(engine, ["correct", "wrong", "correct"]);
+  assert.deepEqual(asked, [`${USER}:ironmaking`]);
+  const explanations = tutor.calls.filter((c) => c.kind === "explanation");
+  assert.equal(explanations.length, 1);
+  assert.equal((explanations[0]!.extra as { learnerNotes: string }).learnerNotes, "- b (대화 중 감지됨): 코크스를 연료로만 앎");
+  assert.doesNotMatch(JSON.stringify(evaluator.calls), /코크스를 연료로만 앎/);
+
+  // options.notes를 주면 그 메모를 쓰고 provider는 부르지 않는다. 빈 메모는 null로 넘긴다.
+  const { view } = await engine.start("other", "ironmaking");
+  await engine.respond("other", view.attempt_id, "네");
+  await engine.respond("other", view.attempt_id, "wrong", { notes: {} });
+  assert.deepEqual(asked, [`${USER}:ironmaking`]);
+  assert.equal((tutor.calls.filter((c) => c.kind === "explanation").at(-1)!.extra as { learnerNotes: unknown }).learnerNotes, null);
 });

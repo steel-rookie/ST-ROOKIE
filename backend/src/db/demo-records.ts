@@ -5,7 +5,7 @@
 // 모든 기록은 origin = 'seed'(005_record_origin.sql). 실제 기록(live)은 지우지 않는다.
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import { SECTIONS } from "../admin/trainee-stats.js";
+import { SECTION_ORDER } from "../checkpoint/types.js";
 import { DEMO_ACCOUNTS } from "../auth/demo-accounts.js";
 import {
   applyRetry,
@@ -121,7 +121,7 @@ export function seedDemoRecords(db: DatabaseSync, concepts: SectionConcepts, see
       clock = now.getTime() - (2 + random() * 1.5) * 24 * 3600_000;
       const profile = profileOf(username, index);
 
-      for (const [sectionIndex, section] of SECTIONS.slice(0, profile.reach).entries()) {
+      for (const [sectionIndex, section] of SECTION_ORDER.slice(0, profile.reach).entries()) {
         const sectionConcepts = concepts[section] ?? [];
         // 루브릭이 없는 섹션은 체크포인트를 볼 수 없으므로 기록을 만들지 않는다(관리자 화면에서 미시작). 그 뒤 섹션도 잠겨 있다.
         if (sectionConcepts.length === 0) break;
@@ -189,11 +189,11 @@ export function seedDemoRecords(db: DatabaseSync, concepts: SectionConcepts, see
       }
 
       // 학습 모드에서 감지된 오개념(점수 반영 없음)도 한 사람에 하나씩 둔다.
-      const learned = concepts[SECTIONS[0]]?.[Math.floor(random() * (concepts[SECTIONS[0]]?.length ?? 1))];
+      const learned = concepts[SECTION_ORDER[0]]?.[Math.floor(random() * (concepts[SECTION_ORDER[0]]?.length ?? 1))];
       if (learned) {
         db.prepare(`INSERT INTO misconceptions (id, user_id, section, concept_id, source, phase, attempt_id, answer_text, summary, resolved, resolved_at, created_at, origin)
                     VALUES (?, ?, ?, ?, 'learning', NULL, NULL, ?, ?, 0, NULL, ?, 'seed')`)
-          .run(randomUUID(), userId, SECTIONS[0], learned.id, `${learned.name}은(는) 쇳물을 직접 만드는 곳이죠?`, `${learned.name}의 역할을 고로와 헷갈림`, tick(0.5, 3));
+          .run(randomUUID(), userId, SECTION_ORDER[0], learned.id, `${learned.name}은(는) 쇳물을 직접 만드는 곳이죠?`, `${learned.name}의 역할을 고로와 헷갈림`, tick(0.5, 3));
         counts.misconceptions++;
       }
     }

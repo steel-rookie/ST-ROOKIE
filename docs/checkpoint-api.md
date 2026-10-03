@@ -24,7 +24,7 @@
 | `POST` | `/api/checkpoints/:id/messages` | 사용자 응답으로 한 단계 진행 |
 | `GET` | `/api/checkpoints/:id` | 현재 상태와 대화 기록(새로고침 복원) |
 | `POST` | `/api/checkpoints/:id/retry-evaluation` | `error` 상태에서 저장해 둔 마지막 답변을 다시 채점 |
-| `GET` | `/api/sections/:section/progress` | 섹션 열림·해금 여부, 이해도, 재도전 대상, 진행 중인 시도 |
+| `GET` | `/api/sections/:section/progress` | 섹션 열림·해금 여부, 이해도, 재도전 대상, 미확인 개념(`unconfirmed_concept_ids`), 진행 중인 시도 |
 
 요청
 
@@ -109,7 +109,8 @@
 - 한 요청 = 한 단계. 평가자·튜터 호출을 모두 마친 뒤 상태, 개념 결과, 오개념, 대화 기록을 하나의 트랜잭션으로 저장한다. LLM 연결이 실패하면 아무것도 저장하지 않는다.
 - 같은 시도에 겹친 요청은 409로 막는다.
 - 재도전은 `conceptsToRetry`가 돌려준 개념만 묻는다. 맞힌 개념의 점수는 유지된다.
-- 이미 통과한 섹션은 다시 응시할 수 없다(409).
+- 이미 통과한 섹션은 다시 응시할 수 없다(409). 한 번 통과했으면 루브릭이 바뀌어도 통과로 유지한다.
+- 결과는 지금 final 루브릭의 개념만으로 합친다(`section-summary.ts`). 바뀌거나 빠진 `concept_id`의 결과는 버리고, 통과 뒤 새로 생긴 개념은 `unconfirmed_concept_ids`(미확인)로 돌려준다.
 
 ## 4. DB (SQLite, `node:sqlite`)
 
@@ -280,5 +281,5 @@ backend/test/
 
 ## 10. 다음 단계
 
-- 학습자 메모: `CheckpointEngine.start()`·`respond()`의 `options.notes`(`conceptOrder`, `context`) 자리를 열어 두었다.
+- 학습자 메모: 연결됨. 엔진은 부가 설명 때만 `EngineDeps.learnerNotes`(서버: `buildLearnerNotes`) 또는 `options.notes`의 `context`를 읽어 튜터 `explanation`의 `learnerNotes`로 넘긴다. 평가자 입력에는 넣지 않는다.
 - 프론트 확정 후 메인 페이지 튜터 패널에 체크포인트 UI 다시 적용(원본: 태그 `archive/checkpoint-ui-v1`, 현재 테스트: `checkpoint-test.html`).

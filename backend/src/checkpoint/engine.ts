@@ -8,13 +8,13 @@ import {
   conceptResult,
   conceptScore,
   conceptsToRetry,
-  isUnlocked,
   sectionStatus,
   type ConceptResult,
   type Results,
 } from "../scoring.js";
 import type { LearnerNotes } from "../learning/notes.js";
 import type { AttemptPatch, AttemptRow, CheckpointRepository, ConceptResultRow } from "./repository.js";
+import { isSectionPassed, mergeAttemptResults, summarizeSection } from "./section-summary.js";
 import {
   CheckpointError,
   EvaluationFormatError,
@@ -41,11 +41,16 @@ export interface EngineDeps {
   evaluator: Evaluator;
   tutor: Tutor;
   rubrics: readonly Rubric[];
+  /**
+   * 학습자 메모를 만드는 함수(서버는 learning/notes.ts의 buildLearnerNotes). options.notes가 없을 때만 부른다.
+   * 부가 설명을 할 때만 읽어 튜터에게 넘긴다. 평가자에게는 넘기지 않는다.
+   */
+  learnerNotes?: (userId: string, section: Section) => Promise<LearnerNotes>;
   now?: () => string;
   newId?: () => string;
 }
 
-/** 선택 파라미터. 학습자 메모는 다음 단계에서 쓴다(CLAUDE.md '다음 단계'). */
+/** 선택 파라미터. notes를 주면 EngineDeps.learnerNotes 대신 이 메모를 쓴다. */
 export interface EngineOptions {
   notes?: LearnerNotes;
 }
@@ -58,6 +63,7 @@ export class CheckpointEngine {
   private readonly tutor: Tutor;
   private readonly rubrics: Map<Section, Rubric>;
   private readonly now: () => string;
+  private readonly learnerNotes?: (userId: string, section: Section) => Promise<LearnerNotes>;
   private readonly newId: () => string;
   // 같은 시도(또는 같은 사용자·섹션의 시작)에 요청이 겹치면 순서가 꼬이므로 하나씩만 처리한다.
   private readonly busy = new Set<string>();
@@ -68,6 +74,7 @@ export class CheckpointEngine {
     this.tutor = deps.tutor;
     this.rubrics = new Map(deps.rubrics.map((r) => [r.section, r]));
     this.now = deps.now ?? (() => new Date().toISOString());
+    this.learnerNotes = deps.learnerNotes;
     this.newId = deps.newId ?? randomUUID;
   }
 
@@ -82,7 +89,7 @@ export class CheckpointEngine {
       const ids = conceptIds(rubric);
       const completed = this.repo.listCompletedAttempts(userId, section);
       const merged = this.mergedResults(userId, rubric);
-      if (completed.length && isUnlocked(ids, merged)) throw new CheckpointError(409, "이미 통과한 섹션입니다.");
+      if (isSectionPassed(rubric, completed, merged)) throw new CheckpointError(409, "이미 통과한 섹션입니다.");
 
       const kind = completed.length ? "retry" : "first";
       const asked = this.orderConcepts(kind === "first" ? ids : conceptsToRetry(ids, merged), options.notes);
@@ -109,9 +116,9 @@ export class CheckpointEngine {
 
   /**
    * 사용자 응답으로 상태를 한 단계 진행한다.
-   * options는 학습자 메모를 받을 자리이고 지금은 쓰지 않는다.
+   * 부가 설명에는 학습자 메모(options.notes, 없으면 EngineDeps.learnerNotes)의 context를 튜터에게 넘긴다.
    */
-  async respond(userId: string, attemptId: string, text: string, _options: EngineOptions = {}): Promise<CheckpointView> {
+  async respond(userId: string, attemptId: string, text: string, options: EngineOptions = {}): Promise<CheckpointView> {
     return this.exclusive(attemptId, async () => {
       const attempt = this.ownedAttempt(userId, attemptId);
       const rubric = this.rubric(attempt.section);
@@ -119,9 +126,9 @@ export class CheckpointEngine {
         case "awaiting_ready":
           return this.onReady(attempt, rubric, text);
         case "awaiting_answer":
-          return this.onAnswer(attempt, rubric, text, "initial", true);
+          return this.onAnswer(attempt, rubric, text, "initial", true, options);
         case "awaiting_recheck":
-          return this.onAnswer(attempt, rubric, text, "recheck", true);
+          return this.onAnswer(attempt, rubric, text, "recheck", true, options);
         case "completed":
           throw new CheckpointError(409, "이미 끝난 체크포인트입니다.");
         case "error":
@@ -131,7 +138,7 @@ export class CheckpointEngine {
   }
 
   /** error 상태에서 저장해 둔 마지막 답변을 다시 채점한다. */
-  async retryEvaluation(userId: string, attemptId: string): Promise<CheckpointView> {
+  async retryEvaluation(userId: string, attemptId: string, options: EngineOptions = {}): Promise<CheckpointView> {
     return this.exclusive(attemptId, async () => {
       const attempt = this.ownedAttempt(userId, attemptId);
       if (attempt.state !== "error" || !attempt.resume_state || attempt.pending_answer === null) {
@@ -139,7 +146,7 @@ export class CheckpointEngine {
       }
       const phase: Phase = attempt.resume_state === "awaiting_recheck" ? "recheck" : "initial";
       const resumed = { ...attempt, state: attempt.resume_state };
-      return this.onAnswer(resumed, this.rubric(attempt.section), attempt.pending_answer, phase, false);
+      return this.onAnswer(resumed, this.rubric(attempt.section), attempt.pending_answer, phase, false, options);
     });
   }
 
@@ -149,16 +156,15 @@ export class CheckpointEngine {
 
   sectionProgress(userId: string, section: Section): SectionProgressView {
     const rubric = this.rubric(section);
-    const ids = conceptIds(rubric);
     const completed = this.repo.listCompletedAttempts(userId, section);
-    const merged = this.mergedResults(userId, rubric);
-    const unlocked = completed.length > 0 && isUnlocked(ids, merged);
+    const summary = summarizeSection(rubric, completed.map((a) => ({ unlocked: a.unlocked, results: this.repo.listResults(a.id) })));
     return {
       section,
       open: this.isSectionOpen(userId, section),
-      unlocked,
-      understanding: completed.length ? sectionStatus(ids, merged).understanding : null,
-      retry_concept_ids: completed.length && !unlocked ? conceptsToRetry(ids, merged) : [],
+      unlocked: summary.passed,
+      understanding: summary.understanding,
+      retry_concept_ids: summary.retry_concept_ids,
+      unconfirmed_concept_ids: summary.unconfirmed_concept_ids,
       in_progress_attempt_id: this.repo.findOpenAttempt(userId, section)?.id ?? null,
     };
   }
@@ -176,7 +182,7 @@ export class CheckpointEngine {
     ], tutor);
   }
 
-  private async onAnswer(attempt: AttemptRow, rubric: Rubric, answer: string, phase: Phase, logUser: boolean): Promise<CheckpointView> {
+  private async onAnswer(attempt: AttemptRow, rubric: Rubric, answer: string, phase: Phase, logUser: boolean, options: EngineOptions): Promise<CheckpointView> {
     const concept = findConcept(rubric, attempt.concept_ids[attempt.current_index]!);
     const question = attempt.current_question ?? "";
     const userMessages: Message[] = logUser ? [{ role: "user", type: null, text: answer }] : [];
@@ -207,8 +213,9 @@ export class CheckpointEngine {
 
     // 첫 판정이 correct가 아니면: explain_from부터 부가 설명 → 다른 각도의 재확인 질문.
     if (phase === "initial" && evaluation.verdict !== "correct") {
+      const notes = options.notes ?? (await this.learnerNotes?.(attempt.user_id, attempt.section));
       const explanation = await this.tutor.explanation({
-        rubric, concept, explainFrom: evaluation.explain_from, misconception, answer,
+        rubric, concept, explainFrom: evaluation.explain_from, misconception, answer, learnerNotes: notes?.context?.trim() || null,
       });
       const recheckQuestion = await this.tutor.recheckQuestion({ rubric, concept, previousQuestion: question });
       const tutor: Utterance[] = [
@@ -330,16 +337,14 @@ export class CheckpointEngine {
     };
   }
 
-  /** 완료된 시도 결과를 순서대로 합친다. untilAttemptId를 주면 그 시도까지만 합친다. */
+  /**
+   * 완료된 시도 결과를 순서대로 합친다. untilAttemptId를 주면 그 시도까지만 합친다.
+   * 지금 루브릭에 없는 개념(바뀌거나 빠진 concept_id)의 결과는 버린다(section-summary.ts).
+   */
   private mergedResults(userId: string, rubric: Rubric, untilAttemptId?: string): Map<string, ConceptResult> {
-    const ids = conceptIds(rubric);
-    let merged = new Map<string, ConceptResult>();
-    for (const attempt of this.repo.listCompletedAttempts(userId, rubric.section)) {
-      const results = new Map(this.repo.listResults(attempt.id).map((r) => [r.concept_id, toConceptResult(r)]));
-      merged = applyRetry(ids, merged, results);
-      if (attempt.id === untilAttemptId) break;
-    }
-    return merged;
+    const attempts = this.repo.listCompletedAttempts(userId, rubric.section);
+    const until = untilAttemptId ? attempts.findIndex((a) => a.id === untilAttemptId) : -1;
+    return mergeAttemptResults(rubric, (until >= 0 ? attempts.slice(0, until + 1) : attempts).map((a) => this.repo.listResults(a.id)));
   }
 
   private isSectionOpen(userId: string, section: Section): boolean {
@@ -347,7 +352,7 @@ export class CheckpointEngine {
     if (index <= 0) return true;
     const previous = this.rubrics.get(SECTION_ORDER[index - 1]!);
     if (!previous) return false;
-    return isUnlocked(conceptIds(previous), this.mergedResults(userId, previous));
+    return isSectionPassed(previous, this.repo.listCompletedAttempts(userId, previous.section), this.mergedResults(userId, previous));
   }
 
   /** 학습자 메모의 conceptOrder를 적용할 자리(다음 단계). 지금은 받은 순서를 그대로 쓴다. */

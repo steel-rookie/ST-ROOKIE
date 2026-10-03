@@ -87,7 +87,9 @@ caffeinate -i npm run eval:questions -- --polish-count 3 --out questions.md
 
 ### 기록 관리
 
-- 한 사람의 기록을 지우고 처음부터 다시 하게 하려면: `npm run db:reset-user -- 민수`
+- 한 사람의 기록을 지우고 처음부터 다시 하게 하려면: `npm run db:reset-user -- 민수 --origin all`
+  - 로그인 아이디(예: `trainee03`)를 넣으면 그 계정의 기록과 같은 이름으로 헤더(`?user=`)에 쌓인 기록을 함께 지운다.
+  - `--origin`은 필수다. `seed`는 시연 기록만, `live`는 실제 기록만, `all`은 둘 다 지운다. 실제 답변은 평가 세트 원천이므로 지우기 전에 `npm run eval:export-human`으로 백업한다.
   - 체크포인트 시도, 답변, 대화, 오개념, 하루 사용량을 지웁니다. 지우기 전에 한 번 묻습니다(`--yes`로 생략).
 - 기록은 `data/st-rookie.sqlite`에 있습니다.
 

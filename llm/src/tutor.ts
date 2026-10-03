@@ -145,7 +145,9 @@ export class GeminiTutor implements Tutor {
     return (await this.recheckQuestionDetailed(input)).text;
   }
 
-  explanation({ concept, explainFrom, misconception, answer }: Parameters<Tutor["explanation"]>[0]): Promise<string> {
+  explanation({ concept, explainFrom, misconception, answer, learnerNotes }: Parameters<Tutor["explanation"]>[0]): Promise<string> {
+    // 학습자 메모는 학습자 답변에서 나온 요약이라 지시가 아닌 자료로 구분자 안에 넣는다.
+    const notes = learnerNotes?.trim() ? escapeDelimited(learnerNotes.trim()) : "없음";
     // explain_from이 null이면 핵심 요소는 모두 맞혔고 사실 오류만 있다: 오개념만 바로잡는다.
     if (explainFrom === null) {
       return this.say(renderPrompt("tutor-correction", {
@@ -153,6 +155,7 @@ export class GeminiTutor implements Tutor {
         key_points: keyPointsWithQuotes(concept.key_points),
         misconception: misconception ?? "없음",
         answer: escapeDelimited(answer),
+        learner_notes: notes,
       }), 0.3, 400);
     }
     return this.say(renderPrompt("tutor-explanation", {
@@ -160,6 +163,7 @@ export class GeminiTutor implements Tutor {
       key_points: keyPointsWithQuotes(concept.key_points.slice(explainFrom)),
       misconception: misconception ?? "없음",
       answer: escapeDelimited(answer),
+      learner_notes: notes,
     }), 0.3, 500);
   }
 }
