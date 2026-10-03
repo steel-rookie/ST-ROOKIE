@@ -50,3 +50,19 @@ test("사람 답변 내보내기: 첫 판정 답변만, 판정은 비우고 모�
   const again = exportHumanAnswers([{ label: "a.sqlite", db: first }, { label: "b.sqlite", db: second }], "ironmaking");
   assert.deepEqual(again.cases.map((c) => c.case_id), cases.map((c) => c.case_id));
 });
+
+test("사람 답변 내보내기: 시연 기록(origin = 'seed')은 빼고 실제 기록만", async () => {
+  const db = await filledDb({ "kim.real-id": ["correct"], "demo.id": ["wrong|시연 답변"] });
+  db.prepare("UPDATE attempts SET origin = 'seed' WHERE user_id = 'demo.id'").run();
+  const { cases } = exportHumanAnswers([{ label: "a.sqlite", db }], "ironmaking");
+  assert.deepEqual(cases.map((c) => c.answer), ["correct"]);
+});
+
+test("사람 답변 내보내기: origin 컬럼이 없는 예전 DB는 대화 기록이 있는 시도만", async () => {
+  const db = await filledDb({ "kim.real-id": ["correct"], "demo.id": ["wrong|시연 답변"] });
+  // 005 전 DB 흉내: seed는 대화 기록을 남기지 않았고 origin 컬럼이 없다.
+  db.prepare("DELETE FROM attempt_messages WHERE attempt_id IN (SELECT id FROM attempts WHERE user_id = 'demo.id')").run();
+  db.exec("PRAGMA foreign_keys = OFF; ALTER TABLE attempts DROP COLUMN origin;");
+  const { cases } = exportHumanAnswers([{ label: "a.sqlite", db }], "ironmaking");
+  assert.deepEqual(cases.map((c) => c.answer), ["correct"]);
+});

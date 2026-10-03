@@ -36,7 +36,7 @@ test("seeded records follow the unlock order and scoring rules", async () => {
         }
       });
     }
-    assert.ok(stats.trainees.find((t) => t.username === "trainee01")!.sections.ironmaking, `${seed} trainee01 has no ironmaking record`);
+    assert.ok(stats.trainees.find((t) => t.username === "trainee11")!.sections.ironmaking, `${seed} trainee11 has no ironmaking record`);
   }
 });
 
@@ -51,4 +51,35 @@ test("the same seed gives the same records and reseeding replaces only demo trai
   const attemptsPerUser = a.db.prepare("SELECT COUNT(DISTINCT user_id) AS n FROM attempts").get();
   assert.ok(Number(attemptsPerUser?.n) <= 20);
   assert.ok(a.db.prepare("SELECT 1 FROM misconceptions WHERE id = 'keep'").get(), "other users' records were deleted");
+});
+
+test("루브릭(개념)이 없는 섹션에는 기록을 만들지 않는다", async () => {
+  const db = openDatabase(":memory:");
+  await seedDemoAccounts(new UserRepository(db));
+  seedDemoRecords(db, { ironmaking: concepts.ironmaking! }, 42);
+  const sections = db.prepare("SELECT DISTINCT section FROM attempts").all().map((r) => String(r.section));
+  assert.deepEqual(sections, ["ironmaking"]);
+  assert.equal(Number(db.prepare("SELECT COUNT(*) AS n FROM misconceptions WHERE section <> 'ironmaking'").get()?.n), 0);
+});
+
+test("시연 기록은 trainee11~20에만 origin = 'seed'로 넣고, 다시 만들 때 trainee01~10의 seed 기록은 지우고 실제 기록(live)은 남긴다", async () => {
+  const { db } = await seeded(42);
+  const seededUsers = db.prepare("SELECT DISTINCT u.username FROM attempts a JOIN users u ON u.id = a.user_id ORDER BY 1").all().map((r) => String(r.username));
+  assert.ok(seededUsers.length > 0 && seededUsers.every((u) => u >= "trainee11" && u <= "trainee20"), seededUsers.join(","));
+  assert.equal(Number(db.prepare("SELECT COUNT(*) AS n FROM attempts WHERE origin <> 'seed'").get()?.n), 0);
+  assert.equal(Number(db.prepare("SELECT COUNT(*) AS n FROM misconceptions WHERE origin <> 'seed' AND id <> 'keep'").get()?.n), 0);
+
+  // 예전 seed가 trainee01에 넣은 기록과 trainee01의 실제 기록
+  const trainee01 = String(db.prepare("SELECT id FROM users WHERE username = 'trainee01'").get()?.id);
+  const attempt = db.prepare("INSERT INTO attempts (id, user_id, section, kind, state, concept_ids, created_at, updated_at, origin) VALUES (?, ?, 'ironmaking', 'first', 'completed', '[]', 'now', 'now', ?)");
+  attempt.run("old-seed", trainee01, "seed");
+  attempt.run("live1", trainee01, "live");
+  const mis = db.prepare("INSERT INTO misconceptions (id, user_id, section, concept_id, source, answer_text, summary, created_at, origin) VALUES (?, ?, 'ironmaking', 'x', 'checkpoint', 'a', 's', 'now', ?)");
+  mis.run("old-seed-mis", trainee01, "seed");
+  mis.run("live-mis", trainee01, "live");
+
+  seedDemoRecords(db, concepts, 7);
+  const ids = (table: string) => db.prepare(`SELECT id FROM ${table} WHERE user_id = ? ORDER BY id`).all(trainee01).map((r) => String(r.id));
+  assert.deepEqual(ids("attempts"), ["live1"]);
+  assert.deepEqual(ids("misconceptions"), ["live-mis"]);
 });
