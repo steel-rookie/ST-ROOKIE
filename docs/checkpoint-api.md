@@ -281,5 +281,5 @@ backend/test/
 
 ## 10. 다음 단계
 
-- 학습자 메모: `CheckpointEngine.start()`·`respond()`의 `options.notes`(`conceptOrder`, `context`) 자리를 열어 두었다.
+- 학습자 메모: 연결됨. 엔진은 부가 설명 때만 `EngineDeps.learnerNotes`(서버: `buildLearnerNotes`) 또는 `options.notes`의 `context`를 읽어 튜터 `explanation`의 `learnerNotes`로 넘긴다. 평가자 입력에는 넣지 않는다.
 - 프론트 확정 후 메인 페이지 튜터 패널에 체크포인트 UI 다시 적용(원본: 태그 `archive/checkpoint-ui-v1`, 현재 테스트: `checkpoint-test.html`).

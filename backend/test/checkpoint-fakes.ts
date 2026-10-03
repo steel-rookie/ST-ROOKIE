@@ -87,8 +87,8 @@ export class FakeTutor implements Tutor {
     return this.step("question", concept.concept_id, `Q:${concept.concept_id}`);
   }
 
-  explanation({ concept, explainFrom, misconception }: Parameters<Tutor["explanation"]>[0]) {
-    return this.step("explanation", concept.concept_id, `EX:${concept.concept_id}:${explainFrom}`, { explainFrom, misconception });
+  explanation({ concept, explainFrom, misconception, learnerNotes }: Parameters<Tutor["explanation"]>[0]) {
+    return this.step("explanation", concept.concept_id, `EX:${concept.concept_id}:${explainFrom}`, { explainFrom, misconception, learnerNotes });
   }
 
   recheckQuestion({ concept, previousQuestion }: Parameters<Tutor["recheckQuestion"]>[0]) {

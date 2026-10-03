@@ -104,7 +104,7 @@ test("핵심 요소를 모두 맞혔지만 사실 오류로 partial이면 explai
   const partial = await engine.respond(USER, view.attempt_id, "partial@null|불순물 제거를 잘못 앎");
   assert.equal(partial.state, "awaiting_recheck");
   assert.deepEqual(texts(partial), ["explanation:EX:a:null", "recheck_question:RQ:a"]);
-  assert.deepEqual(tutor.calls.find((c) => c.kind === "explanation")?.extra, { explainFrom: null, misconception: "불순물 제거를 잘못 앎" });
+  assert.deepEqual(tutor.calls.find((c) => c.kind === "explanation")?.extra, { explainFrom: null, misconception: "불순물 제거를 잘못 앎", learnerNotes: null });
 });
 
 test("explain_from null인데 오개념이 없거나 partial이 아니면 채점 오류로 본다", async () => {
@@ -320,4 +320,32 @@ test("루브릭 개념 id가 바뀌면: 예전 결과는 버리고, 통과한 �
   assert.equal(view.concept, null);
   const ready = await after.respond("failed", view.attempt_id, "네");
   assert.equal(ready.concept?.id, "b2");
+});
+
+test("학습자 메모: 부가 설명 때만 읽어 튜터에게 넘기고, 평가자에게는 넘기지 않는다", async () => {
+  const evaluator = new FakeEvaluator();
+  const tutor = new FakeTutor();
+  const asked: string[] = [];
+  const engine = new CheckpointEngine({
+    repo: new CheckpointRepository(openDatabase(":memory:")), evaluator, tutor, rubrics: [IRONMAKING, STEELMAKING],
+    learnerNotes: async (userId, section) => {
+      asked.push(`${userId}:${section}`);
+      return { context: "- b (대화 중 감지됨): 코크스를 연료로만 앎" };
+    },
+  });
+
+  // a는 correct(부가 설명 없음) → b는 wrong(부가 설명) → 재확인
+  await runCheckpoint(engine, ["correct", "wrong", "correct"]);
+  assert.deepEqual(asked, [`${USER}:ironmaking`]);
+  const explanations = tutor.calls.filter((c) => c.kind === "explanation");
+  assert.equal(explanations.length, 1);
+  assert.equal((explanations[0]!.extra as { learnerNotes: string }).learnerNotes, "- b (대화 중 감지됨): 코크스를 연료로만 앎");
+  assert.doesNotMatch(JSON.stringify(evaluator.calls), /코크스를 연료로만 앎/);
+
+  // options.notes를 주면 그 메모를 쓰고 provider는 부르지 않는다. 빈 메모는 null로 넘긴다.
+  const { view } = await engine.start("other", "ironmaking");
+  await engine.respond("other", view.attempt_id, "네");
+  await engine.respond("other", view.attempt_id, "wrong", { notes: {} });
+  assert.deepEqual(asked, [`${USER}:ironmaking`]);
+  assert.equal((tutor.calls.filter((c) => c.kind === "explanation").at(-1)!.extra as { learnerNotes: unknown }).learnerNotes, null);
 });

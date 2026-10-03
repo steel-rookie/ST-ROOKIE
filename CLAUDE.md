@@ -226,7 +226,7 @@ content/
 
 ## 다음 단계
 
-- **학습자 메모**: `CheckpointEngine.start()`·`respond()`의 선택 파라미터 `options.notes`는 `backend/src/learning/notes.ts`의 `LearnerNotes`(`conceptOrder`, `context`)를 받는다. `buildLearnerNotes(userId, section)`은 시그니처만 고정했고 구현은 TODO(지금은 빈 메모). 엔진의 개념 순서 조정(`orderConcepts`)과 튜터에게 줄 추가 컨텍스트에 연결한다.
+- **학습자 메모**: 연결됨. 서버가 `buildLearnerNotes`를 엔진의 `learnerNotes`로 넘기고(`options.notes`를 주면 그것을 우선), 엔진은 부가 설명(첫 판정이 correct가 아닐 때)에서만 메모를 읽어 `context`를 튜터의 `explanation`에 `learnerNotes`로 넘긴다. 프롬프트(`tutor-explanation.md`, `tutor-correction.md`)에는 `<learner_notes>` 구분자로 넣고, 관련 있는 항목만 짚게 한다. 평가자에게는 넘기지 않는다. 메모는 지금 final 루브릭 개념의 미해결 오개념만 담는다(`ironmaking-server.ts`에서 거름). `conceptOrder`(개념 순서 조정)는 루브릭 순서를 유지하기로 해서 쓰지 않는다.
 - **학습 모드 연결**: 설계와 결정은 `docs/learning-mode.md`. 오개념은 같은 응답에서 단정할 때만 감지하고, 대화는 DB에 저장(보관 기간 없음), 근거는 `retrieve()`로 분리해 공개 자료 메모로 먼저 연결한다. 학습 모드 오개념은 체크포인트 튜터의 context로만 쓰고 평가자에게는 넘기지 않는다. 개인 페이지에서 `source = learning`은 오개념 목록·개수에 섞지 않고 "튜터가 짚은 개념" 참고 목록으로 따로 보여 준다(위 '오개념 기록').
 - **개념 ↔ 설비 연결(수민 담당)**: 루브릭 스키마의 개념에 `equipment_ids`(선택, `data_v2.js`의 설비 id 배열)를 추가한다. 재학습 시 3D 하이라이트(오개념이 있는 개념의 설비 강조)에 쓴다. 스키마는 공용 파일이므로 작은 PR로 내고 공유한다. id 목록은 [docs/equipment-ids.md](docs/equipment-ids.md).
 - **3D 화면 조작**: 학습 모드의 `scene_actions`와 "재학습 시 3D 하이라이트"(오개념이 있는 개념의 설비를 강조)를 함께 진행한다.

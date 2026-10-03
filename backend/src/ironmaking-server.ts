@@ -15,7 +15,7 @@ import { createMeRouter } from "./me/routes.js";
 import { CheckpointEngine } from "./checkpoint/engine.js";
 import { CheckpointRepository } from "./checkpoint/repository.js";
 import { openDatabase } from "./db/database.js";
-import { useLearnerNotesSource } from "./learning/notes.js";
+import { buildLearnerNotes, useLearnerNotesSource } from "./learning/notes.js";
 import { LearningRepository } from "./learning/repository.js";
 import { createLearningRouter } from "./learning/routes.js";
 import { currentUserId } from "./request-user.js";
@@ -35,6 +35,8 @@ const engine = new CheckpointEngine({
   evaluator: new GeminiEvaluator(gemini),
   tutor: new GeminiTutor(gemini),
   rubrics,
+  // 부가 설명 때 튜터에게만 넘긴다(평가자에게는 넘기지 않음).
+  learnerNotes: buildLearnerNotes,
 });
 
 const users = new UserRepository(db);
@@ -43,8 +45,11 @@ if (seeded > 0) console.log(`시연 계정 ${seeded}개를 만들었습니다.`)
 
 // 학습 모드: 같은 GeminiClient를 써서 하루 호출 한도를 체크포인트와 함께 센다.
 const learningRepo = new LearningRepository(db);
-// 체크포인트에 넘길 학습자 메모(buildLearnerNotes)도 같은 기록을 읽는다.
-useLearnerNotesSource(learningRepo);
+// 체크포인트에 넘길 학습자 메모(buildLearnerNotes)도 같은 기록을 읽는다. 지금 final 루브릭에 없는 개념의 오개념은 뺀다.
+const currentConcepts = new Map(rubrics.map((r) => [r.section, new Set(r.concepts.map((c) => c.concept_id))]));
+useLearnerNotesSource({
+  openMisconceptions: (userId, section) => learningRepo.openMisconceptions(userId, section).filter((m) => currentConcepts.get(section)?.has(m.concept_id)),
+});
 const learning = createLearningRouter({
   repo: learningRepo,
   retriever: new Retriever({ glossaryFor: (s) => rubrics.find((r) => r.section === s)?.glossary ?? [] }),

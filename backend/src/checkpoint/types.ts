@@ -63,6 +63,8 @@ export interface Tutor {
     explainFrom: number | null;
     misconception: string | null;
     answer: string;
+    /** 학습자 메모(학습 모드·이전 체크포인트의 미해결 오개념 요약). 관련 있을 때만 짚는다. 평가자에게는 주지 않는다. */
+    learnerNotes?: string | null;
   }): Promise<string>;
   recheckQuestion(input: { rubric: Rubric; concept: RubricConcept; previousQuestion: string }): Promise<string>;
 }

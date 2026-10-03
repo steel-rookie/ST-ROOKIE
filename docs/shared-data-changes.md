@@ -136,7 +136,7 @@ summarizeSection(rubric, [
 
 ### 4-4. 학습자 메모·학습 모드 프롬프트 (ssoyoum)
 
-- `buildLearnerNotes`(시그니처 고정)는 바꾸지 않는다. 서버 시작 때 넘기는 기록 저장소를 감싸서 거른다.
+- `buildLearnerNotes`(시그니처 고정)는 바꾸지 않는다. 서버 시작 때 넘기는 기록 저장소를 감싸서 거른다. **반영함(수민, 학습자 메모를 체크포인트에 연결하면서 `ironmaking-server.ts`에 넣음).** 남은 것은 아래 `learning/routes.ts`뿐이다.
 
   ```ts
   // ironmaking-server.ts
