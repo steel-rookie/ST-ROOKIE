@@ -147,6 +147,7 @@ content/
 
 - `section.md`가 교육 내용의 단일 기준이다. 다른 곳에 교육 내용을 중복해서 만들지 않는다.
 - 루브릭은 `draft/` → 팀 검수 → `final/` 순서로만 옮긴다. 검수 없이 `final/`에 쓰지 않는다.
+- `concept_id`는 섹션과 상관없이 전체에서 고유하다. 오개념 해결·점수가 `concept_id`로 이어지므로 `loadFinalRubrics()`가 겹치면 오류를 내고 서버가 시작하지 않는다.
 - **`concept_id` 변경 규칙**: 핵심 요소(`key_points`)나 정답 기준(correct·partial·wrong 기준)이 바뀌면 새 `concept_id`를 만든다(예: `sinter_purpose` → `sinter_purpose_v2`). 문구 수정(오탈자, 질문 은행·`fallback_question` 다듬기, `quote` 출처 교체로 뜻이 같은 경우)은 id를 그대로 둔다. 예전 id의 기록은 지우지 않고, 읽는 쪽이 지금 final 루브릭의 개념만 본다('점수 규칙').
 - 루브릭 형식은 `content/rubrics/schema.json`. 최상위 `reviewed`는 팀 검수 여부이고, `false`인 루브릭을 로드하면 경고 로그를 남긴다(`backend/src/rubrics.ts`의 `loadRubric`). 스키마 검증은 서버 실행 중에도 `ajv`로 한다.
 - 개념의 선택 필드 `questions`·`recheck_questions`는 튜터 질문 은행이다(위 '튜터' 절).
