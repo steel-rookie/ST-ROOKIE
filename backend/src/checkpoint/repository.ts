@@ -140,14 +140,16 @@ export class CheckpointRepository {
       .run(a.id, a.user_id, a.section, a.kind, a.state, JSON.stringify(a.concept_ids), a.current_index, a.current_question, a.created_at, a.created_at);
   }
 
+  // 시도 조회는 실제 기록(origin = 'live')만 본다. 시연 기록(db:seed-demo)이 진행·해금·재도전에 섞이지 않게 한다.
+
   getAttempt(id: string): AttemptRow | null {
-    const row = this.db.prepare("SELECT * FROM attempts WHERE id = ?").get(id);
+    const row = this.db.prepare("SELECT * FROM attempts WHERE id = ? AND origin = 'live'").get(id);
     return row ? toAttempt(row) : null;
   }
 
   findOpenAttempt(userId: string, section: Section): AttemptRow | null {
     const row = this.db
-      .prepare("SELECT * FROM attempts WHERE user_id = ? AND section = ? AND state <> 'completed' ORDER BY created_at DESC LIMIT 1")
+      .prepare("SELECT * FROM attempts WHERE user_id = ? AND section = ? AND origin = 'live' AND state <> 'completed' ORDER BY created_at DESC LIMIT 1")
       .get(userId, section);
     return row ? toAttempt(row) : null;
   }
@@ -155,7 +157,7 @@ export class CheckpointRepository {
   /** 완료된 시도를 오래된 순서로. */
   listCompletedAttempts(userId: string, section: Section): AttemptRow[] {
     return this.db
-      .prepare("SELECT * FROM attempts WHERE user_id = ? AND section = ? AND state = 'completed' ORDER BY completed_at, created_at")
+      .prepare("SELECT * FROM attempts WHERE user_id = ? AND section = ? AND origin = 'live' AND state = 'completed' ORDER BY completed_at, created_at")
       .all(userId, section)
       .map(toAttempt);
   }

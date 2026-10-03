@@ -1,21 +1,20 @@
 // npm run db:seed-demo [seed]
-// 시연 신입사원(trainee01~04)의 체크포인트 기록을 지우고 무작위로 다시 만든다. seed를 주면 같은 기록이 나온다.
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+// 시연 신입사원의 시연 기록(origin = 'seed')을 지우고 trainee11~20에게만 무작위로 다시 만든다(trainee01~10은 실제 테스트용). seed를 주면 같은 기록이 나온다.
+// 개념은 final 루브릭에서 읽으므로 루브릭이 있는 섹션에만 기록이 생기고, 루브릭이 추가되면 그 섹션도 채워진다.
 import { seedDemoAccounts } from "../auth/demo-accounts.js";
 import { UserRepository } from "../auth/users.js";
+import { loadFinalRubrics } from "../rubrics.js";
 import { openDatabase } from "./database.js";
 import { seedDemoRecords, type SectionConcepts } from "./demo-records.js";
 
 const seed = process.argv[2] ? Number(process.argv[2]) : Math.floor(Math.random() * 1_000_000);
 if (!Number.isInteger(seed)) throw new Error(`seed는 정수여야 합니다: ${process.argv[2]}`);
 
-const data = await import(pathToFileURL(join(process.cwd(), "frontend", "3d-demo", "data_v2.js")).href);
 const concepts: SectionConcepts = Object.fromEntries(
-  (data.PROCESSES as { id: string; equipment: { id: string; name: string }[] }[]).map((p) => [p.id, p.equipment.map(({ id, name }) => ({ id, name }))]),
+  loadFinalRubrics().map((r) => [r.section, r.concepts.map(({ concept_id, name }) => ({ id: concept_id, name }))]),
 );
 
 const db = openDatabase();
 await seedDemoAccounts(new UserRepository(db));
 const counts = seedDemoRecords(db, concepts, seed);
-console.log(`시연 기록을 만들었습니다(seed ${seed}): 체크포인트 ${counts.attempts}회, 오개념 ${counts.misconceptions}개`);
+console.log(`시연 기록을 만들었습니다(seed ${seed}, 섹션 ${Object.keys(concepts).join(", ")}): 체크포인트 ${counts.attempts}회, 오개념 ${counts.misconceptions}개`);
