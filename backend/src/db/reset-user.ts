@@ -1,6 +1,6 @@
-// 특정 사용자의 기록 삭제: npm run db:reset-user -- 이름 [--origin seed|live|all] [--yes]
+// 특정 사용자의 기록 삭제: npm run db:reset-user -- 이름 --origin seed|live|all [--yes]
 // - 이름이 로그인 아이디(users.username)면 그 계정(users.id)의 기록과, 같은 이름으로 X-User-Id 헤더에 쌓인 기록을 함께 지운다.
-// - --origin: 지울 기록의 출처(기본 all). seed는 db:seed-demo가 만든 시연 기록만, live는 실제 기록만. 학습 대화·LLM 사용량은 live·all일 때만 지운다.
+// - --origin(필수): 지울 기록의 출처. 실제 답변을 실수로 지우지 않도록 기본값을 두지 않는다. seed는 db:seed-demo가 만든 시연 기록만, live는 실제 기록만. 학습 대화·LLM 사용량은 live·all일 때만 지운다.
 // - 체크포인트 시도·답변·대화 기록·학습 대화·오개념·하루 LLM 사용량을 지운다. 계정(users)은 지우지 않는다. --yes가 없으면 지우기 전에 한 번 묻는다.
 // - 실제 기록(live)은 평가 세트의 사람 답변 원천이다. 지우기 전에 필요하면 npm run eval:export-human으로 백업한다.
 import { existsSync } from "node:fs";
@@ -9,13 +9,13 @@ import { createInterface } from "node:readline/promises";
 import { openDatabase } from "./database.js";
 import { countUserData, deleteUserData, userIdsForName, type OriginFilter } from "./user-data.js";
 
-const USAGE = "사용법: npm run db:reset-user -- 이름 [--origin seed|live|all] [--yes]";
+const USAGE = "사용법: npm run db:reset-user -- 이름 --origin seed|live|all [--yes]";
 const args = process.argv.slice(2);
 const yes = args.includes("--yes");
 const originIndex = args.indexOf("--origin");
-const origin = (originIndex >= 0 ? args[originIndex + 1] : "all") as OriginFilter;
-if (!["seed", "live", "all"].includes(origin)) {
-  console.error(`--origin은 seed, live, all 중 하나입니다.\n${USAGE}`);
+const origin = (originIndex >= 0 ? args[originIndex + 1] : undefined) as OriginFilter | undefined;
+if (!origin || !["seed", "live", "all"].includes(origin)) {
+  console.error(`--origin을 seed, live, all 중 하나로 지정해 주세요.\n${USAGE}`);
   process.exit(1);
 }
 const positional = args.filter((a, i) => a !== "--yes" && a !== "--origin" && !(originIndex >= 0 && i === originIndex + 1));
