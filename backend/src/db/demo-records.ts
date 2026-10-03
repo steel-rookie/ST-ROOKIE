@@ -1,6 +1,8 @@
-// 시연용 체크포인트 기록. 관리자 통계 화면을 채우려고 시연 신입사원(trainee01~04)에게만 넣는다.
-// 테이블은 feature/checkpoint-api의 001_checkpoint.sql 그대로이고, 이해도·해금은 scoring.ts 규칙으로 계산한다.
-// 개념은 마이페이지와 같이 공정별 설비(frontend/3d-demo/data_v2.js의 equipment)를 쓴다.
+// 시연용 체크포인트 기록. 관리자 통계 화면을 채우려고 시연 신입사원 trainee11~20에게만 넣는다.
+// trainee01~10은 팀원 실제 테스트용이라 시연 기록을 넣지 않는다(남아 있는 seed 기록은 지운다).
+// 테이블은 001_checkpoint.sql이고, 이해도·해금은 scoring.ts 규칙으로 계산한다.
+// 개념은 final 루브릭의 개념을 쓴다(seed-demo-records.ts가 넘김). 개념이 없는 섹션(루브릭 없음)은 기록을 만들지 않는다.
+// 모든 기록은 origin = 'seed'(005_record_origin.sql). 실제 기록(live)은 지우지 않는다.
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { SECTIONS } from "../admin/trainee-stats.js";
@@ -34,12 +36,12 @@ interface Profile {
   retries: number;
 }
 
-// trainee01~04는 처음 정한 그대로, 그 뒤는 아래 유형을 돌려 쓰며 실력을 조금씩 다르게 한다.
+// trainee11~14는 처음 정한 그대로, 그 뒤는 아래 유형을 돌려 쓰며 실력을 조금씩 다르게 한다.
 const PROFILES: Record<string, Profile> = {
-  trainee01: { skill: 0.8, reach: 4, stopMidway: false, retries: 2 }, // 잘하는 편, 끝까지 감
-  trainee02: { skill: 0.6, reach: 3, stopMidway: true, retries: 2 }, // 세 번째 섹션을 하다 멈춤
-  trainee03: { skill: 0.4, reach: 2, stopMidway: false, retries: 1 }, // 재도전해도 잘 안 됨
-  trainee04: { skill: 0.5, reach: 2, stopMidway: false, retries: 0 }, // 아직 재도전 전
+  trainee11: { skill: 0.8, reach: 4, stopMidway: false, retries: 2 }, // 잘하는 편, 끝까지 감
+  trainee12: { skill: 0.6, reach: 3, stopMidway: true, retries: 2 }, // 세 번째 섹션을 하다 멈춤
+  trainee13: { skill: 0.4, reach: 2, stopMidway: false, retries: 1 }, // 재도전해도 잘 안 됨
+  trainee14: { skill: 0.5, reach: 2, stopMidway: false, retries: 0 }, // 아직 재도전 전
 };
 
 const ARCHETYPES: Profile[] = [
@@ -75,8 +77,15 @@ export function rng(seed: number): () => number {
 }
 
 const DEMO_TRAINEES = DEMO_ACCOUNTS.filter((a) => a.role === "trainee").map((a) => a.username);
+/** 실제 테스트용 시연 계정. 시연 기록을 넣지 않는다. */
+export const LIVE_TEST_TRAINEES = DEMO_TRAINEES.slice(0, 10);
+/** 시연 기록을 넣는 계정(trainee11~20). */
+export const SEEDED_TRAINEES = DEMO_TRAINEES.slice(10);
 
-/** 시연 신입사원의 체크포인트 기록을 지우고 새로 만든다. 다른 사용자의 기록은 건드리지 않는다. */
+/**
+ * 시연 신입사원 전체(trainee01~20)의 시연 기록(origin = 'seed')을 지우고, trainee11~20에게만 새로 만든다.
+ * 다른 사용자의 기록과 실제 기록(live)은 건드리지 않는다.
+ */
 export function seedDemoRecords(db: DatabaseSync, concepts: SectionConcepts, seed: number, now = new Date()): { attempts: number; misconceptions: number } {
   const random = rng(seed);
   const pick = <T>(list: readonly T[]) => list[Math.floor(random() * list.length)];
@@ -101,16 +110,21 @@ export function seedDemoRecords(db: DatabaseSync, concepts: SectionConcepts, see
 
   db.exec("BEGIN");
   try {
-    for (const [index, username] of DEMO_TRAINEES.entries()) {
+    for (const username of DEMO_TRAINEES) {
+      const user = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
+      if (user) clearSeed(db, String(user.id));
+    }
+    for (const [index, username] of SEEDED_TRAINEES.entries()) {
       const user = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
       if (!user) continue;
       const userId = String(user.id);
-      clearUser(db, userId);
       clock = now.getTime() - (2 + random() * 1.5) * 24 * 3600_000;
       const profile = profileOf(username, index);
 
       for (const [sectionIndex, section] of SECTIONS.slice(0, profile.reach).entries()) {
         const sectionConcepts = concepts[section] ?? [];
+        // 루브릭이 없는 섹션은 체크포인트를 볼 수 없으므로 기록을 만들지 않는다(관리자 화면에서 미시작). 그 뒤 섹션도 잠겨 있다.
+        if (sectionConcepts.length === 0) break;
         const ids = sectionConcepts.map((c) => c.id);
         const nameOf = new Map(sectionConcepts.map((c) => [c.id, c.name]));
         const lastSection = sectionIndex === profile.reach - 1;
@@ -139,8 +153,8 @@ export function seedDemoRecords(db: DatabaseSync, concepts: SectionConcepts, see
             const finalCorrect = (recheck ?? verdict) === "correct";
             if (verdict !== "correct" && !openMis.has(conceptId)) {
               const misId = randomUUID();
-              db.prepare(`INSERT INTO misconceptions (id, user_id, section, concept_id, source, phase, attempt_id, answer_text, summary, resolved, resolved_at, created_at)
-                          VALUES (?, ?, ?, ?, 'checkpoint', 'initial', ?, ?, ?, 0, NULL, ?)`)
+              db.prepare(`INSERT INTO misconceptions (id, user_id, section, concept_id, source, phase, attempt_id, answer_text, summary, resolved, resolved_at, created_at, origin)
+                          VALUES (?, ?, ?, ?, 'checkpoint', 'initial', ?, ?, ?, 0, NULL, ?, 'seed')`)
                 .run(misId, userId, section, conceptId, attemptId, String(rows.at(-1)![3]), `${name}의 역할을 다른 설비와 헷갈림`, at);
               openMis.set(conceptId, misId);
               counts.misconceptions++;
@@ -155,8 +169,8 @@ export function seedDemoRecords(db: DatabaseSync, concepts: SectionConcepts, see
           const done = !stopHere;
           const updatedAt = tick(0.05, 0.2);
           db.prepare(`INSERT INTO attempts (id, user_id, section, kind, state, resume_state, concept_ids, current_index, current_question, pending_answer,
-                        understanding, unlocked, created_at, updated_at, completed_at)
-                      VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, NULL, ?, ?, ?, ?, ?)`)
+                        understanding, unlocked, created_at, updated_at, completed_at, origin)
+                      VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, NULL, ?, ?, ?, ?, ?, 'seed')`)
             .run(attemptId, userId, section, retry === 0 ? "first" : "retry", done ? "completed" : "awaiting_answer", JSON.stringify(asked),
               answered.length, done ? null : `${nameOf.get(asked[answered.length]) ?? ""}은(는) 어떤 일을 하나요?`,
               done ? understanding(ids, results) : null, done ? (isUnlocked(ids, results) ? 1 : 0) : null, createdAt, updatedAt, done ? updatedAt : null);
@@ -177,8 +191,8 @@ export function seedDemoRecords(db: DatabaseSync, concepts: SectionConcepts, see
       // 학습 모드에서 감지된 오개념(점수 반영 없음)도 한 사람에 하나씩 둔다.
       const learned = concepts[SECTIONS[0]]?.[Math.floor(random() * (concepts[SECTIONS[0]]?.length ?? 1))];
       if (learned) {
-        db.prepare(`INSERT INTO misconceptions (id, user_id, section, concept_id, source, phase, attempt_id, answer_text, summary, resolved, resolved_at, created_at)
-                    VALUES (?, ?, ?, ?, 'learning', NULL, NULL, ?, ?, 0, NULL, ?)`)
+        db.prepare(`INSERT INTO misconceptions (id, user_id, section, concept_id, source, phase, attempt_id, answer_text, summary, resolved, resolved_at, created_at, origin)
+                    VALUES (?, ?, ?, ?, 'learning', NULL, NULL, ?, ?, 0, NULL, ?, 'seed')`)
           .run(randomUUID(), userId, SECTIONS[0], learned.id, `${learned.name}은(는) 쇳물을 직접 만드는 곳이죠?`, `${learned.name}의 역할을 고로와 헷갈림`, tick(0.5, 3));
         counts.misconceptions++;
       }
@@ -198,10 +212,11 @@ function answerFor(verdict: string, name: string, pick: <T>(list: readonly T[]) 
   return pick(WRONG_ANSWERS);
 }
 
-function clearUser(db: DatabaseSync, userId: string): void {
-  const attemptsOf = "SELECT id FROM attempts WHERE user_id = ?";
+/** 한 사용자의 시연 기록(origin = 'seed')만 지운다. 실제 기록은 남긴다. */
+function clearSeed(db: DatabaseSync, userId: string): void {
+  const attemptsOf = "SELECT id FROM attempts WHERE user_id = ? AND origin = 'seed'";
   db.prepare(`DELETE FROM concept_results WHERE attempt_id IN (${attemptsOf})`).run(userId);
   db.prepare(`DELETE FROM attempt_messages WHERE attempt_id IN (${attemptsOf})`).run(userId);
-  db.prepare("DELETE FROM attempts WHERE user_id = ?").run(userId);
-  db.prepare("DELETE FROM misconceptions WHERE user_id = ?").run(userId);
+  db.prepare("DELETE FROM misconceptions WHERE user_id = ? AND origin = 'seed'").run(userId);
+  db.prepare("DELETE FROM attempts WHERE user_id = ? AND origin = 'seed'").run(userId);
 }
