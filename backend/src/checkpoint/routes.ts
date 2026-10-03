@@ -3,9 +3,9 @@ import { z } from "zod";
 import type { CheckpointEngine } from "./engine.js";
 import { userIdOf } from "../request-user.js";
 import { UsageLimitError } from "../usage.js";
-import { CheckpointError, LlmUnavailableError } from "./types.js";
+import { CheckpointError, LlmUnavailableError, SECTION_ORDER } from "./types.js";
 
-const SectionParam = z.enum(["ironmaking", "steelmaking", "continuous_casting", "rolling"]);
+const SectionParam = z.enum(SECTION_ORDER);
 const StartRequest = z.object({ section: SectionParam });
 const MessageRequest = z.object({ text: z.string().trim().min(1).max(1000) });
 

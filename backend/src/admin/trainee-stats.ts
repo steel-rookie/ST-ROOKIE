@@ -2,9 +2,8 @@
 // 체크포인트 기록(attempts, misconceptions 테이블)은 feature/checkpoint-api의 001_checkpoint.sql이 만든다.
 // 그 테이블이 아직 없으면 checkpoint_data: false와 빈 기록을 돌려준다.
 import type { DatabaseSync } from "node:sqlite";
+import { SECTION_ORDER, type Section } from "../checkpoint/types.js";
 
-export const SECTIONS = ["ironmaking", "steelmaking", "continuous_casting", "rolling"] as const;
-export type Section = (typeof SECTIONS)[number];
 
 export interface SectionStat {
   /** 마지막으로 끝낸 체크포인트의 이해도(0~1). */
@@ -46,11 +45,11 @@ export function traineeStats(db: DatabaseSync): TraineeStats {
     employee_no: String(u.employee_no),
     created_at: String(u.created_at),
     last_activity: null,
-    sections: Object.fromEntries(SECTIONS.map((s) => [s, null])) as Record<Section, SectionStat | null>,
+    sections: Object.fromEntries(SECTION_ORDER.map((s) => [s, null])) as Record<Section, SectionStat | null>,
     passed_sections: 0,
     misconceptions: { open: 0, resolved: 0 },
   }));
-  if (!checkpointData) return { checkpoint_data: false, sections: SECTIONS, trainees };
+  if (!checkpointData) return { checkpoint_data: false, sections: SECTION_ORDER, trainees };
 
   const byId = new Map(trainees.map((t) => [t.id, t]));
   // 완료 순서대로 읽어서 마지막 시도의 이해도가 남게 한다.
@@ -60,7 +59,7 @@ export function traineeStats(db: DatabaseSync): TraineeStats {
   for (const row of done) {
     const t = byId.get(String(row.user_id));
     const section = String(row.section) as Section;
-    if (!t || !SECTIONS.includes(section)) continue;
+    if (!t || !SECTION_ORDER.includes(section)) continue;
     const prev = t.sections[section];
     t.sections[section] = {
       understanding: Number(row.understanding ?? 0),
@@ -83,8 +82,8 @@ export function traineeStats(db: DatabaseSync): TraineeStats {
     else t.misconceptions.open = Number(row.n);
   }
 
-  for (const t of trainees) t.passed_sections = SECTIONS.filter((s) => t.sections[s]?.passed).length;
-  return { checkpoint_data: true, sections: SECTIONS, trainees };
+  for (const t of trainees) t.passed_sections = SECTION_ORDER.filter((s) => t.sections[s]?.passed).length;
+  return { checkpoint_data: true, sections: SECTION_ORDER, trainees };
 }
 
 // PostgreSQL로 옮겨도 쓸 수 있게 시스템 테이블 대신 빈 조회로 테이블 존재를 확인한다.

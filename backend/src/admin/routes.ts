@@ -3,7 +3,8 @@ import express from "express";
 import type { DatabaseSync } from "node:sqlite";
 import { requireAdmin, requireUser, type AuthDeps } from "../auth/routes.js";
 import { conceptStats } from "./concept-stats.js";
-import { SECTIONS, traineeStats, type Section } from "./trainee-stats.js";
+import { SECTION_ORDER, type Section } from "../checkpoint/types.js";
+import { traineeStats } from "./trainee-stats.js";
 
 export function createAdminRouter(db: DatabaseSync, auth: AuthDeps): express.Router {
   const router = express.Router();
@@ -12,8 +13,8 @@ export function createAdminRouter(db: DatabaseSync, auth: AuthDeps): express.Rou
   });
   router.get("/api/admin/concepts", requireUser(auth), requireAdmin, (req, res) => {
     const section = req.query.section;
-    if (section !== undefined && !SECTIONS.includes(section as Section)) {
-      res.status(400).json({ error: `section은 ${SECTIONS.join(", ")} 중 하나여야 해요.`, code: "INVALID_SECTION" });
+    if (section !== undefined && !SECTION_ORDER.includes(section as Section)) {
+      res.status(400).json({ error: `section은 ${SECTION_ORDER.join(", ")} 중 하나여야 해요.`, code: "INVALID_SECTION" });
       return;
     }
     res.json(conceptStats(db, section as Section | undefined));

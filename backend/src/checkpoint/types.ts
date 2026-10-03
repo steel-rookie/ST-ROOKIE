@@ -6,7 +6,13 @@ export type Phase = "initial" | "recheck";
 export type CheckpointState = "awaiting_ready" | "awaiting_answer" | "awaiting_recheck" | "completed" | "error";
 export type AttemptKind = "first" | "retry";
 
-export const SECTION_ORDER: readonly Section[] = ["ironmaking", "steelmaking", "continuous_casting", "rolling"];
+/** 섹션 목록과 순서의 단일 기준. 다른 파일은 이것을 import한다(루브릭 스키마의 section enum과 같은지 테스트로 확인). */
+const SECTIONS_IN_ORDER = ["ironmaking", "steelmaking", "continuous_casting", "rolling"] as const satisfies readonly Section[];
+// 모든 Section이 목록에 있는지 컴파일 때 확인한다.
+const _allSections: Exclude<Section, (typeof SECTIONS_IN_ORDER)[number]> extends never ? true : never = true;
+void _allSections;
+/** z.enum(SECTION_ORDER)에 바로 쓸 수 있게 비어 있지 않은 튜플로 둔다. 고치지 말고 읽기만 한다. */
+export const SECTION_ORDER: [Section, ...Section[]] = [...SECTIONS_IN_ORDER];
 export const SECTION_NAMES: Record<Section, string> = {
   ironmaking: "제선",
   steelmaking: "제강",

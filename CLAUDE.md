@@ -52,7 +52,7 @@
 
 ## 학습 구조
 
-- **섹션 = 공정 하나.** `ironmaking`, `steelmaking`, `continuous_casting`, `rolling` 순서.
+- **섹션 = 공정 하나.** `ironmaking`, `steelmaking`, `continuous_casting`, `rolling` 순서. 코드의 섹션 목록·순서는 `backend/src/checkpoint/types.ts`의 `SECTION_ORDER` 하나만 쓴다(루브릭 스키마 `section` enum과 같은지 테스트로 확인).
 - 각 섹션 마지막에 **이해도 확인 체크포인트**가 있고, 결과를 차트로 보여 준다.
 - 다음 섹션은 앞 섹션의 체크포인트를 통과해야 열린다.
 

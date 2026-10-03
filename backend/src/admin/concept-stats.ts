@@ -1,5 +1,6 @@
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
-import { hasTable, type Section } from "./trainee-stats.js";
+import type { Section } from "../checkpoint/types.js";
+import { hasTable } from "./trainee-stats.js";
 
 export interface ConceptStat {
   section: string;
