@@ -488,6 +488,8 @@ class SteelScene extends HTMLElement {
           model.updateMatrixWorld(true);
           const box = new THREE.Box3().setFromObject(node), c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3()).length();
           e.group.visible = false; e.group = node; e.x = c.x; e.anchor.set(c.x, box.max.y + 0.6, c.z); e.focus.set(c.x, c.y, c.z); e.dist = Math.max(10, sz * 1.6); mapped++;
+          // 내부 단면: anchors의 interiors(또는 anchors.interior) 좌표를 쓰고, 없으면 노드 경계 상자로 잡는다
+          if (e.data.interior) { const iv = cfg?.interiors?.[e.id] || a?.interior; if (iv) { const ic = M([iv.center[0], 0, iv.center[1]]); e.interior = { cx: ic.x, cz: ic.z, y0: iv.y0 * sc + off.y, y1: iv.y1 * sc + off.y, r: iv.r * sc }; } else { const bs = box.getSize(new THREE.Vector3()); e.interior = { cx: c.x, cz: c.z, y0: box.min.y + bs.y * 0.08, y1: box.max.y - bs.y * 0.08, r: Math.min(bs.x, bs.z) * 0.3 }; } }
         } else if (a) {
           e.group.visible = false; e.group = new THREE.Group(); e.anchor.copy(M(a.label)); e.focus.copy(M(a.focus || a.label)); e.x = e.focus.x; e.dist = (a.dist ?? 40) * sc; mapped++;
           if (a.interior && e.data.interior) { const c = M([a.interior.center[0], 0, a.interior.center[1]]); e.interior = { cx: c.x, cz: c.z, y0: a.interior.y0 * sc + off.y, y1: a.interior.y1 * sc + off.y, r: a.interior.r * sc }; }
