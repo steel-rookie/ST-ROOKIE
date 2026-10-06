@@ -295,6 +295,78 @@ test("진입 상태: 준비 중(404), 잠김, 재도전, 409는 서버 문장", 
   assert.equal(s.vals().cpEntryStatus, TEXT.entry.passed(83), "실패하면 진입 상태를 다시 읽는다");
 });
 
+test("모드 탭: 기본은 학습, 이해도 확인 탭을 열면 진입 상태를 읽는다, 새로고침 복원은 이해도 확인 탭", async () => {
+  const s = setup({
+    "GET /api/sections/ironmaking/progress": [progress("ironmaking"), progress("ironmaking", { in_progress_attempt_id: "a1" })],
+    "GET /api/checkpoints/a1": { body: view("awaiting_answer", { concept: concept(1), history: [] }) },
+  });
+  let v = s.vals();
+  assert.deepEqual(v.cpTabs.map((t: Json) => [t.label, t.active]), [[TEXT.tabs.learning, true], [TEXT.tabs.checkpoint, false]]);
+  assert.equal(v.cpIsLearningTab, true);
+  assert.equal(v.cpHeaderMode, TEXT.header.learning);
+
+  v.cpTabs[1].onClick();
+  await new Promise((r) => setImmediate(r));
+  v = s.vals();
+  assert.equal(v.cpIsCheckpointTab, true);
+  assert.equal(v.cpHeaderMode, TEXT.header.checkpoint);
+  assert.deepEqual(s.net.keys(), ["GET /api/sections/ironmaking/progress"]);
+
+  s.chat.setMode("learning");
+  await s.chat.refresh();
+  assert.equal(s.vals().cpIsCheckpointTab, true, "진행 중인 시도를 이어서 열면 이해도 확인 탭으로 바꾼다");
+});
+
+test("학습 잠금: 진행 중에는 학습 보내기·추천 질문·생각해 보기를 끄고 ask를 막는다", async () => {
+  const s = setup({
+    "GET /api/sections/ironmaking/progress": progress("ironmaking", { in_progress_attempt_id: "a1" }),
+    "GET /api/checkpoints/a1": { body: view("awaiting_answer", { concept: concept(1), history: [] }) },
+  });
+  let sent = 0;
+  const learning = { chips: [{ text: "추천" }], send: () => { sent++; }, messages: [{ text: "답", hasFollowUp: true }], input: "" };
+  assert.equal(s.chat.lockLearning(learning), learning, "진행 중이 아니면 그대로");
+  assert.equal(s.chat.runLearning(() => "보냄"), "보냄");
+
+  await s.chat.refresh(); // 진행 중인 시도를 연다(이해도 확인 탭으로 바뀐다)
+  const locked = s.chat.lockLearning(learning);
+  assert.deepEqual(locked.chips, []);
+  assert.equal(locked.messages[0].hasFollowUp, false);
+  let prevented = false;
+  locked.send({ preventDefault() { prevented = true; } });
+  assert.equal(sent, 0);
+  assert.equal(prevented, true);
+  assert.equal(s.chat.runLearning(() => "보냄"), undefined, "진행 중에는 학습 질문을 보내지 않는다");
+  assert.equal(s.vals().cpIsCheckpointTab, true, "막힌 질문이 탭을 바꾸지 않는다");
+  assert.equal(s.vals().cpLearningLocked, true);
+});
+
+test("학습 질문(runLearning)은 이해도 확인 탭에서 학습 탭으로 바꾼다", () => {
+  const s = setup({});
+  s.chat.setMode("checkpoint");
+  s.chat.runLearning(() => undefined);
+  assert.equal(s.vals().cpIsLearningTab, true);
+});
+
+test("공정 배지(sectionBadge)와 site의 비활성 시작 버튼", async () => {
+  const s = setup({
+    "GET /api/sections/ironmaking/progress": progress("ironmaking", { unlocked: true, understanding: 0.9 }),
+    "GET /api/sections/steelmaking/progress": progress("steelmaking"),
+    "GET /api/sections/continuous_casting/progress": notFound,
+    "GET /api/sections/rolling/progress": notFound,
+  }, { processId: "site" });
+  await s.chat.refreshAll();
+  assert.deepEqual(s.chat.sectionBadge("ironmaking"), { cpHasBadge: true, cpBadge: TEXT.badges.passed, cpBadgeColor: "var(--ok, #2f9e44)", cpTabLocked: false });
+  assert.equal(s.chat.sectionBadge("steelmaking").cpBadge, TEXT.badges.notPassed);
+  assert.equal(s.chat.sectionBadge("rolling").cpHasBadge, false);
+  const v = s.vals();
+  assert.equal(v.cpShowStartButton, true, "site에서도 버튼은 보이고");
+  assert.equal(v.cpCanStart, false, "누를 수 없다");
+  assert.equal(v.cpStartLabel, TEXT.buttons.start);
+  assert.equal(v.cpStartOpacity, ".45");
+  s.page.setState({ processId: "ironmaking" });
+  assert.equal(s.vals().cpShowStartButton, false, "통과한 공정은 시작 버튼을 숨긴다");
+});
+
 test("api-client: 토큰·접속 비밀번호 헤더, X-User-Id 없음, 오류 문장 통일", async () => {
   const net = fakeFetch({
     "GET /ok": { body: { a: 1 } },
