@@ -86,7 +86,7 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
 구현(`llm/src/retrieval.ts`)
 
 - `new Retriever({ glossaryFor }).retrieve(section, question, screen)` → 점수 순 조각 최대 5개(`MAX_RESULTS`). 겹치는 조각이 없으면 빈 배열이고, 이때 모델은 `unverified`로 답한다. 개수를 채우려고 관련 없는 조각을 넣지 않는다.
-- 공개 자료 메모(20개, 모두 제선)는 메모 하나가 조각 하나이고, 메모에 나온 말(소결·코크스·고로·열풍로·출선·토페도 등)로 제선 설비 태그를 붙인다.
+- 공개 자료 메모(32개, 모두 제선)는 메모 하나가 조각 하나이고, 메모에 나온 말(소결·코크스·고로·열풍로·출선·토페도 등)로 제선 설비 태그를 붙인다. 제선 설비 6개 모두 메모가 있다(열풍로 4·출선구 2·토페도카 5개는 포스코그룹 뉴스룸 기사 '용광로 해부학 ①', 'Fe의 여행', '지구상에서 제일 뜨거운 기차'에서 정리). 설비 이름으로 물으면 그 설비 메모가 맨 위에 오는지 테스트로 막는다.
 - 점수: 질문과 조각의 두 글자 조각(bigram) 겹침 비율. 조사가 붙어도(고로에서·고로를) 맞도록 단어 대신 bigram을 쓴다. 제목은 같은 자료의 메모가 공유하므로 0.3배로 센다. 용어집 동의어를 질문에 붙여 넣는다(쇳물 → 용선). 현재 설비 태그가 있는 조각은 +0.15(질문과 겹칠 때만). 0.08 미만은 버린다.
 - `loadSectionChunks(section)`: `content/materials/{섹션}/section.md`가 있으면 `parseSectionMarkdown`으로 나누고, 없으면 제선만 공개 자료 메모를 쓴다.
 
@@ -141,6 +141,16 @@ CREATE TABLE learning_turns (
 | `llm/prompts/learning.md` | 학습 모드 프롬프트 |
 | `backend/src/learning/` | 라우트, 안전 규칙, `buildLearnerNotes`(`notes.ts`, 시그니처 고정), 대화 저장소 |
 | `frontend/3d-demo/learning-chat.js`의 `ask()` | `mockTutor` 대신 `/api/chat`. `session_id` 유지, 상태 표시와 출처 링크 |
+| `llm/eval/run-learning.ts`, `llm/eval/learning/ironmaking.jsonl` | 학습 모드 품질 평가(`npm run eval:learning`) |
+
+## 품질 평가 (`npm run eval:learning`)
+
+- 제선 질문 24개(설비 6·지시어 2·흐름 2·다른 공정 2·전체 화면 1·용어집 2·오개념 4·FINEX 1·근거 없음 2·안전 2)를 실제 Gemini로 돌려 세 가지를 센다: 근거 판정(`grounded`·`unverified`·`safety_redirect`), 화면 조작, 오개념 감지.
+- 라우트와 같은 순서(안전 질문 차단 → `retrieve()` → 튜터 1회)로 부르고, 이전 대화·학습자 메모는 넣지 않는다. 공정·설비 목록은 서버처럼 `data_v2.js`에서 읽는다.
+- 케이스 형식: `expect.scene`은 들어 있어야 하는 조작(순서 무관, 더 있어도 됨)이고 `[]`이면 조작이 없어야 하며 `"any"`면 보지 않는다. `expect.misconception`은 감지돼야 하는 개념 id 또는 `null`. 케이스의 id·개념·안전 기대가 실제 목록·루브릭·안전 규칙과 맞는지 `npm test`로 확인한다.
+- 결과 기록·`--resume`·연결 재시도는 `eval:evaluator`와 같은 `run-log.ts`를 쓴다(기본 기록 `llm/eval/results/learning-ironmaking.jsonl`). 채점은 보고서를 만들 때 하므로 기대값만 고치면 `--resume`으로 다시 부르지 않고 다시 채점된다.
+- 첫 측정(2026-10-06, `gemini-3.5-flash-lite`, 1회): 전체 통과 23/24(95.8%), 근거 판정 24/24, 화면 조작 16/17, 오개념 감지 24/24. 틀린 1개는 "용광로에서 나온 쇳물은 어떻게 옮겨?"에서 토페도카 대신 출선구로 카메라를 옮긴 것(답은 출선구 → 토페도카를 모두 설명).
+- 학습 프롬프트·검색·공개 자료 메모를 바꾸면 다시 돌려 확인한다.
 
 ## 다음 단계로 미룬 것
 
