@@ -4,7 +4,7 @@
 신입사원 통계와 개념별 통계 모두 실제 API를 쓴다. 화면이 API를 부르지 못하면 샘플로 표시한다.
 
 - 화면: `frontend/login_ui/Admin Dashboard.dc.html`
-- 데이터: `frontend/login_ui/admin_data.js` (`loadAdminData()`: `/api/admin/trainees`, `/api/admin/concepts`)
+- 데이터: `frontend/login_ui/admin_data.js` (`loadAdminData()`: `/api/admin/trainees`, `/api/admin/concepts` / `loadAiSummary()`: `/api/admin/ai-summary`)
 - 명세(JSON): [admin-spec.json](admin-spec.json)
 - 근거: [CLAUDE.md](../CLAUDE.md) '계정과 관리자'·'오개념 기록'·'점수 규칙', [docs/auth-api.md](auth-api.md) '관리자 통계'
 
@@ -28,6 +28,7 @@
 | 영역 | 보여 주는 것 | 데이터 |
 |---|---|---|
 | 요약 숫자 | 신입사원 수 · 전 과정 수료 · 평균 이해도 · 미해결 오개념 | trainees |
+| AI 요약 · 보강할 내용 | 오답률 높은 개념을 Gemini가 1~2문장으로 정리, 근거 개념 이름, 생성 시각 | ai-summary |
 | 오답률 높은 개념 | 첫 답변이 정답이 아닌 비율 TOP 8, 공정 필터, 틀림/부분/힌트 막대 | concepts |
 | 전 과정 수료 | 4개 공정 모두 통과한 사람, 평균 이해도, 재도전 횟수 | trainees |
 | 확인이 필요한 사람 | 재도전 필요 · N일 미접속 · 오개념 많음 · 미시작 | trainees |
@@ -42,8 +43,9 @@
 |---|---|---|
 | `GET /api/admin/trainees` | 구현됨 | 신입사원별 섹션 이해도·통과·시도·오개념 개수·마지막 학습일 ([auth-api.md](auth-api.md)) |
 | `GET /api/admin/concepts` | 구현됨 | 개념별 첫 판정 분포·미해결 오개념 수(`backend/src/admin/concept-stats.ts`). `?section=`으로 공정 선택 |
+| `GET /api/admin/ai-summary` | 구현됨 | 오답률 높은 개념 상위 5개의 집계 숫자로 만든 1~2문장 요약(`backend/src/admin/ai-summary.ts`, `llm/src/admin-summary.ts`, 프롬프트 `llm/prompts/admin-summary.md`) ([auth-api.md](auth-api.md)) |
 
-둘 다 `Authorization: Bearer <token>`(`st-rookie-token`), `admin`만. 아니면 `403 ADMIN_ONLY`.
+모두 `Authorization: Bearer <token>`(`st-rookie-token`), `admin`만. 아니면 `403 ADMIN_ONLY`.
 
 ### `GET /api/admin/concepts`
 
@@ -80,6 +82,7 @@
 ## 개인정보
 
 - 오개념은 **개수만** 본다. 내용·답변 원문은 본인 마이페이지에서만 보인다.
+- AI 요약은 개념별 **집계 숫자와 공정·개념 이름만** Gemini에 보낸다. 답변 원문·오개념 설명·사용자 id·이름은 보내지 않는다(테스트 `backend/test/admin-ai-summary.test.ts`로 확인).
 - 사번은 관리자 화면에만 표시한다.
 
 ## 화면 상태
@@ -90,13 +93,15 @@
 | API 하나라도 실패(로그인 안 함, 401·403, 서버 꺼짐) | 배지 `연결 오류`, 오류 문장 표시. 샘플로 바뀌지 않는다 |
 | 둘 다 성공 | 배지 `DB 데이터` |
 | `checkpoint_data: false` | 계정 목록만, 모든 칸 `미응시` |
+| AI 요약 실패(키 없음, 연결 실패, 429) | 카드에 이유와 "아래 '오답률 높은 개념'을 참고" 안내. 다른 영역은 영향 없음(`loadAiSummary()`를 따로 부름) |
+| AI 요약할 오답 기록 없음 | "아직 요약할 오답 기록이 없습니다." |
 
 ## 파일 구조
 
 ```
 frontend/login_ui/
   Admin Dashboard.dc.html   화면(템플릿 + class Component). support.js가 실행
-  admin_data.js             loadAdminData() (두 API 호출, 샘플 없음)
+  admin_data.js             loadAdminData() (두 API 호출, 샘플 없음), loadAiSummary() (AI 요약, 실패해도 예외 없음)
   My Page.dc.html           로그인 후 역할별 대시보드를 iframe으로 표시
   Trainee Dashboard.dc.html 신입사원 화면(/api/me/dashboard)
 ```
@@ -121,6 +126,7 @@ frontend/login_ui/
 
 ## 정할 것
 
+- [ ] AI 요약 기간: 지금은 '오답률 높은 개념'과 같은 전체 기간 집계다. "이번 주"로 자를지 (교육 담당)
 - [x] `GET /api/admin/concepts` 담당자: viiin2, 작은 PR (위 '결정') → #37에서 구현됨
 - [ ] 개념 오답률에 재도전 시도를 넣을지(처음 제안) 첫 시도만 셀지(지금 구현)
 - [ ] 개념별 오개념 **개수** 노출: 보여 주기로 결정, 팀 공유와 CLAUDE.md 반영 대기

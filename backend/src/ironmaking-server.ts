@@ -1,5 +1,6 @@
 import express from "express";
 import { join } from "node:path";
+import { GeminiAdminSummarizer } from "../../llm/src/admin-summary.js";
 import { GeminiEvaluator } from "../../llm/src/evaluator.js";
 import { GeminiClient } from "../../llm/src/gemini.js";
 import { GeminiLearningAgent } from "../../llm/src/learning-agent.js";
@@ -61,7 +62,8 @@ const app = createApp({ engine, usage, learning });
 // 로그인·관리자 API(docs/auth-api.md). createApp의 /api 접속 비밀번호 검사가 먼저 적용된다.
 const auth = { users, secret: jwtSecret() };
 app.use(createAuthRouter(auth));
-app.use(createAdminRouter(db, auth));
+// 관리자 AI 요약도 같은 GeminiClient로 관리자 계정의 하루 호출 수를 센다.
+app.use(createAdminRouter(db, auth, { summarizer: new GeminiAdminSummarizer(gemini) }));
 app.use(createMeRouter(db, auth));
 // 로그인·마이페이지(frontend/login_ui)는 ../3d-demo/를 상대 경로로 읽으므로 두 폴더를 같은 깊이에 둔다.
 const webRoot = join(process.cwd(), "frontend", "3d-demo");
