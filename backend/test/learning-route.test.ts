@@ -66,7 +66,11 @@ async function setup(scene?: SceneCatalog) {
     const res = await fetch(`${base}/api/chat`, { method: "POST", headers: { "content-type": "application/json", "x-user-id": user }, body: JSON.stringify(body) });
     return { status: res.status, json: (await res.json()) as any };
   };
-  return { db, repo, agent, ask, close: () => server.close() };
+  const history = async (sessionId: string, user = "minsu") => {
+    const res = await fetch(`${base}/api/chat/sessions/${sessionId}`, { headers: { "x-user-id": user } });
+    return { status: res.status, json: (await res.json()) as any };
+  };
+  return { db, repo, agent, ask, history, close: () => server.close() };
 }
 
 test("새 질문: 근거 조각·루브릭 개념을 튜터에 넘기고, 출처를 자료 정보로 바꿔 돌려주며 대화를 저장한다", async () => {
@@ -129,6 +133,32 @@ test("같은 세션의 다음 질문에는 이전 대화가 넘어가고, 다른
     assert.equal((await t.ask({ question: "코크스", session_id: first.json.session_id }, "jiwoo")).status, 404);
     assert.equal((await t.ask({ question: "코크스", session_id: "00000000-0000-4000-8000-000000000000" })).status, 404);
     assert.equal(t.agent.calls.length, 2);
+  } finally {
+    t.close();
+  }
+});
+
+test("저장된 대화: 순서대로 질문·답·근거 판정·출처를 돌려주고, 다른 사람·없는 세션·잘못된 id는 404", async () => {
+  const t = await setup();
+  try {
+    const first = await t.ask({ question: "코크스가 뭐예요?", screen: { process_id: "ironmaking", equipment_id: "coke_oven" } });
+    await t.ask({ question: "고로 밸브는 어떻게 열어요?", session_id: first.json.session_id });
+    const { status, json } = await t.history(first.json.session_id);
+    assert.equal(status, 200);
+    assert.equal(json.session_id, first.json.session_id);
+    assert.deepEqual(
+      json.turns.map((x: any) => [x.question, x.status, x.equipment_id, x.sources.map((s: any) => s.id)]),
+      [
+        ["코크스가 뭐예요?", "grounded", "coke_oven", ["posco-brochure-2015"]],
+        ["고로 밸브는 어떻게 열어요?", "safety_redirect", null, []],
+      ],
+    );
+    assert.equal(json.turns[0].answer, "코크스는 환원제예요.");
+    assert.ok(json.turns[0].sources[0].url.startsWith("https://"));
+
+    assert.equal((await t.history(first.json.session_id, "jiwoo")).status, 404);
+    assert.equal((await t.history("00000000-0000-4000-8000-000000000000")).status, 404);
+    assert.equal((await t.history("not-a-uuid")).status, 404);
   } finally {
     t.close();
   }
