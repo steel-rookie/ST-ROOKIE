@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { AddressInfo } from "node:net";
 import test from "node:test";
 import express from "express";
-import { LearningFormatError, type LearningAgent, type LearningInput, type LearningReply } from "../../llm/src/learning-agent.js";
+import { LearningFormatError, type LearningAgent, type LearningInput, type LearningReply, type SceneCatalog } from "../../llm/src/learning-agent.js";
 import { Retriever, type Chunk } from "../../llm/src/retrieval.js";
 import { LlmUnavailableError } from "../src/checkpoint/types.js";
 import { openDatabase } from "../src/db/database.js";
@@ -25,8 +25,13 @@ const okReply = (over: Partial<LearningReply> = {}): LearningReply => ({
   source_ids: ["posco-brochure-2015#3"],
   follow_up: "일산화탄소는 어디서 생기나요?",
   detected_misconception: null,
+  scene_actions: [],
   ...over,
 });
+
+const SCENE: SceneCatalog = {
+  processes: [{ id: "ironmaking", name: "제선", equipment: [{ id: "blast_furnace", name: "고로·장입 장치" }] }],
+};
 
 /** 받은 입력을 기록하고 정해 둔 응답(또는 예외)을 돌려주는 가짜 튜터. */
 class FakeAgent implements LearningAgent {
@@ -38,7 +43,7 @@ class FakeAgent implements LearningAgent {
   }
 }
 
-async function setup() {
+async function setup(scene?: SceneCatalog) {
   const db = openDatabase(":memory:");
   const repo = new LearningRepository(db);
   const agent = new FakeAgent();
@@ -51,6 +56,7 @@ async function setup() {
     agent,
     retriever: new Retriever({ chunksFor: (s) => CHUNKS.filter((c) => c.section === s) }),
     rubrics: loadFinalRubrics(),
+    scene,
     now: () => new Date(Date.UTC(2026, 9, 2, 0, 0, clock++)).toISOString(),
   }));
   const server = app.listen(0);
@@ -83,6 +89,29 @@ test("새 질문: 근거 조각·루브릭 개념을 튜터에 넘기고, 출처
 
     const saved = t.repo.recentTurns(json.session_id, 6);
     assert.deepEqual(saved.map((x) => [x.status, x.equipment_id, x.source_ids]), [["grounded", "blast_furnace", ["posco-brochure-2015#3"]]]);
+  } finally {
+    t.close();
+  }
+});
+
+test("화면 조작: 화면 목록과 설비 이름을 튜터에 넘기고, 튜터의 scene_actions를 응답에 담는다", async () => {
+  const t = await setup(SCENE);
+  try {
+    t.agent.next = async () => okReply({ scene_actions: [{ type: "focus", target_id: "blast_furnace" }] });
+    const { json } = await t.ask({ question: "고로가 뭐예요?", screen: { process_id: "ironmaking", equipment_id: "blast_furnace" } });
+    assert.deepEqual(json.scene_actions, [{ type: "focus", target_id: "blast_furnace" }]);
+    assert.equal(t.agent.calls[0].scene, SCENE);
+    assert.equal(t.agent.calls[0].screen.equipment_name, "고로·장입 장치");
+
+    // 전체 공정 화면에서는 답은 제선 기준이지만 화면은 process_id 없음으로 넘긴다.
+    t.agent.next = async () => okReply();
+    const overview = await t.ask({ question: "고로가 뭐예요?", screen: { process_id: null } });
+    assert.deepEqual(overview.json.scene_actions, []);
+    assert.equal(t.agent.calls[1].section, "ironmaking");
+    assert.equal(t.agent.calls[1].screen.process_id, null);
+
+    const safety = await t.ask({ question: "고로 밸브는 어떻게 열어요?" });
+    assert.deepEqual(safety.json.scene_actions, []);
   } finally {
     t.close();
   }

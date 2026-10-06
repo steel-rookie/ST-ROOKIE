@@ -75,7 +75,8 @@ export async function createLearningChat(c) {
       for (const a of actions || []) {
         let ok = false;
         try {
-          if (a.type === 'goto_process') { ok = !!c.data.findProcess(a.target_id); if (ok) { c.goProcess(a.target_id); await wait(150); } }
+          // 다른 공정으로 가면 3D 모델을 불러오는 동안 기다린다(공정 목록에서 다른 공정의 설비를 누를 때와 같은 900ms).
+          if (a.type === 'goto_process') { ok = !!c.data.findProcess(a.target_id); if (ok) { c.goProcess(a.target_id); await wait(900); } }
           else if (a.type === 'highlight') { ok = !!c.data.findEquipment(c.state.processId, a.target_id); if (ok) c.setState({ selectedId: a.target_id }); }
           else if (a.type === 'focus') { ok = !!c.scene()?.focus(a.target_id); }
           else if (a.type === 'play_animation') { ok = !!c.scene()?.play(c.state.speed); }
@@ -108,7 +109,7 @@ export async function createLearningChat(c) {
         res = { error: e.message, status: e.status ?? null };
         message = { role: 'assistant', text: e.message, mode: 'free_question', evidence: 'error', citations: [], followUp: null };
       }
-      // 학습 모드 API는 아직 화면 조작(scene_actions)을 보내지 않는다(다음 단계).
+      // 튜터가 보낸 화면 조작(scene_actions)을 실행한다. 서버가 화면 목록에 있는 공정·설비만 남겨 보낸다. 오류 응답에는 없다.
       const results = await chat.runActions(res.scene_actions);
       c.setState(s => ({ pending: false, lastRes: res, lastResults: results, messages: [...s.messages, message] })); c.scrollChat();
     },

@@ -7,13 +7,13 @@
 ## 현재 상태
 
 - 서버 `/api/chat`은 학습 모드 라우터(`backend/src/learning/routes.ts`)가 답한다. 예전 제선 Q&A(`ironmaking-agent.ts`, 공개 자료 메모를 통째로 프롬프트에 넣어 Gemini를 1회 호출하고 대화를 서버 메모리에 보관)는 지웠다. 기본 모델 상수 `DEFAULT_GEMINI_MODEL`은 `llm/src/gemini.ts`로 옮겼다.
-- 화면(최종 페이지 v2)의 학습 모드 입력은 `frontend/3d-demo/learning-chat.js`가 아직 가짜 튜터(`tutor_v2.js`의 `mockTutor`)로 보낸다.
+- 화면(최종 페이지 v2)의 학습 모드 입력은 `frontend/3d-demo/learning-chat.js`가 `/api/chat`으로 보내고, 튜터가 답과 함께 보낸 3D 화면 조작(`scene_actions`)을 실행한다.
 
 ## 결정 사항
 
 | 항목 | 결정 |
 |---|---|
-| 3D 화면 조작(`scene_actions`) | 다음 단계로 미룬다. "재학습 시 3D 하이라이트"와 함께 진행한다. |
+| 3D 화면 조작(`scene_actions`) | 튜터가 답과 함께 보낸다. 설비 목록은 서버가 `data_v2.js`를 읽기만 한다(아래 '화면 조작'). "재학습 시 3D 하이라이트"는 다음 단계. |
 | 오개념 감지 | 답변과 **같은 응답**에서 감지한다. 학습자가 무언가를 **사실로 단정할 때만** 기록한다. |
 | 체크포인트 `conceptOrder` | 루브릭 순서를 유지한다. 학습 모드 오개념은 체크포인트 **튜터의 context로만** 쓴다. |
 | 대화 저장 | DB에 저장하고 보관 기간은 두지 않는다. |
@@ -28,11 +28,11 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
   → retrieve(section, question, screen): 근거 조각 3~5개
   → 학습자 메모: 이 섹션의 미해결 오개념 요약(학습·체크포인트 모두)
   → Gemini 1회 (GeminiClient, responseSchema, temperature 0.3)
-      { answer, status, source_ids, follow_up, detected_misconception: { concept_id, summary } | null }
-  → 검증: source_ids가 이번에 검색한 조각인지, concept_id가 루브릭 개념인지
+      { answer, status, source_ids, follow_up, scene_actions: [{ type, target_id }], detected_misconception: { concept_id, summary } | null }
+  → 검증: source_ids가 이번에 검색한 조각인지, concept_id가 루브릭 개념인지, scene_actions가 화면 목록의 공정·설비인지
   → detected_misconception이 있으면 misconceptions에 기록(source: learning, 점수 반영 없음)
   → 대화 저장(learning_turns)
-응답 { answer, status, sources, follow_up, session_id }
+응답 { answer, status, sources, follow_up, scene_actions, session_id }
 ```
 
 - 기존 `/api/chat` 요청·응답 필드는 유지하고 새 필드는 모두 선택값으로 추가한다.
@@ -41,8 +41,8 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
 
 ### 라우트 구현 (`backend/src/learning/routes.ts`)
 
-- `createLearningRouter({ repo, retriever, agent, rubrics })`를 `createApp({ learning })`에 넘긴다. `POST /api/chat`은 학습 모드가 답한다(예전 제선 Q&A 핸들러는 지웠다).
-- 요청 `{ question, session_id?, screen?: { process_id, equipment_id } }`, 응답 `{ answer, status, sources, follow_up, session_id }`. `process_id`가 없으면 제선.
+- `createLearningRouter({ repo, retriever, agent, rubrics, scene })`를 `createApp({ learning })`에 넘긴다. `POST /api/chat`은 학습 모드가 답한다(예전 제선 Q&A 핸들러는 지웠다).
+- 요청 `{ question, session_id?, screen?: { process_id, equipment_id } }`, 응답 `{ answer, status, sources, follow_up, scene_actions, session_id }`. `process_id`가 없으면 답은 제선 기준이고, 화면 조작은 전체 공정 화면 기준이다.
 - 세션은 DB(`learning_turns`)로 이어진다. 없는 세션·다른 사람의 세션은 404, 같은 세션에서 답변 중 다시 질문하면 409.
 - 안전 질문(`safety.ts`)은 튜터를 부르지 않고 `safety_redirect`로 저장한다. 조작 방법·허락("밸브를 열어도 돼요?", "정지시키는 방법")과 비상 대응("비상 정지 버튼")만 막고, "고로가 정지하면 어떻게 되나요?" 같은 교육 질문은 통과시킨다(단어 하나로 막지 않음).
 - 프롬프트의 학습자 메모는 `latestPerConcept`로 개념당 최근 1개, 최대 5개만 넣는다(`buildLearnerNotes`와 같은 기준).
@@ -53,11 +53,20 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
 
 ### 튜터 구현 (`llm/src/learning-agent.ts`)
 
-- `LearningAgent.reply(input)` → `{ answer, status, source_ids, follow_up, detected_misconception }`. 구현은 `GeminiLearningAgent`, 프롬프트는 `llm/prompts/learning-system.md`.
+- `LearningAgent.reply(input)` → `{ answer, status, source_ids, follow_up, detected_misconception, scene_actions }`. 구현은 `GeminiLearningAgent`, 프롬프트는 `llm/prompts/learning-system.md`.
 - 입력: 섹션, 질문, 화면(공정·설비), `retrieve()` 조각, 같은 세션 최근 대화, 미해결 오개념(학습자 메모), 루브릭 개념 목록·용어집.
 - `responseSchema`의 enum으로 `source_ids`는 이번 조각 id, `concept_id`는 루브릭 개념만 고르게 하고, 서버에서 한 번 더 걸러 낸다. grounded인데 남는 근거가 없으면 unverified 고정 답변으로 바꾼다.
-- 형식 오류는 1회 다시 부르고(`LearningFormatError`), 연결 오류는 다시 부르지 않는다(`LlmUnavailableError`).
+- 형식 오류는 1회 다시 부르고(`LearningFormatError`), 연결 오류는 다시 부르지 않는다(`LlmUnavailableError`). 단, Gemini 과부하(HTTP 503 "high demand")는 몇 초 사이에도 풀려서 1초·2초 뒤 최대 2번 다시 부른다(`OVERLOAD_RETRY_DELAYS_MS`). 다시 부를 때마다 하루 호출 수에 들어간다. 체크포인트 쪽 호출에는 적용하지 않았다.
 - `source_ids`는 조각 id(`자료id#번호`)다. 화면의 출처 링크는 라우트가 조각의 `source_ids`(자료 id)로 `ironmaking-sources.json`에서 찾는다.
+
+### 화면 조작 (`scene_actions`)
+
+- 튜터가 답과 함께 `[{ type, target_id }]`를 보내면 화면의 `runActions`(`learning-chat.js`)가 차례로 실행한다. `type`은 `goto_process`(공정 이동), `focus`(카메라 이동), `highlight`(설비 선택·정보 표시), `play_animation`(소재 흐름 재생).
+- 설비 목록: 서버 시작 때 `backend/src/learning/scene-catalog.ts`가 `frontend/3d-demo/data_v2.js`의 `PROCESSES`에서 공정 4개·설비 24개의 id·이름만 읽는다(프론트 파일은 고치지 않음). 형식이 틀리거나 설비 id가 겹치면 서버가 시작하지 않는다.
+- 프롬프트에 화면 목록(`id (이름)`)을 넣고, `responseSchema`의 enum으로 `target_id`를 목록 안에서만 고르게 한다. 규칙: 설비를 다루면 `focus`+`highlight`, 다른 공정을 물으면 `goto_process`, 흐름·순서를 물으면 `play_animation`, 이미 보고 있는 설비면 빈 배열, 조작은 2개 이하. 근거가 없어 unverified로 답해도 화면 조작은 한다(화면을 보여 주는 것은 사실 주장이 아니고, 지금은 제선 밖 공정에 근거 자료가 없다).
+- 서버 정리(`normalizeSceneActions`): 목록에 없는 id·조작은 버린다. 다른 공정의 설비·공정이면 `goto_process`를 앞에 끼우고, 이미 그 공정이면 `goto_process`를 뺀다(같은 공정으로 이동하면 화면이 초기화된다). `focus`에는 `highlight`를 붙인다. 중복은 빼고 최대 4개.
+- 형식이 틀린 `scene_actions`는 답변을 살리고 빈 배열로 본다. grounded인데 근거가 없어 고정 답변으로 바꾸면 조작도 버린다. 안전 질문은 빈 배열.
+- 화면은 다른 공정으로 이동한 뒤 3D 모델을 불러오도록 900ms 기다린다(공정 목록에서 다른 공정의 설비를 누를 때와 같은 값).
 
 ### 오개념 감지 기준
 
@@ -128,11 +137,11 @@ CREATE TABLE learning_turns (
 |---|---|
 | `llm/src/learning-agent.ts` | `ironmaking-agent.ts`(삭제) 대체. `GeminiClient` 사용, `LearningAgent` 인터페이스(테스트용 가짜 구현) |
 | `llm/src/retrieval.ts` | `retrieve()`: 섹션 문서 조각 나누기와 검색 |
+| `backend/src/learning/scene-catalog.ts` | 화면 조작용 공정·설비 목록(`data_v2.js`를 읽기만 함) |
 | `llm/prompts/learning.md` | 학습 모드 프롬프트 |
 | `backend/src/learning/` | 라우트, 안전 규칙, `buildLearnerNotes`(`notes.ts`, 시그니처 고정), 대화 저장소 |
 | `frontend/3d-demo/learning-chat.js`의 `ask()` | `mockTutor` 대신 `/api/chat`. `session_id` 유지, 상태 표시와 출처 링크 |
 
 ## 다음 단계로 미룬 것
 
-- 학습 모드의 3D 화면 조작(`scene_actions`). 서버가 설비 id 목록을 알아야 한다(지금은 프론트 `data_v2.js`에만 있음, 목록과 v1 차이는 [equipment-ids.md](equipment-ids.md)).
 - 재학습 시 3D 하이라이트: 오개념이 있는 개념과 관련된 설비를 3D에서 강조해 다시 보게 한다.
