@@ -56,6 +56,17 @@
       </sc-for>
     </section>
 
+    <section aria-label="AI 요약" style="display:flex;flex-direction:column;gap:10px;padding:18px 22px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:18px;">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:16px;font-weight:700;">AI 요약 · 보강할 내용</h2>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);">Gemini</span>
+        <span style="flex:1;"></span>
+        <span style="font-size:11px;color:var(--muted);">{{ aiMeta }}</span>
+      </div>
+      <p style="margin:0;font-size:14px;line-height:1.7;color:{{ aiColor }};">{{ aiText }}</p>
+      <span style="font-size:11px;color:var(--muted);">{{ aiNote }}</span>
+    </section>
+
     <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:stretch;">
       <section style="flex:1.5 1 520px;min-width:0;display:flex;flex-direction:column;gap:16px;padding:22px;background:var(--panel);border:1px solid var(--line);border-radius:18px;">
         <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;">
@@ -223,13 +234,29 @@ const days = iso => iso ? Math.floor((Date.now() - new Date(iso)) / 864e5) : nul
 const ago = iso => { const d = days(iso); return d == null ? '기록 없음' : d === 0 ? '오늘' : d === 1 ? '어제' : `${d}일 전`; };
 
 class Component extends DCLogic {
-  state = { P: null, data: null, error: null, theme: this.props.theme ?? 'dark', sec: 'all', status: 'all', q: '', sort: 'progress', loadedAt: null };
+  state = { P: null, data: null, error: null, ai: null, theme: this.props.theme ?? 'dark', sec: 'all', status: 'all', q: '', sort: 'progress', loadedAt: null };
   componentDidMount() {
     document.body.dataset.theme = this.state.theme;
     import('../3d-demo/data_v2.js').then(m => this.setState({ P: m.PROCESSES }));
     import('./admin_data.js').then(m => m.loadAdminData())
       .then(data => this.setState({ data, error: null, loadedAt: new Date() }),
         () => this.setState({ error: '관리자 통계를 DB에서 불러오지 못했습니다. 로그인 상태와 서버 연결을 확인해 주세요.' }));
+    // AI 요약은 따로 부른다. 키가 없거나 호출이 실패해도 나머지 화면에는 영향이 없다.
+    import('./admin_data.js').then(m => m.loadAiSummary()).then(ai => this.setState({ ai }), () => this.setState({ ai: { error: 'load' } }));
+  }
+  aiVals() {
+    const A = this.state.ai;
+    const note = '오답률 높은 개념의 집계 숫자만 Gemini에 보냅니다. 답변 원문·오개념 내용·개인 정보는 보내지 않습니다.';
+    if (!A) return { aiText: '요약을 만드는 중…', aiColor: 'var(--muted)', aiMeta: '', aiNote: note };
+    if (A.error) {
+      const why = A.error === '429' ? '오늘 LLM 호출 한도를 다 써서' : A.error === '401' || A.error === '403' ? '관리자 로그인이 필요해서' : 'AI 연결이 안 돼서(GEMINI_API_KEY 확인)';
+      return { aiText: `${why} 요약을 만들지 못했습니다. 아래 '오답률 높은 개념'을 참고해 주세요.`, aiColor: 'var(--muted)', aiMeta: '요약 없음', aiNote: note };
+    }
+    if (!A.summary) return { aiText: '아직 요약할 오답 기록이 없습니다.', aiColor: 'var(--muted)', aiMeta: '', aiNote: note };
+    const t = new Date(A.generated_at);
+    return { aiText: A.summary, aiColor: 'var(--text)',
+      aiMeta: `${t.getHours()}:${String(t.getMinutes()).padStart(2, '0')} 생성${A.cached ? ' · 저장된 요약' : ''}`,
+      aiNote: `근거: ${A.concepts.map(c => c.name).join(' · ')}. ${note}` };
   }
   statusOf(t, secs) {
     if (t.passed_sections === secs.length) return 'done';
@@ -308,6 +335,7 @@ class Component extends DCLogic {
 
     const statusCount = k => k === 'all' ? N : st.filter(x => x === k).length;
     return {
+      ...this.aiVals(),
       srcLabel: D ? 'DB 데이터' : S.error ? '연결 오류' : '불러오는 중',
       srcColor: D ? 'var(--ok)' : S.error ? 'var(--bad)' : 'var(--muted)',
       loadError: S.error,

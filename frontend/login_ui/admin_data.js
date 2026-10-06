@@ -15,3 +15,9 @@ export async function loadAdminData() {
   ]);
   return { trainees, concepts };
 }
+
+// GET /api/admin/ai-summary : 오답률 높은 개념의 집계 숫자만 Gemini에 넘겨 만든 1~2문장 요약.
+// 실패해도 대시보드는 그대로 보이도록 loadAdminData와 따로 부른다. 실패하면 { error: 상태 코드 문자열 }.
+export async function loadAiSummary() {
+  try { return await get('/api/admin/ai-summary'); } catch (e) { return { error: e.message }; }
+}

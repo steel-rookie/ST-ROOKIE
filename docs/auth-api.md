@@ -49,6 +49,19 @@
 - `concept_id`는 루브릭 개념 id다(시연 기록은 설비 id). 답변 원문·오개념 설명·사용자 id는 주지 않는다.
 - `section`이 섹션 4개 중 하나가 아니면 `400 INVALID_SECTION`. 체크포인트 테이블(`attempts`, `concept_results`)이 없으면 빈 목록을 준다.
 
+`GET /api/admin/ai-summary?section=ironmaking` (토큰 필요, `admin`만. `section`은 선택): 오답률 높은 개념을 Gemini가 "보강할 내용" 1~2문장으로 정리한다.
+
+```json
+{ "summary": "고로에서 코크스의 역할은 …", "concepts": [{ "section": "ironmaking", "concept_id": "coke_reduction", "name": "고로에서 코크스의 역할" }],
+  "generated_at": "2026-10-06T01:32:00.000Z", "cached": false }
+```
+
+- 입력은 `/api/admin/concepts`와 같은 집계에서 지금 final 루브릭 개념(`name` 있음) 중 정답이 아닌 첫 답변이 있는 개념 상위 5개의 숫자와 공정·개념 이름뿐이다. 답변 원문·오개념 설명·사용자 id는 LLM에 보내지 않는다.
+- 집계할 기록이 없으면 LLM을 부르지 않고 `summary: null`.
+- 같은 집계면 10분 동안 저장한 요약을 준다(`cached: true`). 기록이 바뀌면 새로 만든다.
+- LLM 호출은 관리자 계정의 하루 호출 수(`LLM_DAILY_LIMIT`)에 함께 센다. 넘으면 `429 USAGE_LIMIT`.
+- `GEMINI_API_KEY`가 없거나 호출이 실패하면 `503`/`502 LLM_UNAVAILABLE`. 화면은 요약 대신 안내 문장을 보여 주고 나머지는 그대로 쓴다.
+
 ## 아이디·비밀번호 찾기
 
 메일 발송 수단이 없어서 **이름 + 사번**으로 본인 확인을 한다.
