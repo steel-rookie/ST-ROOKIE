@@ -1,7 +1,7 @@
 // 학습 모드 튜터(Gemini): 근거 조각으로 자유 질문에 답하고, 학습자가 틀린 내용을 단정하면 오개념을 함께 알려 준다.
 // 예전 /api/chat(ironmaking-agent.ts, 지금은 삭제)을 대체했다. 설계는 docs/learning-mode.md '흐름'.
 // - 호출은 1회(temperature 0.3). responseSchema로 형식을 강제하고, 서버에서 한 번 더 검증해 실패하면 1회 다시 부른다.
-// - Gemini 과부하(HTTP 503)는 1초·2초 뒤 최대 2번 다시 부른다. 다시 부를 때마다 하루 호출 수에 들어간다.
+// - Gemini 과부하(HTTP 503)와 순간적인 연결 끊김은 1초·2초 뒤 최대 2번 다시 부른다. 다시 부를 때마다 하루 호출 수에 들어간다.
 // - source_ids는 이번에 검색한 조각 id만, concept_id는 루브릭 개념만 남긴다.
 // - scene_actions(3D 화면 조작)는 화면 목록(data_v2.js)에 있는 공정·설비만 남기고, 다른 공정의 설비면 그 공정으로 먼저 이동시킨다.
 import { z } from "zod";
@@ -211,7 +211,7 @@ export function parseLearningReply(raw: string, input: Pick<LearningInput, "chun
   return { answer: r.answer.trim(), status: r.status, source_ids, follow_up, detected_misconception, scene_actions };
 }
 
-/** Gemini가 과부하(HTTP 503 "high demand")일 때 다시 부르기 전에 기다리는 시간(ms). 길이가 다시 부르는 횟수다. */
+/** Gemini 과부하(HTTP 503 "high demand")·연결 끊김 때 다시 부르기 전에 기다리는 시간(ms). 길이가 다시 부르는 횟수다. */
 export const OVERLOAD_RETRY_DELAYS_MS = [1000, 2000];
 
 export class GeminiLearningAgent implements LearningAgent {
@@ -220,14 +220,17 @@ export class GeminiLearningAgent implements LearningAgent {
     private readonly retryDelaysMs: number[] = OVERLOAD_RETRY_DELAYS_MS,
   ) {}
 
-  /** 503 과부하는 몇 초 사이에도 풀리므로 잠시 뒤 다시 부른다. 그 밖의 연결·HTTP 오류는 그대로 올려 보낸다. */
+  /**
+   * 503 과부하와 순간적인 연결 끊김(fetch failed)은 몇 초 사이에도 풀리므로 잠시 뒤 다시 부른다.
+   * 시간 초과(이미 오래 기다림)와 그 밖의 HTTP 오류는 그대로 올려 보낸다.
+   */
   private async generate(request: Parameters<GeminiClient["generate"]>[0]): Promise<string> {
     for (let retry = 0; ; retry++) {
       try {
         return await this.gemini.generate(request);
       } catch (error) {
-        const overloaded = error instanceof GeminiCallError && error.httpStatus === 503;
-        if (!overloaded || retry >= this.retryDelaysMs.length) throw error;
+        const transient = error instanceof GeminiCallError && (error.httpStatus === 503 || error.reason === "network");
+        if (!transient || retry >= this.retryDelaysMs.length) throw error;
         await new Promise((r) => setTimeout(r, this.retryDelaysMs[retry]));
       }
     }

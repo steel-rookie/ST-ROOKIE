@@ -202,6 +202,27 @@ test("Gemini 연결 오류는 다시 부르지 않고 LlmUnavailableError", asyn
   assert.equal(sent.length, 1);
 });
 
+test("순간적인 연결 끊김(fetch failed)은 다시 부르고, 시간 초과는 다시 부르지 않는다", async () => {
+  const calls: string[] = [];
+  const flaky = (failure: Error) => {
+    let first = true;
+    return (async () => {
+      calls.push(failure.name);
+      if (first) { first = false; throw failure; }
+      return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: reply() }] } }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+  };
+  const network = new GeminiLearningAgent(new GeminiClient({ apiKey: "k", fetch: flaky(new TypeError("fetch failed")) }), [0, 0]);
+  assert.equal((await network.reply(input())).status, "grounded");
+  assert.deepEqual(calls, ["TypeError", "TypeError"]);
+
+  calls.length = 0;
+  const timeout = Object.assign(new Error("timed out"), { name: "TimeoutError" });
+  const slow = new GeminiLearningAgent(new GeminiClient({ apiKey: "k", fetch: flaky(timeout) }), [0, 0]);
+  await assert.rejects(slow.reply(input()), LlmUnavailableError);
+  assert.equal(calls.length, 1);
+});
+
 test("Gemini 과부하(503)는 최대 2번 다시 부르고, 그래도 503이면 LlmUnavailableError", async () => {
   const recovered = fakeGemini([503, 503, reply()]);
   assert.equal((await recovered.agent.reply(input())).status, "grounded");
