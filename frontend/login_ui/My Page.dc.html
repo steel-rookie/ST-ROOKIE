@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
 <meta charset="utf-8">
+<title>철든 신입 · 로그인</title>
+<link rel="stylesheet" href="./console-login.css">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="./support.js"></script>
 <script src="../3d-demo/intro.js"></script>
@@ -23,11 +25,21 @@
 <div style="min-height:100vh;background:var(--bg);color:var(--text);">
 
   <sc-if value="{{ loggedOut }}" hint-placeholder-val="{{ false }}">
-    <div style="min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;padding:24px;">
-      <div style="width:min(400px,100%);display:flex;flex-direction:column;gap:20px;padding:32px 28px;background:var(--panel);border:1px solid var(--line);border-radius:20px;">
+    <div class="console-entry">
+      <div class="console-orbit" aria-hidden="true"></div>
+      <header class="console-brand"><span class="console-mark">Fe</span><span>철든 신입<small>ST-ROOKIE / STEEL ACADEMY</small></span></header>
+      <section class="console-welcome" aria-label="철든 신입 소개">
+        <span class="console-eyebrow">THE FIRST HEAT / 첫 번째 담금질</span>
+        <h1>아직은 원석.<br>곧, <em>철든 신입.</em></h1>
+        <p>뜨거운 호기심이 단단한 실력이 되는 곳.<br>당신의 첫 번째 담금질을 시작합니다.</p>
+        <div class="forge-art" aria-hidden="true"><span class="forge-heat"></span><span class="forge-slab">Fe<small>FE / 26</small></span><span class="forge-caption">RAW POTENTIAL → REAL CAPABILITY</span></div>
+        <div class="console-path"><span>01 제선</span><span>02 제강</span><span>03 연주</span><span>04 압연</span></div>
+      </section>
+      <div class="console-card" style="width:min(800px,100%);display:flex;flex-direction:column;gap:20px;padding:32px 28px;background:var(--panel);border:1px solid var(--line);border-radius:20px;">
+        <div class="badge-label"><span>LEARNING ACCESS PASS</span><span>NO. 001</span></div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <span style="width:38px;height:38px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff;">S</span>
-          <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.05em;white-space:nowrap;">STEEL ACADEMY</span><span style="font-size:11px;color:var(--muted);">신입사원 기초교육</span></div>
+
+          <div style="display:flex;flex-direction:column;gap:2px;"><span style="font-family:'Noto Sans KR',sans-serif;font-weight:700;font-size:15px;letter-spacing:0.05em;white-space:nowrap;">철든 신입</span><span style="font-size:11px;color:var(--muted);">신입사원 기초교육</span></div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;">
           <h1 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:26px;font-weight:900;letter-spacing:-0.02em;">{{ form.title }}</h1>
@@ -148,7 +160,7 @@ class Component extends DCLogic {
     const toLogin = link('로그인으로', 'login');
     const forms = {
       login: {
-        title: '로그인', intro: '학습 진도, 체크포인트 결과, 튜터와 나눈 질문이 계정에 저장됩니다.', submitLabel: '로그인', isLogin: true,
+        title: '오늘의 나를 단련할 시간', intro: '나의 출입증으로 학습 현장에 입장하세요.', submitLabel: '첫 번째 담금질 시작 →', isLogin: true,
         fields: [field('id', '아이디', 'text', 'username'), field('pw', '비밀번호', 'password', 'current-password', S.demo.password ? `시연 비밀번호 ${S.demo.password}` : '')],
         onSubmit: e => { e.preventDefault(); this.submit(async () => this.signedIn(await api('/api/auth/login', { username: f.id, password: f.pw, remember: S.remember }), S.remember)); },
         links: links([link('아이디 찾기', 'findId'), link('비밀번호 찾기', 'resetPw'), link('회원가입', 'signup', true)]),
