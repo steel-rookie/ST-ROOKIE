@@ -1176,6 +1176,120 @@
       "evidence": [
         "일반적으로 사상압연기에서 7개의 스탠드가 연속적으로 배치되어 있다. … 초기 30~60mm 두께의 슬라브는 사상압연에서 압연된 후 1.2~22.0 mm의 두께로 가공된다."
       ]
+    },
+    {
+      "id": "jrc-bref-iron-steel-2013",
+      "title": "Best Available Techniques (BAT) Reference Document for Iron and Steel Production (Chapter 7: Basic oxygen steelmaking and casting)",
+      "date": "2013",
+      "date_type": "발행연도",
+      "url": "https://bureau-industrial-transformation.jrc.ec.europa.eu/sites/default/files/2019-11/IS_Adopted_03_2012.pdf",
+      "publisher": "European Commission Joint Research Centre (EU JRC, European IPPC Bureau)",
+      "section": "steelmaking",
+      "topics": ["래들 이송", "래들 예열", "전로 배가스", "미연소 회수", "LF", "RH", "용선 예비처리", "탈황제", "전로 사이클", "고철 장입", "복합 취련"],
+      "notes": [
+        "래들은 2차 정련 처리와 전로에서 연속주조까지 용강을 이송하는 데 쓰인다. 보통 래들 처리·이송 중에는 뚜껑을 덮지 않지만 연속주조 중에는 추가 열손실을 막으려고 뚜껑을 덮으며, 주조와 래들 정비를 마친 래들은 다음 용강을 받을 때까지 뜨겁게 유지하려고 코크스 오븐 가스나 천연가스 버너로 가열한다.",
+        "전로에서 래들로 출강한 용강은 2차 정련을 거친 뒤 래들에 담겨 연속주조기의 턴디시(출구를 조절할 수 있는 중간 용기)로 이송된다. 턴디시에서 온도가 층으로 나뉘는 것을 막기 위해 래들은 용강을 받기 전에 미리 예열한다.",
+        "전로 산소 취련 중 나오는 배가스(전로가스)에는 일산화탄소(CO)가 많아 대부분의 제강공장이 이를 회수해 에너지원으로 쓴다. 배가스 처리 방식 중 개방 연소 방식은 배가스 덕트에 공기를 넣어 CO를 일부 또는 모두 태우고, 미연소(연소 억제) 방식은 취련 중 전로 입구에 스커트를 내려 바깥 산소가 못 들어오게 해 CO가 많은 가스를 모아 정화·저장한 뒤 연료로 쓴다.",
+        "전로 배가스의 1차 집진은 보통 벤투리 스크러버나 건식·습식 전기집진기(ESP)로 한다. 전로를 떠나는 배가스는 CO가 약 70~80%이며, 취련 시작과 끝 몇 분 동안은 CO 농도가 낮아 배가스를 회수하지 않고 태워 버린다(플레어).",
+        "2차 정련의 중요한 단계인 진공 처리는 주로 진공에서 용강의 수소·산소·질소나 남은 탄소를 제거하며, RH는 진공 순환 탈가스 방식이다. 반면 LF(래들로)는 아크 가열 장치로 주조 작업에 맞게 용강의 최종 온도를 조정하는 래들 처리 설비이다.",
+        "전로 제강에서 황(S)은 주로 용선 예비처리 단계에서 줄인다. 탈황제는 주로 탄화칼슘이고 석회, 마그네슘, 산화칼슘도 쓰며, 마그네슘은 분말 상태로 운반 가스에 실어 침지 랜스로 넣는다. 황은 슬래그에 묶여 용선 위로 떠오르고, 이 슬래그는 슬래그 분리 설비에서 걷어낸다.",
+        "전로 조업은 반연속식으로, 한 사이클은 고철과 용선 장입 → 산소 취련 → 시료 채취·온도 측정 → 출강 순서이며, 현대 제철소에서는 30~40분 사이클로 최대 380톤의 강을 만든다. 이 중 산소 취련 시간은 약 15분이다.",
+        "전로의 산화 반응은 발열 반응이라 쇳물 온도가 올라가므로, 고철·철광석 같은 냉각재를 넣어 약 1600~1700℃로 유지한다. 전로 장입 고철은 보통 용강 1톤당 약 190kg이고, 300kg 이상인 경우도 있다.",
+        "가장 흔한 LD 전로는 서양배 모양의 내화물 용기에 수냉 산소 랜스를 내려 산소를 부는 방식(상취)이다. OBM(Q-BOP) 같은 방식은 노 바닥에 잠긴 풍구로 산소와 플럭스를 불어넣는다(저취). LD 전로에 바닥 다공질 벽돌로 아르곤·질소를 불어 교반하는 복합 취련(상저취)도 있으며, 용강 순환을 강하게 해 산소와 용강의 반응을 좋게 한다."
+      ],
+      "evidence": [
+        "Steel ladles are used for secondary treatments and the transporting of liquid steel from the BOF converters to continuous casting. In normal practice, the ladles are not covered during ladle treatment and transportation, but a lid is commonly used to prevent extra heat losses during continuous casting. After casting and ladle maintenance, the ladles in operation are heated with burners, typically with coke oven gas or natural gas to keep them hot for the next heat.",
+        "The liquid steel is poured from the converter into a ladle which transports the steel after secondary metallurgy to the ‘tundish’ of the continuous casting machine (CCM). This is an intermediate ladle with a controllable outlet. The ladles are preheated prior to accepting a liquid steel charge in order to avoid temperature stratification in the tundish.",
+        "The gases produced during oxygen blowing (converter gas) contain large amounts of carbon monoxide. In most steelmaking plants, measures have been taken to recover the converter gas and use it as an energy source. Open combustion systems introduce air into the converter fluegas duct, thus partially or fully combusting the carbon monoxide. In the suppressed combustion system, a skirt is lowered over the converter mouth during oxygen blowing. Thus, ambient oxygen cannot enter the flue-gas duct and the combustion of carbon monoxide is prevented. The CO-rich flue-gas can be collected, cleaned and buffered for subsequent use as fuel.",
+        "Primary dedusting is usually performed by venturi-type scrubbers (approximately 60 % of the plants) or dry and wet ESP. … The gas contains approximately 70 – 80 % carbon monoxide (CO) when leaving the BOF and has a heating value of approximately 8.8 MJ/Nm3. … It should be noted that BOF gas is not collected during the start and the end of blowing on account of its low CO content. During these periods, which last a few minutes, it is flared instead",
+        "An important step in secondary metallurgy is vacuum treatment. This mainly serves to remove gaseous hydrogen, oxygen, nitrogen or residual carbon concentrations from the steel at a vacuum below 0.5 mbar (50 Pa). … a distinction is made between DH (DortmundHörder)-type vacuum lift degassing and RH (Ruhrstahl-Heraeus)-type vacuum recirculating degassing. … These treatment stations are generally comprised of an arc-heating unit (a ladle furnace) which allows an adjustment of the final temperature of the liquid steel for the casting operation.",
+        "Sulphur content is mainly reduced during pretreatment of the hot metal. … Desulphurisation agents are mainly calcium carbide but also lime, magnesium, calcium oxide and rarely materials which contain soda ash. … Magnesium is added in powdered form in a carrier gas via an immersed lance. … The sulphur is bound in the slag, which floats to the top of the hot metal. The slag is then removed in the slag separation unit",
+        "The operation of a BOF is semi-continuous. A complete cycle consists of the following phases: charging scrap and molten hot metal, oxygen blowing, sampling and temperature recording, and tapping. In modern steelworks, up to 380 tonnes of steel are produced in a 30 – 40 minute cycle. … In a complete steelmaking cycle (approximately 30 – 40 minutes), oxygen blowing lasts for approximately 15 minutes.",
+        "The oxidising reactions are exothermic thus increasing the temperature of the molten iron. Scrap, iron ore or other coolants are added to cool down the reaction and maintain the temperature at approximately 1600 – 1700 °C. Usually, approximately 190 kg/t LS is scrap, but values of 300 kg/t LS and even higher are sometimes reached.",
+        "The most commonly used type is the LD converter (Linz-Donawitz) applied for hot metal with a low phosphorus content. The converter is a pear-shaped, refractory-lined reactor into which a watercooled oxygen lance is lowered. … These processes differ from the LD converter in that oxygen and fluxes are blown through submerged tuyères in the furnace bottom using hydrocarbons for cooling … Where necessary, the LD converter process can be enhanced by ‘bottom stirring’ with argon gas (Ar) or nitrogen (N2) through porous bricks in the bottom lining in certain phases of the process. … These combined blowing techniques produce a more intensive circulation of the molten steel and improve the reaction between the oxygen and the molten metal"
+      ]
+    },
+    {
+      "id": "nptel-steelmaking-ladle-treatment",
+      "title": "Steel Making, Lecture 21: Evolution of ladle Treatment and Requirements",
+      "date": "2026-10-06",
+      "date_type": "확인일",
+      "url": "https://archive.nptel.ac.in/content/storage2/courses/113104059/lecture21/21_2.htm",
+      "publisher": "NPTEL (IIT Kanpur, Prof. Satish Ch. Koria)",
+      "section": "steelmaking",
+      "topics": ["래들", "래들 이송", "주입 온도", "래들 정련"],
+      "notes": [
+        "제강에서 래들은 전로(또는 전기로)에서 받은 용강을 연속주조(또는 잉곳 주조)로 이송하는 용기다. 래들 이송 중 용강을 주입(주조) 온도로 유지하려면 추가 가열이 필요할 수 있으며, 출강 온도를 조금 높이거나 래들 자체에 가열 장치를 두는 방법이 있다."
+      ],
+      "evidence": [
+        "In steelmaking, ladles are employed to transfer molten steel from BOF/EAF to ingot casting or continuous casting. … Additional heating may be required to keep the molten steel to the teeming temperature. This can be achieved either by tapping steel at slightly higher temperature or to provide addition heating arrangement in the ladle itself."
+      ]
+    },
+    {
+      "id": "wikipedia-ladle-metallurgy",
+      "title": "Ladle (metallurgy)",
+      "date": "2026-10-06",
+      "date_type": "확인일",
+      "url": "https://en.wikipedia.org/wiki/Ladle_(metallurgy)",
+      "publisher": "Wikipedia (English)",
+      "section": "steelmaking",
+      "topics": ["래들", "래들 이송 대차", "크레인", "슬라이드 게이트"],
+      "notes": [
+        "제철소처럼 아주 많은 용융 금속을 옮길 때 래들은 바퀴로 달리거나, 전용 래들 이송 대차(ladle transfer car)에 실리거나, 천장 크레인에 매달아 이송하며, 기울일 때는 두 번째 천장 인양 장치를 쓴다. 제강용 대형 래들은 바닥 출구(탭홀) 아래에 슬라이드 게이트를 달기도 한다."
+      ],
+      "evidence": [
+        "For the transportation of very large volumes of molten metal, such as in steel mills, the ladle can run on wheels, a purpose-built ladle transfer car or be slung from an overhead crane and will be tilted using a second overhead lifting device. … Large ladles in the steelmaking industry may use slide gates below the taphole."
+      ]
+    },
+    {
+      "id": "posco-newsroom-ladle-refractory-2023",
+      "title": "광양제철소, 내화물 재고관리 최적화 프로세스 구축 성공…안전성 개선",
+      "date": "2023-09-12",
+      "date_type": "발행일",
+      "url": "https://newsroom.posco.com/kr/?p=100269",
+      "publisher": "포스코그룹 뉴스룸",
+      "section": "steelmaking",
+      "topics": ["래들", "래들 내화물", "래들 수리", "이송"],
+      "notes": [
+        "래들은 쇳물을 다른 공정으로 옮기는 분배 용기다. 래들처럼 뜨거운 쇳물을 담거나 이송하는 설비는 내화물 덕분에 약 1,580℃ 이상의 고온에서도 녹거나 타지 않으며, 래들 수리에 쓰는 내화물은 각 제강공장의 래들수리장에 보관한다."
+      ],
+      "evidence": [
+        "*내화물: 내화물은 고온을 견딜 수 있는 특수 재료로, 뜨거운 쇳물을 담거나 이송하는 설비가 약 1,580℃ 이상의 높은 온도에 녹거나 타지 않도록 하는 중요한 역할을 함. 래들은 쇳물을 다른 공정으로 옮기는 분배 용기다. 그동안 래들 수리에 쓰이는 내화물을 수리일정에 맞춰 필요한 수량만큼 각 제강공장 래들수리장에 나눠 보관해왔다."
+      ]
+    },
+    {
+      "id": "pistorius-slag-carryover-2019",
+      "title": "Slag carry-over and the production of clean steel",
+      "date": "2019",
+      "date_type": "발행연도",
+      "url": "https://www.scielo.org.za/scielo.php?script=sci_arttext&pid=S2225-62532019000600008&lng=en&nrm=iso&tlng=en",
+      "publisher": "Journal of the Southern African Institute of Mining and Metallurgy (P.C. Pistorius, SciELO South Africa)",
+      "section": "steelmaking",
+      "topics": ["출강", "슬래그 유출", "복인", "슬래그 감지", "슬래그 다트", "슬래그 스토퍼"],
+      "notes": [
+        "출강 때 전로 슬래그가 용강과 함께 래들로 넘어가는 것(슬래그 유출)은 탈산제 사용량을 늘리고, 래들 내화물 마모를 키우며, 슬래그 속 인이 용강으로 되돌아가는 복인을 일으킨다.",
+        "출강 중 슬래그 유출은 출강 흐름에서 슬래그를 감지한 뒤 흐름을 끊어서 줄인다. 적외선 촬영으로 출강 흐름 속 슬래그를 비접촉으로 감지하고, 전로에서는 슬래그 다트, 공압식 슬래그 스토퍼, 슬라이드 게이트 같은 장치로 출강 흐름을 빠르게 막는다. 다트는 출강구에 떨어뜨리면 출강구로 나가는 슬래그 흐름을 줄이고 소용돌이 생성을 막는다."
+      ],
+      "evidence": [
+        "Slag carry-over increases the amount of deoxidant needed, increases wear of ladle refractory, and causes reversion of phosphorus (transfer of phosphorus from slag back to the steel).",
+        "Infrared imaging at longer wavelengths is an effective non-contact method to detect slag in the tapping stream. Various devices are used to shut off the tapping stream rapidly. These include slag darts, pneumatic slag stoppers, and slide gates for steelmaking converters … Slag carry-over is limited by detecting slag in the tap stream, and then interrupting the flow of steel and slag. … When it is dropped into the tap-hole, it limits slag flow through the tap-hole and counteracts vortex formation"
+      ]
+    },
+    {
+      "id": "nippon-steel-tr104-refractory",
+      "title": "Progress and Perspective of Refractory Technology (Nippon Steel Technical Report No. 104)",
+      "date": "2013",
+      "date_type": "발행연도",
+      "url": "https://www.nipponsteel.com/en/tech/report/nsc/pdf/104-05.pdf",
+      "publisher": "Nippon Steel Corporation",
+      "section": "steelmaking",
+      "topics": ["전로 내화물", "MgO-C 벽돌", "염기성 슬래그", "전로 온도"],
+      "notes": [
+        "전로의 조업 온도는 1,600~1,700℃에 이르고, 산소 취련 중 생기는 슬래그가 염기성이라 전로 내벽에는 오래전부터 MgO·CaO 같은 염기성 고융점 내화물을 써 왔다. 1980년대부터 전로에 널리 쓰인 MgO-C(마그네시아-카본) 벽돌은 마그네시아와 흑연의 복합 구조로 슬래그 침식에 대한 저항이 크게 좋아졌고, 열팽창이 작은 흑연이 마그네시아의 팽창을 흡수해 스폴링 저항도 크게 좋아졌다."
+      ],
+      "evidence": [
+        "the operation temperature is as high as 1,600 to 1,700°C. Because the mixture of molten oxides (slag) that are formed during converter refining under oxygen blowing is basic, refractories consisting of basic and high-meting-point oxides, namely MgO and CaO, have long been used for the inner lining of converter vessels. … The latter became widely applied to converters in the 1980s because they were free from the slaking of dolomite, resistance to slag attack was greatly improved because of the composite structure of magnesia and graphite, and spalling resistance was markedly improved as graphite of low thermal expansion effectively absorbed the expansion of magnesia."
+      ]
     }
   ]
 }
