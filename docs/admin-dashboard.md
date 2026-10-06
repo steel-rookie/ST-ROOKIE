@@ -49,7 +49,7 @@
 
 ```json
 { "concepts": [
-  { "section": "ironmaking", "concept_id": "hot_stove",
+  { "section": "ironmaking", "concept_id": "coke_reduction", "name": "고로에서 코크스의 역할",
     "asked": 9, "partial": 2, "wrong": 4, "assisted": 1, "final_wrong": 2, "open": 3 }
 ] }
 ```
@@ -59,7 +59,7 @@
 - `open`: 이 개념의 미해결 오개념 수(전체 합).
 - 답변 원문·오개념 설명·사용자 id는 **넣지 않는다**.
 - `section`이 섹션 4개가 아니면 `400 INVALID_SECTION`. 체크포인트 테이블이 없으면 `{ "concepts": [] }`.
-- `name`(제안, 미구현): 화면에 쓸 개념 이름. 실제 체크포인트의 `concept_id`는 **루브릭 개념 id**(`sinter_purpose`, `coke_reduction`, `blast_furnace_hot_metal`)라서 설비 id가 아니다. 설비 id를 쓰는 것은 시연 기록(`demo-records.ts`)뿐이다. 그래서 서버가 루브릭 `name`(없으면 설비 이름, 그것도 없으면 id)을 붙여 준다. 지금 화면은 `data_v2.js`의 설비 목록에서만 이름을 찾아 실데이터에서는 id가 그대로 보인다.
+- `name`: 화면에 쓸 개념 이름. 실제 체크포인트의 `concept_id`는 **루브릭 개념 id**(`sinter_purpose`, `coke_reduction`, `blast_furnace_hot_metal`)라서 설비 id가 아니므로, 서버가 지금 final 루브릭의 개념 `name`을 붙인다. 루브릭에 없는 id(시연 기록의 설비 id, 바뀐 개념)는 `name`이 없고, 화면은 `data_v2.js` 설비 이름, 그것도 없으면 id를 보여 준다.
 
 ## 계산 규칙 (프론트)
 
@@ -111,7 +111,7 @@ frontend/login_ui/
 - [x] `docs/auth-api.md` '관리자 통계'에 concepts를 추가한다.
 
 프론트 (`Admin Dashboard.dc.html`, `admin_data.js`)
-- [ ] 개념 이름은 API의 `name`을 먼저 쓰고, 없을 때만 설비 이름으로 찾는다(백엔드 `name` 추가 후).
+- [x] 개념 이름은 API의 `name`을 먼저 쓰고, 없을 때만 설비 이름으로 찾는다.
 - [x] 하단 문구를 "기록은 DB 데이터, 교육 내용은 샘플"로 바꿈 (#37). 샘플 데이터가 없어져 문구를 나눌 필요가 없다.
 - [x] 실패하면 샘플로 바뀌지 않고 오류 문장을 보여 준다 (#37).
 - [ ] 토큰이 없거나 `401`이면 `/login`으로 보낸다. `403`(trainee)은 아래 '정할 것'에 따른다.
@@ -124,7 +124,7 @@ frontend/login_ui/
 - [x] `GET /api/admin/concepts` 담당자: viiin2, 작은 PR (위 '결정') → #37에서 구현됨
 - [ ] 개념 오답률에 재도전 시도를 넣을지(처음 제안) 첫 시도만 셀지(지금 구현)
 - [ ] 개념별 오개념 **개수** 노출: 보여 주기로 결정, 팀 공유와 CLAUDE.md 반영 대기
-- [ ] 개념 이름을 서버가 붙일지(`name`), 루브릭 개념과 설비를 잇는 `equipment_ids`(CLAUDE.md '다음 단계', 수빈 담당)를 기다릴지 (백엔드·수빈)
+- [x] 개념 이름은 서버가 루브릭 `name`으로 붙인다. 설비 연결(`equipment_ids`, 수빈 담당)은 3D 하이라이트용으로 따로 진행한다.
 - [ ] 미접속 경고 기준 3일 (교육 담당)
 - [ ] trainee가 대시보드 주소로 직접 들어올 때 `/login`으로 보낼지 (프론트)
 - [ ] 명단 CSV 내보내기 필요 여부 (교육 담당)

@@ -1,10 +1,13 @@
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 import type { Section } from "../checkpoint/types.js";
-import { hasTable } from "./trainee-stats.js";
+import type { Rubric } from "../rubrics.js";
+import { defaultRubrics, hasTable } from "./trainee-stats.js";
 
 export interface ConceptStat {
   section: string;
   concept_id: string;
+  /** 지금 final 루브릭의 개념 이름. 루브릭에 없는 id(시연 기록의 설비 id, 바뀐 개념)는 없다. */
+  name?: string;
   asked: number;
   partial: number;
   wrong: number;
@@ -16,8 +19,11 @@ export interface ConceptStat {
 /**
  * Aggregate first-question verdicts from completed trainee checkpoints, retries included.
  * Returns an empty list until the checkpoint tables exist.
+ * concept_id는 루브릭 개념 id라 설비 id가 아니므로, 화면에 쓸 이름은 루브릭 `name`으로 붙인다.
  */
-export function conceptStats(db: DatabaseSync, section?: Section): { concepts: ConceptStat[] } {
+export function conceptStats(
+  db: DatabaseSync, section?: Section, rubrics: readonly Rubric[] = defaultRubrics(),
+): { concepts: ConceptStat[] } {
   if (!hasTable(db, "attempts") || !hasTable(db, "concept_results")) return { concepts: [] };
   const open = hasTable(db, "misconceptions")
     ? `(SELECT COUNT(*) FROM misconceptions m
@@ -41,8 +47,10 @@ export function conceptStats(db: DatabaseSync, section?: Section): { concepts: C
      GROUP BY a.section, c.concept_id
      ORDER BY a.section, c.concept_id
   `).all(...params);
+  const names = new Map(rubrics.flatMap((r) => r.concepts.map((c) => [`${r.section}/${c.concept_id}`, c.name])));
   return { concepts: rows.map((row) => ({
     section: String(row.section), concept_id: String(row.concept_id),
+    ...(names.has(`${row.section}/${row.concept_id}`) ? { name: names.get(`${row.section}/${row.concept_id}`) } : {}),
     asked: Number(row.asked), partial: Number(row.partial), wrong: Number(row.wrong),
     assisted: Number(row.assisted), final_wrong: Number(row.final_wrong), open: Number(row.open),
   })) };

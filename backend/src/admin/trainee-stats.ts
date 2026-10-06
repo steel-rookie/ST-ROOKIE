@@ -41,7 +41,7 @@ export interface TraineeStats {
 
 let finalRubrics: Rubric[] | null = null;
 /** 서버가 시작할 때 검증한 것과 같은 final 루브릭. 처음 부를 때 한 번 읽는다. */
-const defaultRubrics = (): Rubric[] => (finalRubrics ??= loadFinalRubrics());
+export const defaultRubrics = (): Rubric[] => (finalRubrics ??= loadFinalRubrics());
 
 export function traineeStats(db: DatabaseSync, rubrics: readonly Rubric[] = defaultRubrics()): TraineeStats {
   const users = db
