@@ -6,6 +6,11 @@ export const TEXT = {
     learning: '학습',
     checkpoint: '이해도 확인',
   },
+  // 튜터 패널 머리글(모드별). 'AI 튜터' 아래 작은 글씨로 '학습 모드 · 제선'처럼 보인다.
+  header: {
+    learning: '학습 모드',
+    checkpoint: '이해도 확인 모드',
+  },
   badges: {
     passed: '단련 완료',
     notPassed: '미통과',
@@ -71,6 +76,7 @@ export const TEXT = {
     wrong: '틀림',
   },
   result: {
+    understanding: '이해도',
     score: (verdictLabel, score) => `${verdictLabel} · ${score}점`,
     threshold: (percent) => `기준 ${percent}%`,
     failed: (percent) => `${percent}% 미달 · 공정을 다시 살펴본 뒤 재도전해요`,
