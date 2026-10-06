@@ -19,6 +19,7 @@ import { openDatabase } from "./db/database.js";
 import { buildLearnerNotes, useLearnerNotesSource } from "./learning/notes.js";
 import { LearningRepository } from "./learning/repository.js";
 import { createLearningRouter } from "./learning/routes.js";
+import { loadSceneCatalog } from "./learning/scene-catalog.js";
 import { currentUserId } from "./request-user.js";
 import { loadFinalRubrics } from "./rubrics.js";
 import { passcodeRequired } from "./test-access.js";
@@ -56,6 +57,8 @@ const learning = createLearningRouter({
   retriever: new Retriever({ glossaryFor: (s) => rubrics.find((r) => r.section === s)?.glossary ?? [] }),
   agent: new GeminiLearningAgent(gemini),
   rubrics,
+  // 튜터의 3D 화면 조작(scene_actions)에 쓸 공정·설비 목록. data_v2.js 형식이 틀리면 서버가 시작되지 않는다.
+  scene: await loadSceneCatalog(),
 });
 
 const app = createApp({ engine, usage, learning });

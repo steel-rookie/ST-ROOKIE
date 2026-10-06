@@ -2,6 +2,7 @@
 // 예전 /api/chat(ironmaking-agent.ts, 지금은 삭제)을 대체했다. 설계는 docs/learning-mode.md '흐름'.
 // - 호출은 1회(temperature 0.3). responseSchema로 형식을 강제하고, 서버에서 한 번 더 검증해 실패하면 1회 다시 부른다.
 // - source_ids는 이번에 검색한 조각 id만, concept_id는 루브릭 개념만 남긴다.
+// - scene_actions(3D 화면 조작)는 화면 목록(data_v2.js)에 있는 공정·설비만 남기고, 다른 공정의 설비면 그 공정으로 먼저 이동시킨다.
 import { z } from "zod";
 import { SECTION_NAMES, type Section } from "../../backend/src/checkpoint/types.js";
 import type { GlossaryEntry } from "../../backend/src/rubrics.js";
@@ -12,6 +13,21 @@ const MAX_ATTEMPTS = 2;
 const TEMPERATURE = 0.3;
 const MAX_OUTPUT_TOKENS = 1200;
 const MAX_ANSWER_CHARS = 4000;
+/** 한 답변에 붙이는 화면 조작 수(공정 이동을 끼워 넣은 뒤 기준). */
+export const MAX_SCENE_ACTIONS = 4;
+
+/** 화면(frontend/3d-demo/learning-chat.js의 runActions)이 실행할 수 있는 조작. */
+export const SCENE_ACTION_TYPES = ["goto_process", "highlight", "focus", "play_animation"] as const;
+export interface SceneAction {
+  type: (typeof SCENE_ACTION_TYPES)[number];
+  /** goto_process·play_animation은 공정 id, highlight·focus는 설비 id. */
+  target_id: string;
+}
+
+/** 튜터가 화면에서 고를 수 있는 공정·설비. 기준은 frontend/3d-demo/data_v2.js(backend/src/learning/scene-catalog.ts가 읽는다). */
+export interface SceneCatalog {
+  processes: { id: Section; name: string; equipment: { id: string; name: string }[] }[];
+}
 
 /** 근거 없이 grounded라고 답했을 때 대신 보여 줄 답. */
 export const UNVERIFIED_ANSWER =
@@ -20,6 +36,7 @@ export const UNVERIFIED_ANSWER =
 export interface LearningInput {
   section: Section;
   question: string;
+  /** process_id가 null이면 전체 공정 화면이다(답은 section 기준). */
   screen: Screen & { equipment_name?: string | null };
   /** retrieve() 결과. 비어 있으면 모델은 unverified로 답한다. */
   chunks: Retrieved[];
@@ -30,6 +47,8 @@ export interface LearningInput {
   /** 오개념을 붙일 수 있는 개념(루브릭). 비어 있으면 오개념을 기록하지 않는다. */
   concepts: { concept_id: string; name: string }[];
   glossary?: GlossaryEntry[];
+  /** 화면 조작에 쓸 공정·설비 목록. 없으면 scene_actions는 항상 빈 배열이다. */
+  scene?: SceneCatalog;
 }
 
 export interface LearningReply {
@@ -39,6 +58,7 @@ export interface LearningReply {
   source_ids: string[];
   follow_up: string | null;
   detected_misconception: { concept_id: string; summary: string } | null;
+  scene_actions: SceneAction[];
 }
 
 /** 라우트가 쓰는 학습 모드 튜터. 테스트는 가짜 구현을 넣는다. */
@@ -49,8 +69,8 @@ export interface LearningAgent {
 /** 두 번 모두 형식에 맞지 않는 응답을 받았을 때. 라우트는 502로 답한다. */
 export class LearningFormatError extends Error {}
 
-/** Gemini responseSchema. 고를 수 있는 조각 id·개념 id를 enum으로 묶는다(빈 목록이면 enum을 두지 않는다). */
-export function learningResponseSchema(chunkIds: string[], conceptIds: string[]): object {
+/** Gemini responseSchema. 고를 수 있는 조각 id·개념 id·화면 id를 enum으로 묶는다(빈 목록이면 enum을 두지 않는다). */
+export function learningResponseSchema(chunkIds: string[], conceptIds: string[], sceneIds: string[] = []): object {
   const enumOf = (values: string[]) => (values.length ? { enum: values } : {});
   return {
     type: "OBJECT",
@@ -59,6 +79,14 @@ export function learningResponseSchema(chunkIds: string[], conceptIds: string[])
       status: { type: "STRING", enum: ["grounded", "unverified"] },
       source_ids: { type: "ARRAY", items: { type: "STRING", ...enumOf(chunkIds) } },
       follow_up: { type: "STRING", nullable: true },
+      scene_actions: {
+        type: "ARRAY",
+        items: {
+          type: "OBJECT",
+          properties: { type: { type: "STRING", enum: [...SCENE_ACTION_TYPES] }, target_id: { type: "STRING", ...enumOf(sceneIds) } },
+          required: ["type", "target_id"],
+        },
+      },
       detected_misconception: {
         type: "OBJECT",
         nullable: true,
@@ -66,24 +94,34 @@ export function learningResponseSchema(chunkIds: string[], conceptIds: string[])
         required: ["concept_id", "summary"],
       },
     },
-    required: ["answer", "status", "source_ids", "follow_up", "detected_misconception"],
-    propertyOrdering: ["answer", "status", "source_ids", "follow_up", "detected_misconception"],
+    required: ["answer", "status", "source_ids", "follow_up", "scene_actions", "detected_misconception"],
+    propertyOrdering: ["answer", "status", "source_ids", "follow_up", "scene_actions", "detected_misconception"],
   };
 }
 
-export function learningSystemPrompt(input: Pick<LearningInput, "section" | "concepts" | "glossary">): string {
+/** 화면에서 고를 수 있는 공정·설비 id(schema enum용). */
+export function sceneIds(scene: SceneCatalog | undefined): string[] {
+  return scene ? scene.processes.flatMap((p) => [p.id, ...p.equipment.map((e) => e.id)]) : [];
+}
+
+export function learningSystemPrompt(input: Pick<LearningInput, "section" | "concepts" | "glossary" | "scene">): string {
   return renderPrompt("learning-system", {
     section_name: SECTION_NAMES[input.section],
     concepts: input.concepts.length ? input.concepts.map((c) => `- ${c.concept_id}: ${c.name}`).join("\n") : "(없음: detected_misconception은 항상 null)",
     glossary: input.glossary?.length ? input.glossary.map((g) => `- ${g.term} = ${g.aliases.join(", ")}`).join("\n") : "(없음)",
+    scene: input.scene?.processes.length
+      ? input.scene.processes.map((p) => `- 공정 ${p.id} (${p.name}): ${p.equipment.map((e) => `${e.id} (${e.name})`).join(", ")}`).join("\n")
+      : "(없음: scene_actions는 항상 빈 배열)",
   });
 }
 
 /** 사용자 메시지. 학습자에게서 온 글(질문·이전 대화)은 구분자를 닫지 못하게 이스케이프한다. */
 export function learningUserPrompt(input: LearningInput): string {
-  const screen = input.screen.equipment_id
-    ? `공정 ${input.screen.process_id ?? input.section}, 설비 ${input.screen.equipment_id}${input.screen.equipment_name ? ` (${input.screen.equipment_name})` : ""}`
-    : `공정 ${input.screen.process_id ?? input.section}, 선택한 설비 없음`;
+  const screen = !input.screen.process_id
+    ? "전체 공정 화면, 선택한 설비 없음"
+    : input.screen.equipment_id
+      ? `공정 ${input.screen.process_id}, 설비 ${input.screen.equipment_id}${input.screen.equipment_name ? ` (${input.screen.equipment_name})` : ""}`
+      : `공정 ${input.screen.process_id}, 선택한 설비 없음`;
   const sources = input.chunks.length
     ? input.chunks.map((c) => `[${c.id}] ${c.title}\n${c.text}`).join("\n\n")
     : "(검색된 근거 없음)";
@@ -105,11 +143,48 @@ const ReplySchema = z.object({
   status: z.enum(["grounded", "unverified"]),
   source_ids: z.array(z.string()),
   follow_up: z.string().nullable(),
+  // 화면 조작 형식이 틀려도 답변은 살린다(빈 배열로 본다).
+  scene_actions: z.array(z.object({ type: z.string(), target_id: z.string() })).catch([]),
   detected_misconception: z.object({ concept_id: z.string(), summary: z.string() }).nullable(),
 });
 
+/**
+ * 화면 목록에 있는 조작만 남긴다. 다른 공정의 설비·공정을 가리키면 goto_process를 앞에 끼우고,
+ * 이미 그 공정에 있으면 goto_process를 버린다(같은 공정으로 이동하면 화면이 초기화된다). focus 뒤에는 highlight를 붙인다. 같은 조작은 한 번만.
+ * current가 null이면 전체 공정 화면이다.
+ */
+export function normalizeSceneActions(raw: { type: string; target_id: string }[], scene: SceneCatalog | undefined, current: string | null): SceneAction[] {
+  if (!scene) return [];
+  const processes = new Set<string>(scene.processes.map((p) => p.id));
+  const processOf = new Map(scene.processes.flatMap((p) => p.equipment.map((e) => [e.id, p.id] as const)));
+  const out: SceneAction[] = [];
+  let at = current;
+  const push = (action: SceneAction) => {
+    if (!out.some((a) => a.type === action.type && a.target_id === action.target_id)) out.push(action);
+  };
+  const moveTo = (process: string) => {
+    if (process !== at) push({ type: "goto_process", target_id: process });
+    at = process;
+  };
+  for (const a of raw) {
+    if (a.type === "goto_process" || a.type === "play_animation") {
+      if (!processes.has(a.target_id)) continue;
+      moveTo(a.target_id);
+      if (a.type === "play_animation") push({ type: "play_animation", target_id: a.target_id });
+    } else if (a.type === "highlight" || a.type === "focus") {
+      const process = processOf.get(a.target_id);
+      if (!process) continue;
+      moveTo(process);
+      push({ type: a.type, target_id: a.target_id });
+      // 카메라만 옮기면 설비 정보가 안 보이므로 focus에는 highlight를 함께 붙인다(모델이 하나만 낼 때가 있다).
+      if (a.type === "focus") push({ type: "highlight", target_id: a.target_id });
+    }
+  }
+  return out.slice(0, MAX_SCENE_ACTIONS);
+}
+
 /** 형식을 검사하고 허용된 id만 남긴다. 형식이 틀리면 이유 문자열. */
-export function parseLearningReply(raw: string, input: Pick<LearningInput, "chunks" | "concepts">): LearningReply | string {
+export function parseLearningReply(raw: string, input: Pick<LearningInput, "chunks" | "concepts" | "scene" | "screen">): LearningReply | string {
   let json: unknown;
   try {
     json = JSON.parse(raw);
@@ -127,11 +202,12 @@ export function parseLearningReply(raw: string, input: Pick<LearningInput, "chun
   const detected_misconception = m && allowedConcepts.has(m.concept_id) && m.summary.trim() ? { concept_id: m.concept_id, summary: m.summary.trim() } : null;
   const follow_up = r.follow_up?.trim() || null;
 
-  // grounded라고 했지만 쓸 수 있는 근거가 없으면 답을 믿지 않는다.
+  // grounded라고 했지만 쓸 수 있는 근거가 없으면 답을 믿지 않는다. 같은 응답의 화면 조작도 버린다.
   if (r.status === "grounded" && source_ids.length === 0) {
-    return { answer: UNVERIFIED_ANSWER, status: "unverified", source_ids: [], follow_up, detected_misconception };
+    return { answer: UNVERIFIED_ANSWER, status: "unverified", source_ids: [], follow_up, detected_misconception, scene_actions: [] };
   }
-  return { answer: r.answer.trim(), status: r.status, source_ids, follow_up, detected_misconception };
+  const scene_actions = normalizeSceneActions(r.scene_actions, input.scene, input.screen.process_id ?? null);
+  return { answer: r.answer.trim(), status: r.status, source_ids, follow_up, detected_misconception, scene_actions };
 }
 
 export class GeminiLearningAgent implements LearningAgent {
@@ -143,7 +219,7 @@ export class GeminiLearningAgent implements LearningAgent {
       prompt: learningUserPrompt(input),
       temperature: TEMPERATURE,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
-      responseSchema: learningResponseSchema(input.chunks.map((c) => c.id), input.concepts.map((c) => c.concept_id)),
+      responseSchema: learningResponseSchema(input.chunks.map((c) => c.id), input.concepts.map((c) => c.concept_id), sceneIds(input.scene)),
     };
     let problem = "";
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
