@@ -1,18 +1,18 @@
 /* The First Heat: charcoal, hot steel, and a personal learning access badge. */
-.console-entry { --accent:#ff9459; --panel:#20201f; --panel2:#ffffff09; --line:#ffffff20; --text:#f3f0e9; --muted:#aca89f; position:relative; isolation:isolate; min-height:100svh; overflow:hidden; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:center; gap:4vw; padding:130px max(4vw,24px) 75px; background:radial-gradient(ellipse at 26% 67%,#6c2d1928,transparent 55%),#141515; color:var(--text); }
+.console-entry { --accent:#ff9459; --panel:#20201f; --panel2:#ffffff09; --line:#ffffff20; --text:#f3f0e9; --muted:#aca89f; position:relative; isolation:isolate; min-height:100svh; overflow:hidden; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:center; gap:0; padding:130px 0 75px; background:radial-gradient(ellipse at 26% 67%,#6c2d1928,transparent 55%),#141515; color:var(--text); }
 .console-entry::before { content:""; position:absolute; inset:0; z-index:-1; background:repeating-linear-gradient(90deg,transparent 0,transparent calc(12.5% - 1px),#ffffff04 calc(12.5% - 1px),#ffffff04 12.5%); }
 .console-brand { position:absolute; top:34px; left:7vw; display:flex; align-items:center; gap:14px; font-size:20px; font-weight:700; letter-spacing:.06em; }
 .console-brand small { display:block; margin-top:4px; font:9px 'IBM Plex Mono',monospace; color:#8b8e87; letter-spacing:.15em; }
 .console-mark { display:grid; place-items:center; width:44px; height:44px; border:1px solid #ffffff33; font-size:27px; }
 .console-eyebrow { display:block; width:100%; text-align:center; font:13px 'IBM Plex Mono',monospace; letter-spacing:.12em; color:#eaa77f; }
-.console-welcome { width:100%; text-align:left; }
+.console-welcome { width:100%; min-width:0; padding-inline:clamp(24px,4vw,80px); text-align:center; }
 .console-welcome h1 { margin:20px 0; font-size:clamp(44px,5.2vw,84px); font-weight:700; line-height:1.18; letter-spacing:-.065em; }
 .console-welcome h1 em { font-style:normal; color:#ff9e67; }
 .console-welcome p { font-size:18px; line-height:1.9; color:#a5a8a2; }
-.console-path { display:flex; flex-wrap:wrap; gap:25px; margin-top:24px; color:#939890; font-size:14px; letter-spacing:.06em; }
+.console-path { display:flex; justify-content:center; flex-wrap:wrap; gap:25px; margin-top:24px; color:#939890; font-size:14px; letter-spacing:.06em; }
 .console-path span { padding-top:10px; border-top:1px solid #ffffff25; }
 .console-orbit { display:none; }
-.forge-art { position:relative; height:200px; margin-top:25px; perspective:650px; }
+.forge-art { position:relative; width:min(320px,100%); margin-inline:auto; height:200px; margin-top:25px; perspective:650px; }
 .forge-heat { position:absolute; width:270px; height:60px; left:10px; bottom:35px; border-radius:50%; background:#ff5a1425; filter:blur(25px); animation:forge-breathe 5s ease-in-out infinite; }
 .forge-slab { position:absolute; left:40px; top:10px; display:grid; place-items:center; width:220px; height:115px; font-size:58px; font-weight:900; color:#dedbd4; background:linear-gradient(155deg,#565b59,#262a29 48%,#46443c); border:1px solid #7d7c72; border-bottom:4px solid #ff8b42; transform:rotateX(24deg) rotateY(-20deg) rotateZ(-12deg); box-shadow:8px 12px 0 #090a09,0 16px 35px #ff631625,inset 0 0 30px #0004; text-shadow:1px 1px #fff4,-2px -2px #0008; }
 .forge-slab small { position:absolute; bottom:9px; right:12px; font:9px 'IBM Plex Mono',monospace; letter-spacing:.15em; color:#a2a298; }
@@ -34,7 +34,7 @@
 @media(max-width:420px) { .badge-label span:last-child { position:static; margin-left:12px; } }
 
 /* Larger controls retain the existing form actions and full-width layout. */
-.console-card { width:100% !important; min-width:0; gap:24px !important; }
+.console-card { width:calc(100% - clamp(48px,8vw,160px)) !important; justify-self:center; min-width:0; gap:24px !important; }
 .console-card h1 { font-size:32px !important; }
 .console-card form input:not([type=checkbox]) { height:58px !important; font-size:18px !important; }
 .console-card button[type=submit] { height:60px !important; font-size:18px !important; }
@@ -48,8 +48,8 @@
   .console-welcome h1 { font-size:52px; }
 }
 @media(max-width:900px) {
-  .console-card { max-width:800px; }
-  .console-welcome { width:min(800px,100%); }
+  .console-card { width:100% !important; max-width:800px; }
+  .console-welcome { width:min(800px,100%); padding-inline:0; }
 }
 @media(max-width:420px) {
   .console-card { padding:48px 20px 26px !important; }
