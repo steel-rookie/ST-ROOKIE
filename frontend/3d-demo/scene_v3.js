@@ -5,6 +5,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/+esm';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js/+esm';
 import { RoomEnvironment } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/environments/RoomEnvironment.js/+esm';
 import { PROCESSES, findProcess } from './data_v2.js';
+import { StepFx } from './step-fx.js';
 const ZONE_GAP = 44; // 공정 구역 간격(X축). 4개 구역이 한 장면에 나란히 놓임 ([UI 시안] 90 → 44: 전체 보기에서 공정이 크게 보이게)
 const zoneX = (i) => (i - (PROCESSES.length - 1) / 2) * ZONE_GAP;
 
@@ -659,7 +660,7 @@ class SteelScene extends HTMLElement {
     const target = showEl || el; const t0 = setTimeout(() => { target.style.opacity = '1'; let i = 0; const tick = () => { if (!el.isConnected) return; el.textContent = text.slice(0, ++i) + (i < text.length ? '▍' : ''); if (i < text.length) this._timers.push(setTimeout(tick, speed)); }; tick(); }, delay);
     this._timers.push(t0);
   }
-  _showInterior(e) { this._dirty = true; this._secShown = e || null; this._layerHL(null);
+  _showInterior(e) { this._dirty = true; this._secShown = e || null; this._layerHL(null); this._fx().play(null);
     (this._timers || []).forEach(clearTimeout); this._timers = [];
     if (this.interior) { this.scene.remove(this.interior); this.interior = null; }
     (this.interiorLabels || []).forEach(l => l.remove()); this.interiorLabels = []; this.layerItems = []; this.pinnedLayer = null; if (this.activeLayer !== null && this.activeLayer !== undefined) this.dispatchEvent(new CustomEvent('steel-layer', { detail: { layer: null }, bubbles: true, composed: true })); this.activeLayer = null;
@@ -728,9 +729,12 @@ class SteelScene extends HTMLElement {
   }
   _focusLayer(idx, opt = {}) { this._dirty = true; if (this.pinnedLayer === undefined) this.pinnedLayer = null;
     (this._timers || []).forEach(clearTimeout); this._timers = [];
+    this._fx().play(null); // 이전 층의 시각화(그라데이션 덮개 등)를 먼저 지운다
     const same = this.activeLayer === idx; this.activeLayer = same ? null : idx; this._layerHL(this.activeLayer);
     this.dispatchEvent(new CustomEvent('steel-layer', { detail: { layer: this.activeLayer }, bubbles: true, composed: true }));
     const e = this.eqs.find(q => q.id === this.getAttribute('selected'));
+    // 단계별 시각화: 고른 층의 설명에 맞는 화살표·그라데이션·수치를 그리고, 그동안 설비 공통 파티클은 숨긴다
+    const fx = this._fx().play(this.activeLayer === null ? null : e, this.activeLayer); if (this._work) this._work.g.visible = !fx;
     this.layerItems.forEach(it => {
       const on = it.idx === this.activeLayer, none = this.activeLayer === null;
       const op = none || on ? 0.9 : 0.22; it.m.traverse(o => { if (o.isMesh) o.material.opacity = op; });
@@ -1026,7 +1030,8 @@ class SteelScene extends HTMLElement {
   }
   _localOffset(P, off) { const m = new THREE.Matrix3().setFromMatrix4(P.inv); return off.clone().applyMatrix3(m); } // 부모 월드 행렬의 회전·스케일만 역적용(이동 제외)
   _resetVehicle() { const V = this._vehicle; if (!V) return; V.parts.forEach(P => { P.o.position.copy(P.p0); P.o.updateMatrix(); P.o.updateMatrixWorld(true); }); if (!V.done) V.resolve(); this._vehicle = null; this._dirty = true; }
-  _stopWork() { this._resetVehicle(); this._hideMat = false; if (this.material) this.material.visible = true; const W = this._work; if (!W) return; this._work = null; this.scene.remove(W.g); W.g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); this._dirty = true; }
+  _matSinkTick(now) { const S = this._matSink, m = this.material; if (!S || !m) return; const k = Math.min(1, Math.max(0, (now - S.t0) / 600)); m.scale.setScalar((this.matScale || 1) * (1 - k * k)); this._dirty = true; if (k >= 1) { this._matSink = null; this._hideMat = true; m.visible = false; } }
+  _stopWork() { this._matSink = null; if (this.material) this.material.scale.setScalar(this.matScale || 1); this._resetVehicle(); this._hideMat = false; if (this.material) this.material.visible = true; const W = this._work; if (!W) return; this._work = null; this.scene.remove(W.g); W.g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); this._dirty = true; }
   // 굴뚝 찾기: 가늘고 긴 수직 원기둥(높이가 지름의 4배 이상, 높이 6 이상) 꼭대기에서 연기 입자가 올라간다
   _addSmoke(z, model) {
     if (z.smoke) { z.smoke.parent?.remove(z.smoke); z.smoke = null; }
@@ -1063,7 +1068,8 @@ class SteelScene extends HTMLElement {
       p[i * 3] = T.x - 0.4 * K + (s - 0.5) * 0.4 * K - drift * 0.6 + wob; p[i * 3 + 1] = T.y + 0.2 * K + L * 6.5 * K; p[i * 3 + 2] = T.z + (Math.sin(s * 40) * 0.2 * K) + drift * 0.25; } }
     pts.geometry.attributes.position.needsUpdate = true; pts.material.opacity = this.dark ? 0.42 : 0.55; this._dirty = true;
   }
-  _frame(now) { this._workTick(now); if (this.material && this.material.visible && this.material.userData.tick && (this.touring || this.playing || this.move)) { this.material.updateMatrixWorld(); this.material.userData.tick(now); this._dirty = true; } if (this._vehicle && !this._vehicle.done) this._vehicleTick(now); if (this.zones) for (const id in this.zones) { const z = this.zones[id]; if (z.smoke && z.root.visible) { z.smoke.visible = !this._2d; if (z.smoke.visible) this._smokeTick(z.smoke, now); } else if (z.smoke) z.smoke.visible = false; }
+  _fx() { return this._stepFx || (this._stepFx = new StepFx(this)); }
+  _frame(now) { this._workTick(now); if (this._stepFx?.tick(now)) this._dirty = true; this._matSinkTick(now); if (this.material && this.material.visible && this.material.userData.tick && (this.touring || this.playing || this.move)) { this.material.updateMatrixWorld(); this.material.userData.tick(now); this._dirty = true; } if (this._vehicle && !this._vehicle.done) this._vehicleTick(now); if (this.zones) for (const id in this.zones) { const z = this.zones[id]; if (z.smoke && z.root.visible) { z.smoke.visible = !this._2d; if (z.smoke.visible) this._smokeTick(z.smoke, now); } else if (z.smoke) z.smoke.visible = false; }
     if (this._navG) { const vis = !!this.zone && !this._2d && this.orbit.dist <= 120 && !this.getAttribute('selected') && !this.touring && !this.playing; if (this._navG.visible !== vis) { this._navG.visible = vis; this._dirty = true; }
       if (vis && now - (this._navT || 0) > 50) { this._navT = now; this._placeNav(); const k = (now / 1000) % 1.4 / 1.4; this._navG.children.forEach(a => { const d = a.userData.dir, [m1, m2] = a.userData.m; m1.position.x = d * k * 0.9; m2.position.x = d * (k * 0.9 - 1.8); m2.material.opacity = 0.2 + 0.4 * (1 - k); }); this._dirty = true; } }
     if (this._skyAnim && !this.dark && !document.hidden && this.orbit.dist > 70) { const st = this._skyAnim; if (!st.last) st.last = now; if (now - st.last > 50) { this._skyStep(st, Math.min(0.2, (now - st.last) / 1000)); st.last = now; this._dirty = true; } }
@@ -1175,10 +1181,11 @@ class SteelScene extends HTMLElement {
     for (let k = only != null ? only : startAt; k < kEnd; k++) {
       const e = this.eqs[k];
       // 소재가 레일을 따라 설비로 들어간 뒤 → 설비가 작동하고 설명 시작
-      this._select(e.id); this.focus(e.id); this._hideMat = false;
+      this._select(e.id); this.focus(e.id); this._hideMat = false; this._matSink = null; if (this.material) this.material.scale.setScalar(this.matScale || 1);
       await this._moveMaterial(k, k + 1, 2400 * sp, k + 1, 0); if (token !== this._tourId) return;
       if (this._isVehicle(e) && this.material) { this._hideMat = true; this.material.visible = false; this._dirty = true; } // 토페도카: 쇳물은 차 안에 실린 것으로 보고 덩어리는 숨김
       this._emitTour({ i: ++step, total, title: `${String(k + 1).padStart(2, '0')} ${e.data.name}`, text: e.data.role, eq: e.id }); this._startWork(e);
+      if (!this._isVehicle(e)) this._matSink = { t0: performance.now() + 700 * sp }; // 소재는 설비에 들어간 뒤 작아지며 사라진다(설비 설명에 시선이 가게)
       await this._wait(3000 * sp); if (token !== this._tourId) return;
       if (/torpedo|_car$/.test(e.id)) { await this._driveVehicle(e, k, 3600 * sp); if (token !== this._tourId) return; } // 토페도카: 쇳물을 싣고 레일을 따라 이동
       if (e.interior && e.data.interior && this.layerItems?.length) {
@@ -1189,6 +1196,7 @@ class SteelScene extends HTMLElement {
           const ln = (it.L.label.length * 26) + ((e.data.steps?.[L]?.text || '').length * 12) + ((it.L.formula || '').length * 22);
           await this._wait(Math.max(5000, 3500 + ln) * sp); if (token !== this._tourId) return;
         }
+        this._fx().play(null); if (this._work) this._work.g.visible = true;
         this.activeLayer = null; this.layerItems.forEach(it => { it.m.traverse(o => { if (o.isMesh) o.material.opacity = 0.9; }); it.tl.style.opacity = '1'; it.card.style.display = 'none'; it.tl.style.background = 'rgba(8,12,18,.45)'; it.tl.style.color = '#fff'; it.tl.style.transform = 'translate(-50%,-50%)'; it.tl.style.borderColor = 'rgba(255,255,255,.35)'; });
         this.focus(e.id); await this._wait(2200 * sp); if (token !== this._tourId) return;
       }
