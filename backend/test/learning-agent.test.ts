@@ -9,6 +9,7 @@ import {
   learningUserPrompt,
   MAX_SCENE_ACTIONS,
   normalizeSceneActions,
+  OVERLOAD_RETRY_DELAYS_MS,
   UNVERIFIED_ANSWER,
   type LearningInput,
   type SceneCatalog,
@@ -47,7 +48,8 @@ function fakeGemini(replies: (string | number)[]) {
     if (typeof reply === "number") return new Response("{}", { status: reply });
     return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: reply ?? "" }] } }] }), { status: 200 });
   }) as typeof fetch;
-  return { sent, agent: new GeminiLearningAgent(new GeminiClient({ apiKey: "test-key", fetch: fetchImpl })) };
+  // 과부하 재시도는 기다리지 않는다(횟수만 같게).
+  return { sent, agent: new GeminiLearningAgent(new GeminiClient({ apiKey: "test-key", fetch: fetchImpl }), [0, 0]) };
 }
 
 const input = (over: Partial<LearningInput> = {}): LearningInput => ({
@@ -198,6 +200,16 @@ test("Gemini 연결 오류는 다시 부르지 않고 LlmUnavailableError", asyn
   const { sent, agent } = fakeGemini([500]);
   await assert.rejects(agent.reply(input()), LlmUnavailableError);
   assert.equal(sent.length, 1);
+});
+
+test("Gemini 과부하(503)는 최대 2번 다시 부르고, 그래도 503이면 LlmUnavailableError", async () => {
+  const recovered = fakeGemini([503, 503, reply()]);
+  assert.equal((await recovered.agent.reply(input())).status, "grounded");
+  assert.equal(recovered.sent.length, 3);
+
+  const down = fakeGemini([503, 503, 503, reply()]);
+  await assert.rejects(down.agent.reply(input()), LlmUnavailableError);
+  assert.equal(down.sent.length, 1 + OVERLOAD_RETRY_DELAYS_MS.length);
 });
 
 test("학습자 글은 구분자를 닫지 못하게 이스케이프한다", () => {
