@@ -22,14 +22,16 @@
 
 ## 관리자 통계
 
-`GET /api/admin/trainees` (토큰 필요, `admin`만. 아니면 `403 ADMIN_ONLY`)
+`GET /api/admin/trainees?include_demo=false` (토큰 필요, `admin`만. 아니면 `403 ADMIN_ONLY`. `include_demo`는 선택)
 
 ```json
 {
   "checkpoint_data": true,
   "sections": ["ironmaking", "steelmaking", "continuous_casting", "rolling"],
+  "demo_sections": ["steelmaking", "continuous_casting", "rolling"],
+  "include_demo": true,
   "trainees": [{
-    "id": "uuid", "username": "trainee01", "name": "김신입", "employee_no": "T2026001",
+    "id": "uuid", "username": "trainee01", "name": "김신입", "employee_no": "T2026001", "is_demo": false,
     "created_at": "ISO", "last_activity": "ISO | null",
     "sections": { "ironmaking": { "understanding": 0.92, "passed": true, "attempts": 1 }, "steelmaking": null },
     "passed_sections": 1,
@@ -41,9 +43,11 @@
 - `sections.{섹션}`: 끝낸 체크포인트가 없으면 `null`. `understanding`은 마지막으로 끝낸 시도의 이해도, `passed`는 한 번이라도 통과했는지.
 - 오개념은 개수만 준다. 설명·답변 원문은 본인만 본다.
 - 체크포인트 테이블(`attempts`, `misconceptions`)이 아직 없으면 `checkpoint_data: false`와 빈 기록을 준다.
-- 시연 기록: `npm run db:seed-demo [seed]`가 `trainee01`~`20`의 기록을 지우고 다시 만든다. 01~04는 처음 정한 프로필, 05~20은 5가지 유형을 돌려 쓰며 실력을 조금씩 달리해 통과, 재도전 필요, 진행 중이 섞이게 한다. seed가 같으면 같은 기록이 나온다(예: `npm run db:seed-demo -- 58`).
+- 실제 계정과 시연 계정을 섞어서 준다. `is_demo: true`는 시연 계정(`trainee11`~`20`, `users.is_demo`)이고 화면에서 'demo' 배지를 붙인다. `?include_demo=false`면 시연 계정을 빼고 실제 계정만 준다. `true`·`false` 밖의 값은 `400 INVALID_INCLUDE_DEMO`.
+- `demo_sections`: final 루브릭이 없어 시연 개념 목록(`content/demo/sections.json`)으로 계산한 섹션. 이 섹션은 시연 기록(`origin = 'seed'`)만 센다.
+- 시연 기록: `npm run db:seed-demo [seed]`가 `trainee11`~`20`의 시연 기록(`seed`)을 지우고 다시 만든다(`trainee01`~`10`은 실제 테스트 계정이라 만들지 않음). 11~14는 처음 정한 프로필, 15~20은 5가지 유형을 돌려 쓰며 실력을 조금씩 달리해 통과, 재도전 필요, 진행 중이 섞이게 한다. seed가 같으면 같은 기록이 나온다(예: `npm run db:seed-demo -- 58`).
 
-`GET /api/admin/concepts?section=ironmaking` (토큰 필요, `admin`만. `section`은 선택): 신입사원이 끝낸 체크포인트(재도전 포함)의 첫 질문 판정으로 섹션·개념별 `asked`, `partial`, `wrong`, `assisted`, `final_wrong`을 집계하고 미해결 오개념 수 `open`을 돌려준다. 지금 final 루브릭에 있는 개념은 화면용 개념 이름 `name`도 붙는다. 관리자 화면의 개념 순위는 이 DB 응답으로 계산한다.
+`GET /api/admin/concepts?section=ironmaking&include_demo=false` (토큰 필요, `admin`만. `section`·`include_demo`는 선택): 신입사원이 끝낸 체크포인트(재도전 포함)의 첫 질문 판정으로 섹션·개념별 `asked`, `partial`, `wrong`, `assisted`, `final_wrong`을 집계하고 미해결 오개념 수 `open`을 돌려준다. 지금 final 루브릭(없는 섹션은 시연 개념 목록)에 있는 개념은 화면용 개념 이름 `name`도 붙는다. `include_demo`는 `/api/admin/trainees`와 같다. 관리자 화면의 개념 순위는 이 DB 응답으로 계산한다.
 
 - `final_wrong`: 재확인 판정도 `wrong`인 수. `open`: 신입사원 전체의 미해결 오개념 수(체크포인트·학습 모드 모두).
 - `concept_id`는 루브릭 개념 id다(시연 기록은 설비 id). 답변 원문·오개념 설명·사용자 id는 주지 않는다.

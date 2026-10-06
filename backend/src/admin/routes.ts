@@ -1,4 +1,5 @@
 // 관리자 전용 API. 로그인한 사용자의 role이 admin일 때만 연다.
+// 신입사원·개념 통계는 실제 계정과 시연 계정(users.is_demo = 1)을 섞어서 낸다. ?include_demo=false면 시연 계정을 뺀다.
 import express from "express";
 import type { DatabaseSync } from "node:sqlite";
 import { AdminSummaryFormatError, type AdminSummarizer } from "../../../llm/src/admin-summary.js";
@@ -27,16 +28,29 @@ function sectionParam(req: express.Request, res: express.Response): Section | un
   return section as Section | undefined;
 }
 
+/** ?include_demo=을 확인한다. 없거나 true면 포함, false면 제외. 그 밖의 값이면 400을 보내고 null. */
+function includeDemoParam(req: express.Request, res: express.Response): boolean | null {
+  const value = req.query.include_demo;
+  if (value === undefined || value === "true") return true;
+  if (value === "false") return false;
+  res.status(400).json({ error: "include_demo는 true 또는 false여야 해요.", code: "INVALID_INCLUDE_DEMO" });
+  return null;
+}
+
 export function createAdminRouter(db: DatabaseSync, auth: AuthDeps, options: AdminOptions = {}): express.Router {
   const router = express.Router();
   const summaries = options.summarizer ? new AiSummaryService(db, options.summarizer, options.rubrics) : null;
-  router.get("/api/admin/trainees", requireUser(auth), requireAdmin, (_req, res) => {
-    res.json(traineeStats(db));
+  router.get("/api/admin/trainees", requireUser(auth), requireAdmin, (req, res) => {
+    const includeDemo = includeDemoParam(req, res);
+    if (includeDemo === null) return;
+    res.json(traineeStats(db, undefined, { includeDemo }));
   });
   router.get("/api/admin/concepts", requireUser(auth), requireAdmin, (req, res) => {
     const section = sectionParam(req, res);
     if (section === null) return;
-    res.json(conceptStats(db, section, options.rubrics?.()));
+    const includeDemo = includeDemoParam(req, res);
+    if (includeDemo === null) return;
+    res.json(conceptStats(db, section, options.rubrics?.(), { includeDemo }));
   });
   router.get("/api/admin/ai-summary", requireUser(auth), requireAdmin, async (req, res) => {
     const section = sectionParam(req, res);

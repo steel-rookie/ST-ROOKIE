@@ -1,12 +1,15 @@
 // 관리자 화면의 신입사원 통계. 오개념은 개수만 내보내고 내용·답변 원문은 내보내지 않는다(본인만 봄).
 // 체크포인트 기록(attempts, misconceptions 테이블)은 001_checkpoint.sql이 만든다. 그 테이블이 아직 없으면 checkpoint_data: false와 빈 기록을 돌려준다.
 // - 섹션 이해도·통과는 체크포인트 엔진과 같은 summarizeSection으로 계산한다(CLAUDE.md '점수 규칙'). 지금 final 루브릭 개념만 보고,
-//   루브릭이 없는 섹션은 미시작(null)이다.
+//   final 루브릭이 없는 섹션은 시연 목록(content/demo/sections.json) 개념으로 계산한다. 둘 다 없으면 미시작(null)이다.
+//   시연 목록 섹션은 시연 기록(origin = 'seed')만 센다. 실제 계정은 그 섹션 체크포인트를 볼 수 없고(404), 루브릭이 없던 때의 옛 기록은 시연 개념과 맞지 않기 때문이다.
 // - 오개념 개수는 체크포인트 기록(source = 'checkpoint')만, 개념 수로 센다(CLAUDE.md '오개념 기록').
-// - 관리자 화면은 시연을 위해 시연 기록(origin = 'seed')도 센다.
+// - 관리자 화면은 시연을 위해 시연 기록(origin = 'seed')도 센다. 실제 계정과 섞어 보여 주고 시연 계정은 is_demo로 표시한다.
+//   includeDemo: false면 시연 계정(users.is_demo = 1)을 뺀다(?include_demo=false).
 import type { DatabaseSync } from "node:sqlite";
 import { summarizeSection, type CompletedAttemptInput, type ResultInput } from "../checkpoint/section-summary.js";
 import { SECTION_ORDER, type Section } from "../checkpoint/types.js";
+import { loadDemoSections, statSections, type DemoSections } from "../demo-sections.js";
 import { loadFinalRubrics, type Rubric } from "../rubrics.js";
 
 export interface SectionStat {
@@ -25,6 +28,8 @@ export interface TraineeStat {
   username: string;
   name: string;
   employee_no: string;
+  /** 시연 계정(trainee11~20). 관리자 화면에서 'demo' 배지를 붙인다. */
+  is_demo: boolean;
   created_at: string;
   last_activity: string | null;
   sections: Record<Section, SectionStat | null>;
@@ -36,16 +41,38 @@ export interface TraineeStat {
 export interface TraineeStats {
   checkpoint_data: boolean;
   sections: readonly Section[];
+  /** final 루브릭이 없어 시연 목록 개념으로 계산한 섹션. */
+  demo_sections: Section[];
+  /** 시연 계정을 포함했는지(?include_demo=false면 false). */
+  include_demo: boolean;
   trainees: TraineeStat[];
+}
+
+export interface StatOptions {
+  /** false면 시연 계정(users.is_demo = 1)을 뺀다. 기본 true(섞어서 보여 줌). */
+  includeDemo?: boolean;
+  /** 시연 개념 목록. 기본은 content/demo/sections.json. */
+  demo?: DemoSections;
 }
 
 let finalRubrics: Rubric[] | null = null;
 /** 서버가 시작할 때 검증한 것과 같은 final 루브릭. 처음 부를 때 한 번 읽는다. */
 export const defaultRubrics = (): Rubric[] => (finalRubrics ??= loadFinalRubrics());
 
-export function traineeStats(db: DatabaseSync, rubrics: readonly Rubric[] = defaultRubrics()): TraineeStats {
+let demoSections: DemoSections | null = null;
+/** 시연 개념 목록. 처음 부를 때 한 번 읽는다. */
+export const defaultDemoSections = (): DemoSections => (demoSections ??= loadDemoSections());
+
+export function traineeStats(db: DatabaseSync, rubrics: readonly Rubric[] = defaultRubrics(), options: StatOptions = {}): TraineeStats {
+  const includeDemo = options.includeDemo ?? true;
+  const sections = statSections(rubrics, options.demo ?? defaultDemoSections());
+  const demo_sections = sections.filter((s) => s.demo).map((s) => s.section);
+  const demoSet = new Set<string>(demo_sections);
+  // 006_demo_accounts.sql 전의 DB에는 is_demo가 없다. 그때는 모두 실제 계정으로 본다.
+  const demoColumn = hasColumn(db, "users", "is_demo");
   const users = db
-    .prepare("SELECT id, username, name, employee_no, created_at FROM users WHERE role = 'trainee' ORDER BY username")
+    .prepare(`SELECT id, username, name, employee_no, ${demoColumn ? "is_demo" : "0 AS is_demo"}, created_at FROM users
+               WHERE role = 'trainee'${includeDemo || !demoColumn ? "" : " AND is_demo = 0"} ORDER BY username`)
     .all();
   const checkpointData = hasTable(db, "attempts") && hasTable(db, "misconceptions");
 
@@ -54,17 +81,19 @@ export function traineeStats(db: DatabaseSync, rubrics: readonly Rubric[] = defa
     username: String(u.username),
     name: String(u.name),
     employee_no: String(u.employee_no),
+    is_demo: Number(u.is_demo) === 1,
     created_at: String(u.created_at),
     last_activity: null,
     sections: Object.fromEntries(SECTION_ORDER.map((s) => [s, null])) as Record<Section, SectionStat | null>,
     passed_sections: 0,
     misconceptions: { open: 0, resolved: 0 },
   }));
-  if (!checkpointData) return { checkpoint_data: false, sections: SECTION_ORDER, trainees };
+  const base = { sections: SECTION_ORDER, demo_sections, include_demo: includeDemo };
+  if (!checkpointData) return { checkpoint_data: false, ...base, trainees };
 
   const byId = new Map(trainees.map((t) => [t.id, t]));
-  const rubricOf = new Map(rubrics.map((r) => [r.section, r]));
-  const currentConcepts = new Map(rubrics.map((r) => [r.section, new Set(r.concepts.map((c) => c.concept_id))]));
+  const rubricOf = new Map(sections.map((s) => [s.section, s]));
+  const currentConcepts = new Map(sections.map((s) => [s.section, new Set(s.concepts.map((c) => c.concept_id))]));
 
   // 사람×섹션별 완료 시도(오래된 순서)와 그 개념 결과를 모아 엔진과 같은 함수로 계산한다.
   const results = new Map<string, ResultInput[]>();
@@ -83,8 +112,9 @@ export function traineeStats(db: DatabaseSync, rubrics: readonly Rubric[] = defa
   }
   const completed = new Map<string, CompletedAttemptInput[]>();
   for (const row of db
-    .prepare("SELECT id, user_id, section, unlocked FROM attempts WHERE state = 'completed' ORDER BY completed_at, created_at")
+    .prepare("SELECT id, user_id, section, unlocked, origin FROM attempts WHERE state = 'completed' ORDER BY completed_at, created_at")
     .all()) {
+    if (demoSet.has(String(row.section)) && String(row.origin) !== "seed") continue;
     const key = `${String(row.user_id)}\u0000${String(row.section)}`;
     if (!completed.has(key)) completed.set(key, []);
     completed.get(key)!.push({ unlocked: row.unlocked == null ? null : Number(row.unlocked) === 1, results: results.get(String(row.id)) ?? [] });
@@ -112,9 +142,10 @@ export function traineeStats(db: DatabaseSync, rubrics: readonly Rubric[] = defa
 
   // 개념마다 미해결 행이 하나라도 있으면 미해결, 없으면 해결로 센다. 지금 루브릭에 없는 개념은 뺀다.
   const conceptOpen = new Map<string, Map<string, boolean>>();
-  for (const row of db.prepare("SELECT user_id, section, concept_id, resolved FROM misconceptions WHERE source = 'checkpoint'").all()) {
+  for (const row of db.prepare("SELECT user_id, section, concept_id, resolved, origin FROM misconceptions WHERE source = 'checkpoint'").all()) {
     const userId = String(row.user_id);
     const conceptId = String(row.concept_id);
+    if (demoSet.has(String(row.section)) && String(row.origin) !== "seed") continue;
     if (!byId.has(userId) || !currentConcepts.get(String(row.section) as Section)?.has(conceptId)) continue;
     if (!conceptOpen.has(userId)) conceptOpen.set(userId, new Map());
     const concepts = conceptOpen.get(userId)!;
@@ -126,7 +157,17 @@ export function traineeStats(db: DatabaseSync, rubrics: readonly Rubric[] = defa
   }
 
   for (const t of trainees) t.passed_sections = SECTION_ORDER.filter((s) => t.sections[s]?.passed).length;
-  return { checkpoint_data: true, sections: SECTION_ORDER, trainees };
+  return { checkpoint_data: true, ...base, trainees };
+}
+
+/** 열이 있는지. hasTable과 같은 방식(빈 조회)이다. */
+export function hasColumn(db: DatabaseSync, table: string, column: string): boolean {
+  try {
+    db.prepare(`SELECT ${column} FROM ${table} WHERE 1 = 0`).all();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // PostgreSQL로 옮겨도 쓸 수 있게 시스템 테이블 대신 빈 조회로 테이블 존재를 확인한다.
