@@ -257,7 +257,7 @@ class Component extends DCLogic {
       .sort((a, b) => b.miss / b.asked - a.miss / a.asked || b.wrong - a.wrong).slice(0, 8);
     const concepts = C.map((c, i) => { const r = c.miss / c.asked; return {
       rank: String(i + 1).padStart(2, '0'), rankColor: i < 3 ? 'var(--bad)' : 'var(--muted)',
-      name: eqName(c.section, c.concept_id), id: c.concept_id, secName: meta(c.section).name,
+      name: c.name || eqName(c.section, c.concept_id), id: c.concept_id, secName: meta(c.section).name,
       wWrong: pct(c.wrong / c.asked), wPartial: pct(c.partial / c.asked), wAssist: pct(c.assisted / c.asked),
       detail: `${c.asked}회 출제 · 재확인 후에도 틀림 ${c.final_wrong} · 미해결 오개념 ${c.open}`,
       rate: pct(r), rateColor: r >= 0.5 ? 'var(--bad)' : r >= 0.3 ? 'var(--mid)' : 'var(--text)' }; });

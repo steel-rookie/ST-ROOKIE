@@ -84,6 +84,19 @@ test("concept statistics include retries, filter by section, and reject unknown 
   db.prepare("DELETE FROM attempts WHERE id LIKE 'cs-%'").run();
 });
 
+test("concept statistics carry the rubric concept name, and only for current rubric concepts", () => {
+  const attempt = db.prepare("INSERT INTO attempts (id, user_id, section, state, understanding, unlocked, created_at, updated_at, completed_at, kind, concept_ids) VALUES (?, ?, 'ironmaking', 'completed', 0.5, 0, '2026-10-01', '2026-10-01', '2026-10-01', 'first', '[]')");
+  attempt.run("cn-first", lee.id);
+  const result = db.prepare("INSERT INTO concept_results (attempt_id, concept_id, question, answer, verdict, recheck_verdict, created_at, updated_at) VALUES ('cn-first', ?, 'q', 'a', 'wrong', 'partial', '2026-10-01', '2026-10-01')");
+  result.run("coke_reduction");
+  result.run("hot_stove"); // 시연 기록의 설비 id: 루브릭에 없어 name이 없다
+  const rubric: Rubric = { section: "ironmaking", reviewed: true, concepts: [{ concept_id: "coke_reduction", name: "고로에서 코크스의 역할" } as RubricConcept] };
+  const names = conceptStats(db, undefined, [rubric]).concepts.map((c) => [c.concept_id, c.name]);
+  assert.deepEqual(names, [["coke_reduction", "고로에서 코크스의 역할"], ["hot_stove", undefined]]);
+  db.prepare("DELETE FROM concept_results WHERE attempt_id = 'cn-first'").run();
+  db.prepare("DELETE FROM attempts WHERE id = 'cn-first'").run();
+});
+
 test("without checkpoint tables, concept statistics are empty", () => {
   const bare = new DatabaseSync(":memory:");
   bare.exec("CREATE TABLE users (id TEXT, username TEXT, password_hash TEXT, role TEXT, name TEXT, employee_no TEXT, created_at TEXT)");
