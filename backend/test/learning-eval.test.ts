@@ -47,12 +47,16 @@ test("채점: 기대 조작이 모두 있으면 맞음(더 있어도 됨), []이
   });
   const focus = { type: "focus" as const, target_id: "blast_furnace" };
   const highlight = { type: "highlight" as const, target_id: "blast_furnace" };
-  const r = (scene_actions = [focus, highlight], status: "grounded" | "unverified" = "grounded", misconception: string | null = null) => ({ status, scene_actions, misconception });
-  assert.deepEqual(score(c([focus]), r()), { status: true, scene: true, misconception: true });
+  const r = (scene_actions = [focus, highlight], status: "grounded" | "unverified" = "grounded", misconception: string | null = null, answer = "코크스는 환원제예요.") => ({ status, scene_actions, misconception, answer });
+  assert.deepEqual(score(c([focus]), r()), { status: true, scene: true, misconception: true, answer: null });
   assert.equal(score(c([focus]), r([highlight])).scene, false);
   assert.equal(score(c([]), r()).scene, false);
   assert.equal(score(c([]), r([])).scene, true);
   assert.equal(score(c("any"), r([])).scene, null);
   assert.equal(score(c([focus]), r(undefined, "unverified")).status, false);
   assert.equal(score(c("any", "coke_reduction"), r(undefined, "grounded", null)).misconception, false);
+  // answer_any: 답에 하나라도 있으면 맞음
+  const fix = { ...c("any", "coke_reduction"), expect: { ...c("any", "coke_reduction").expect, answer_any: ["아니", "아닙"] } };
+  assert.equal(score(fix, r(undefined, "grounded", "coke_reduction", "불순물 제거가 주된 역할은 아니에요.")).answer, true);
+  assert.equal(score(fix, r(undefined, "grounded", "coke_reduction", "코크스는 연료이자 원료예요.")).answer, false);
 });

@@ -43,6 +43,8 @@ export const LearningCase = z.object({
     scene: z.union([z.array(Action), z.literal("any")]),
     /** 감지돼야 하는 개념 id, 감지되면 안 되면 null. */
     misconception: z.string().nullable(),
+    /** 답에 하나라도 들어 있어야 하는 말(예: 오개념을 바로잡는 "아니"). 없으면 보지 않는다. */
+    answer_any: z.array(z.string().min(1)).optional(),
   }),
   note: z.string().optional(),
 });
@@ -100,20 +102,23 @@ export interface Checks {
   status: boolean;
   scene: boolean | null;
   misconception: boolean;
+  /** answer_any가 없으면 null(보지 않음). */
+  answer: boolean | null;
 }
 
-/** 기대와 비교한다. scene이 "any"면 null(보지 않음). */
-export function score(c: LearningCase, r: Pick<LearningRecord, "status" | "scene_actions" | "misconception">): Checks {
+/** 기대와 비교한다. scene이 "any"면, answer_any가 없으면 그 항목은 null(보지 않음). */
+export function score(c: LearningCase, r: Pick<LearningRecord, "status" | "scene_actions" | "misconception" | "answer">): Checks {
   const scene =
     c.expect.scene === "any"
       ? null
       : c.expect.scene.length === 0
         ? r.scene_actions.length === 0
         : c.expect.scene.every((e) => r.scene_actions.some((a) => a.type === e.type && a.target_id === e.target_id));
-  return { status: r.status === c.expect.status, scene, misconception: r.misconception === c.expect.misconception };
+  const answer = c.expect.answer_any ? c.expect.answer_any.some((w) => r.answer.includes(w)) : null;
+  return { status: r.status === c.expect.status, scene, misconception: r.misconception === c.expect.misconception, answer };
 }
 
-const passed = (k: Checks) => k.status && k.scene !== false && k.misconception;
+const passed = (k: Checks) => k.status && k.scene !== false && k.misconception && k.answer !== false;
 const pct = (n: number, d: number) => (d ? `${((n / d) * 100).toFixed(1)}%` : "-");
 const fmt = (actions: SceneAction[]) => (actions.length ? actions.map((a) => `${a.type}:${a.target_id}`).join(", ") : "(없음)");
 
@@ -229,10 +234,12 @@ function report(all: { c: LearningCase; r: LearningRecord }[]): void {
   const infra = all.filter((o) => o.r.infra_error);
   const rows = all.filter((o) => !o.r.infra_error).map((o) => ({ ...o, k: score(o.c, o.r) }));
   const scene = rows.filter((o) => o.k.scene !== null);
-  console.log(`\n전체 통과(세 항목 모두): ${rows.filter((o) => passed(o.k)).length}/${rows.length} (${pct(rows.filter((o) => passed(o.k)).length, rows.length)})`);
+  console.log(`\n전체 통과(모든 항목): ${rows.filter((o) => passed(o.k)).length}/${rows.length} (${pct(rows.filter((o) => passed(o.k)).length, rows.length)})`);
   console.log(`  근거 판정: ${rows.filter((o) => o.k.status).length}/${rows.length} (${pct(rows.filter((o) => o.k.status).length, rows.length)})`);
   console.log(`  화면 조작: ${scene.filter((o) => o.k.scene).length}/${scene.length} (${pct(scene.filter((o) => o.k.scene).length, scene.length)}, "any" ${rows.length - scene.length}개 제외)`);
   console.log(`  오개념 감지: ${rows.filter((o) => o.k.misconception).length}/${rows.length} (${pct(rows.filter((o) => o.k.misconception).length, rows.length)})`);
+  const checked = rows.filter((o) => o.k.answer !== null);
+  if (checked.length) console.log(`  답변 내용(answer_any): ${checked.filter((o) => o.k.answer).length}/${checked.length}`);
   console.log(`  형식 오류(format_error): ${rows.filter((o) => o.r.status === "format_error").length}개, 연결 오류(infra_error, 제외): ${infra.length}개`);
 
   const asked = rows.filter((o) => o.r.follow_up && o.r.follow_up_status && o.r.follow_up_status !== "infra_error");
@@ -251,7 +258,7 @@ function report(all: { c: LearningCase; r: LearningRecord }[]): void {
   const misses = rows.filter((o) => !passed(o.k));
   console.log(`\n틀린 케이스 ${misses.length}개`);
   for (const { c, r, k } of misses) {
-    const what = [!k.status && `근거 ${c.expect.status}→${r.status}`, k.scene === false && `화면 기대 ${fmt(c.expect.scene as SceneAction[])} → ${fmt(r.scene_actions)}`, !k.misconception && `오개념 ${c.expect.misconception}→${r.misconception}`].filter(Boolean);
+    const what = [!k.status && `근거 ${c.expect.status}→${r.status}`, k.scene === false && `화면 기대 ${fmt(c.expect.scene as SceneAction[])} → ${fmt(r.scene_actions)}`, !k.misconception && `오개념 ${c.expect.misconception}→${r.misconception}`, k.answer === false && `답에 ${c.expect.answer_any!.join("·")} 중 하나도 없음`].filter(Boolean);
     console.log(`- ${c.id} [${c.type}] ${c.question}`);
     console.log(`    ${what.join(" | ")}`);
     if (r.answer) console.log(`    답변: ${r.answer.slice(0, 160)}`);
