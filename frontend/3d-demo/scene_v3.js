@@ -36,14 +36,49 @@ function equipmentPrimitive(shape) {
   return g;
 }
 
+function materialVFX(state, tex) {
+  // 소재를 메시 대신 파티클 구름으로 표현: 상태별 분포 형태(core) + 뒤로 흘리는 꼬리(trail)
+  const c = new THREE.Color(state.color), hot = state.shape === 'liquid' || c.r > 0.85;
+  const SH = { chunks: [1.6, 0.9, 1.0, 0.16], liquid: [1.4, 0.8, 1.2, 0.22], slab: [3.2, 0.45, 1.5, 0.15], bar: [4.4, 0.25, 1.4, 0.13], strip: [6, 0.12, 1.4, 0.11], coil: [1.6, 1.6, 0.9, 0.14] };
+  const [sx, sy, sz, size] = SH[state.shape] || SH.chunks, nCore = hot ? 420 : 300, nTrail = hot ? 220 : 90;
+  const mk = (n, sz, op) => { const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3)); geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+    const mat = new THREE.PointsMaterial({ size: sz, map: tex, vertexColors: true, transparent: true, depthWrite: false, blending: hot ? THREE.AdditiveBlending : THREE.NormalBlending, opacity: op, sizeAttenuation: true });
+    const p = new THREE.Points(geo, mat); p.frustumCulled = false; p.renderOrder = 21; return p; };
+  const core = mk(nCore, size, hot ? 0.95 : 0.9), trail = mk(nTrail, size * 0.8, hot ? 0.8 : 0.5);
+  const seeds = new Float32Array(nCore * 4); for (let i = 0; i < nCore; i++) { seeds[i * 4] = Math.random(); seeds[i * 4 + 1] = Math.random(); seeds[i * 4 + 2] = Math.random(); seeds[i * 4 + 3] = Math.random(); }
+  const tr = new Float32Array(nTrail * 4); for (let i = 0; i < nTrail; i++) tr[i * 4 + 3] = Math.random();
+  const g = new THREE.Group(); g.add(core, trail);
+  const c2 = hot ? c.clone().lerp(new THREE.Color(0xfff0c0), 0.55) : c.clone().multiplyScalar(1.25), c3 = hot ? c.clone().multiplyScalar(0.55) : c.clone().multiplyScalar(0.7);
+  g.userData.vfx = { core, trail, seeds, tr, sx, sy, sz, hot, shape: state.shape, c, c2, c3, prev: new THREE.Vector3(), t0: performance.now() };
+  g.userData.tick = (now) => {
+    const V = g.userData.vfx, P = core.geometry.attributes.position.array, C = core.geometry.attributes.color.array, t = (now - V.t0) / 1000;
+    for (let i = 0; i < nCore; i++) { const u = V.seeds[i * 4], v = V.seeds[i * 4 + 1], w = V.seeds[i * 4 + 2], r = V.seeds[i * 4 + 3]; let x, y, z;
+      if (V.shape === 'coil') { const a = u * Math.PI * 2 + t * 0.6, rr = 0.55 + v * 0.3, th = w * Math.PI * 2; x = Math.cos(a) * (rr + 0.3 * Math.cos(th)) * 0.9; y = 1.0 + Math.sin(a) * (rr + 0.3 * Math.cos(th)) * 0.9; z = Math.sin(th) * 0.35; }
+      else if (V.shape === 'liquid') { const th = u * Math.PI * 2, ph = Math.acos(2 * v - 1), rr = Math.cbrt(w) * 0.75; x = rr * Math.sin(ph) * Math.cos(th); z = rr * Math.sin(ph) * Math.sin(th); y = 0.5 + rr * Math.cos(ph) * 0.6 + Math.sin(t * 3 + u * 9) * 0.05; if (r > 0.9) y += ((t * 0.7 + r) % 1) * 0.9; }
+      else if (V.shape === 'chunks') { const k = Math.floor(u * 6), cx = (k % 3 - 1) * 0.55, cy = 0.3 + Math.floor(k / 3) * 0.45, cz = (k % 2 - 0.5) * 0.5; x = cx + (v - 0.5) * 0.5; y = cy + (w - 0.5) * 0.5; z = cz + (r - 0.5) * 0.5; }
+      else { x = (u - 0.5) * V.sx; z = (w - 0.5) * V.sz; y = 0.45 + (v - 0.5) * V.sy; if (V.hot && r > 0.85) y += ((t * 0.9 + r) % 1) * 0.7; }
+      P[i * 3] = x; P[i * 3 + 1] = y; P[i * 3 + 2] = z;
+      const fl = V.hot ? 0.75 + 0.25 * Math.sin(t * 7 + u * 30) : 1, col = (r > 0.6 ? V.c2 : r > 0.25 ? V.c : V.c3); C[i * 3] = col.r * fl; C[i * 3 + 1] = col.g * fl; C[i * 3 + 2] = col.b * fl; }
+    core.geometry.attributes.position.needsUpdate = true; core.geometry.attributes.color.needsUpdate = true;
+    // 꼬리: 월드 이동량 반대 방향으로 퍼지며 식어 간다
+    const wp = g.getWorldPosition(new THREE.Vector3()); const mv = new THREE.Vector3().subVectors(wp, V.prev); const speed = mv.length(); V.prev.copy(wp);
+    const TP = trail.geometry.attributes.position.array, TC = trail.geometry.attributes.color.array, inv = g.matrixWorld.clone().invert(), back = speed > 1e-4 ? mv.clone().normalize().negate() : new THREE.Vector3(-1, 0, 0);
+    for (let i = 0; i < nTrail; i++) { let life = (V.tr[i * 4 + 3] + t * (V.hot ? 0.9 : 0.6)) % 1; const sp = 1 + Math.sin(i * 12.9) * 0.5; const q = wp.clone().addScaledVector(back, life * (V.hot ? 3.2 : 2.0) * sp).add(new THREE.Vector3(Math.sin(i * 3.1 + t) * 0.3, 0.45 + life * (V.hot ? 1.4 : 0.5), Math.cos(i * 1.7 + t * 1.3) * 0.3)).applyMatrix4(inv);
+      TP[i * 3] = q.x; TP[i * 3 + 1] = q.y; TP[i * 3 + 2] = q.z; const f = (1 - life) * (speed > 0.002 || V.hot ? 1 : 0.35); TC[i * 3] = V.c2.r * f; TC[i * 3 + 1] = V.c2.g * f * (V.hot ? 0.8 : 1); TC[i * 3 + 2] = V.c2.b * f * (V.hot ? 0.5 : 1); }
+    trail.geometry.attributes.position.needsUpdate = true; trail.geometry.attributes.color.needsUpdate = true;
+  };
+  g.userData.tick(performance.now());
+  return g;
+}
 function materialMesh(state) {
   const c = new THREE.Color(state.color);
   const glow = ['liquid'].includes(state.shape) || c.r > 0.9;
-  const m = new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0.2, emissive: glow ? c : 0x000000, emissiveIntensity: glow ? 0.7 : 0 });
+  const m = glow ? new THREE.MeshStandardMaterial({ color: c.clone().lerp(new THREE.Color(0xfff2c8), 0.35), roughness: 0.25, metalness: 0.0, emissive: c, emissiveIntensity: 2.2 })
+    : new THREE.MeshStandardMaterial({ color: c, roughness: 0.55, metalness: 0.65, emissive: c.clone().multiplyScalar(0.08), emissiveIntensity: 1 });
   const g = new THREE.Group();
   switch (state.shape) {
-    case 'chunks': for (let i = 0; i < 6; i++) { const d = new THREE.Mesh(new THREE.DodecahedronGeometry(0.32 + (i % 3) * 0.08, 0), m); d.position.set((i % 3 - 1) * 0.55, 0.3 + Math.floor(i / 3) * 0.45, (i % 2 - 0.5) * 0.5); g.add(d); } break;
-    case 'liquid': { const s = new THREE.Mesh(new THREE.SphereGeometry(0.75, 20, 16), m); s.scale.y = 0.6; s.position.y = 0.5; g.add(s); break; }
+    case 'chunks': for (let i = 0; i < 14; i++) { const d = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18 + ((i * 7) % 5) * 0.06, 1), m); const a = i * 2.4, rr = 0.25 + (i % 4) * 0.22; d.position.set(Math.cos(a) * rr, 0.22 + Math.floor(i / 5) * 0.3 - rr * 0.15, Math.sin(a) * rr * 0.8); d.rotation.set(i, i * 1.7, i * 0.6); g.add(d); } break;
+    case 'liquid': { const s = new THREE.Mesh(new THREE.SphereGeometry(0.75, 32, 24), m); s.scale.y = 0.55; s.position.y = 0.45; g.add(s); const skin = new THREE.Mesh(new THREE.SphereGeometry(0.78, 32, 24), new THREE.MeshStandardMaterial({ color: 0x5a2a10, roughness: 0.9, transparent: true, opacity: 0.35, emissive: 0xff5a10, emissiveIntensity: 0.4 })); skin.scale.y = 0.55; skin.position.y = 0.45; g.add(skin); g.userData.tick = (now) => { const t = now / 1000; s.scale.set(1 + Math.sin(t * 2.3) * 0.04, 0.55 + Math.sin(t * 3.1) * 0.03, 1 + Math.cos(t * 1.9) * 0.04); skin.rotation.y = t * 0.35; m.emissiveIntensity = 2.0 + Math.sin(t * 6) * 0.35; }; break; }
     case 'slab': g.add(mesh(new THREE.BoxGeometry(3.2, 0.5, 1.5), m, 0.45)); break;
     case 'bar': g.add(mesh(new THREE.BoxGeometry(4.5, 0.22, 1.4), m, 0.4)); break;
     case 'strip': g.add(mesh(new THREE.BoxGeometry(6, 0.08, 1.4), m, 0.4)); break;
@@ -68,7 +103,7 @@ class SteelScene extends HTMLElement {
     Object.assign(this.labels.style, { position: 'absolute', inset: '0', pointerEvents: 'none', overflow: 'hidden' });
     this.appendChild(this.labels);
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 2200); this._persp = this.camera;
+    this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 4000); this._persp = this.camera;
     this.orbit = { yaw: -0.5, pitch: 0.36, dist: 48, target: new THREE.Vector3(0, 1.5, 0) };
     this.home0 = { yaw: -0.5, pitch: 0.36, dist: 48, target: [0, 1.5, 0] }; this.home = { ...this.home0 };
     this.hemiLight = new THREE.HemisphereLight(0xdfe6ee, 0x3a4048, 0.9); this.scene.add(this.hemiLight);
@@ -107,12 +142,12 @@ class SteelScene extends HTMLElement {
     this._raf = requestAnimationFrame(tick);
   }
   disconnectedCallback() { cancelAnimationFrame(this._raf); this._raf = 0; }
-  attributeChangedCallback(n) {
+  attributeChangedCallback(n) { if (n === 'process') queueMicrotask(() => this._init && this._resize());
     if (!this._init) return;
     if (n === 'process') this._activate(this.getAttribute('process'), true); if (n === 'selected') this._applySelection(); if (n === 'theme' || n === 'time-of-day' || n === 'timeofday') this._applyTheme(); if (n === 'view') { this._applySelection(); this._applyView(); this._apply2d(); const sid = this.getAttribute('selected'); if (sid && !this.touring && !this._2d) this.focus(sid); }
   }
   invalidate() { this._dirty = true; }
-  _resize() { this._dirty = true; const w = this.clientWidth || 1, h = this.clientHeight || 1; this.renderer.setSize(w, h, false); const pc = this._persp || this.camera; pc.aspect = w / h; pc.updateProjectionMatrix(); if (this._2d) this._fit2d(true); }
+  _resize() { this._dirty = true; const w = this.clientWidth || 1, h = this.clientHeight || 1; this.renderer.setSize(w, h, false); const pc = this._persp || this.camera; pc.aspect = w / h; const sh = Math.min(170, Math.round(w * 0.1)); const site = !this.getAttribute('process') || this.getAttribute('process') === 'site'; if (w > 900 && !site) pc.setViewOffset(w, h, -sh, 0, w, h); else pc.clearViewOffset(); pc.updateProjectionMatrix(); if (this._2d) this._fit2d(true); }
   // 라이트 모드: 실제 시각으로 오전(5~11시) / 오후(11~17시) / 저녁(17~5시) 하늘을 고른다. time-of-day 속성으로 고정 가능
   _period() { const f = this.getAttribute('time-of-day') || this.getAttribute('timeofday'); if (f === 'morning' || f === 'afternoon' || f === 'evening') return f; const h = new Date().getHours(); return h >= 5 && h < 11 ? 'morning' : h >= 11 && h < 17 ? 'afternoon' : 'evening'; }
   _tod() { return ({
@@ -305,11 +340,11 @@ class SteelScene extends HTMLElement {
       [[0x6a4a3a, 0xb07a52, -1], [0x34485a, 0x5f86a8, 0], [0x3c4048, 0xa7adb5, 1]].forEach(([cd, cl, o]) => { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, L * 2, 10), B(N ? cd : cl)); p.rotation.z = Math.PI / 2; p.position.set(0, 6.5, pz + o * 1.1); g.add(p); });
       // 가로등 (도로변) — 밤에는 불빛 + 바닥 빛 웅덩이
       const lamps = []; for (let x = -L + 10; x < L; x += 24) { lamps.push([x, 0, 25]); lamps.push([x + 12, 0, -25]); }
-      inst(new THREE.CylinderGeometry(0.08, 0.11, 7, 6), B(N ? 0x30363e : 0xaab0b7), lamps.map(l => [l[0], 3.5, l[2]])).userData.lamp = 1;
-      inst(new THREE.BoxGeometry(1.0, 0.18, 0.36), B(N ? 0xffd9a0 : 0xe6e1d6), lamps.map(l => [l[0], 7, l[2] + (l[2] > 0 ? 0.5 : -0.5)])).userData.lamp = 1;
-      { const pool = inst(new THREE.CircleGeometry(4.5, 20), new THREE.MeshBasicMaterial({ color: 0xffb060, transparent: true, opacity: N ? 0.06 : 0.025, depthWrite: false, blending: THREE.AdditiveBlending }), lamps.map(l => [l[0], 0.09, l[2] + (l[2] > 0 ? 1.5 : -1.5), -Math.PI / 2])); pool.renderOrder = 4; pool.userData.lamp = 1; }
+      inst(new THREE.CylinderGeometry(0.1, 0.13, 7, 6), B(N ? 0x4a525c : 0xaab0b7), lamps.map(l => [l[0], 3.5, l[2]])).userData.lamp = 1;
+      inst(new THREE.BoxGeometry(1.0, 0.2, 0.38), N ? new THREE.MeshBasicMaterial({ color: 0xf0d2a0 }) : B(0xe6e1d6), lamps.map(l => [l[0], 7, l[2] + (l[2] > 0 ? 0.5 : -0.5)])).userData.lamp = 1;
+      { const pool = inst(new THREE.CircleGeometry(N ? 5 : 4.5, 24), new THREE.MeshBasicMaterial({ color: 0xffb060, transparent: true, opacity: N ? 0.07 : 0.025, depthWrite: false, blending: THREE.AdditiveBlending }), lamps.map(l => [l[0], 0.09, l[2] + (l[2] > 0 ? 1.5 : -1.5), -Math.PI / 2])); pool.renderOrder = 4; pool.userData.lamp = 1; }
       // 가로등 머리 글로우: 그래스 기법(교차 쿼드)으로 어느 각도에서도 둥글게 퍼지는 빛. 전체를 한 메시로 합쳐 드로우콜 1회
-      if (N || T.win) { const gm = new THREE.Mesh(this._crossGeo(lamps.map(l => [l[0], 7, l[2] + (l[2] > 0 ? 0.5 : -0.5)]), 7), this._glowMat(0xffb868, N ? 0.4 : 0.2)); gm.renderOrder = 6; gm.userData.lamp = 1; gm.userData.keep = true; g.add(gm); }
+      if (N || T.win) { const gm = new THREE.Mesh(this._crossGeo(lamps.map(l => [l[0], 7, l[2] + (l[2] > 0 ? 0.5 : -0.5)]), N ? 6 : 7), this._glowMat(0xffc27a, N ? 0.45 : 0.2)); gm.renderOrder = 6; gm.userData.lamp = 1; gm.userData.keep = true; g.add(gm); }
       // 갠트리 크레인 · 야적장 (양 끝)
       [[-200, -14], [196, 12]].forEach(([cx, cz]) => {
         const cm = B(N ? 0x3a3020 : 0xd9a43a);
@@ -553,6 +588,11 @@ class SteelScene extends HTMLElement {
         } else if (a) {
           e.group.visible = false; e.group = new THREE.Group(); e.anchor.copy(M(a.label)); e.focus.copy(M(a.focus || a.label)); e.x = e.focus.x; e.dist = (a.dist ?? 40) * sc; mapped++;
           if (a.interior && e.data.interior) { const c = M([a.interior.center[0], 0, a.interior.center[1]]); e.interior = { cx: c.x, cz: c.z, y0: a.interior.y0 * sc + off.y, y1: a.interior.y1 * sc + off.y, r: a.interior.r * sc }; }
+          else if (e.data.interior) { // anchors에 단면 좌표가 없으면 포커스 주변 GLB 메시의 경계 상자에 맞춰 단면 모형을 배치한다
+            model.updateMatrixWorld(true); const f = e.focus, R0 = Math.max(3, e.dist * 0.28), ub = new THREE.Box3(), bb = new THREE.Box3(), bc = new THREE.Vector3(); let hit = 0;
+            model.traverse(o => { if (!o.isMesh || o.userData.floor) return; bb.setFromObject(o); if (bb.isEmpty()) return; bb.getCenter(bc); const bs = bb.getSize(new THREE.Vector3()); if (Math.max(bs.x, bs.z) > R0 * 3) return; if (bs.y > 1.6 * Math.max(bs.x, bs.z)) return; /* 굴뚝처럼 가늘고 긴 메시는 제외 */ if (Math.hypot(bc.x - f.x, bc.z - f.z) < R0 && bb.max.y > 0.3) { ub.union(bb); hit++; } });
+            if (hit) { const c = ub.getCenter(new THREE.Vector3()), bs = ub.getSize(new THREE.Vector3()), r = Math.max(0.8, Math.min(bs.x, bs.z) * 0.3); e.interior = { cx: c.x, cz: c.z, y0: Math.max(0.1, ub.min.y + bs.y * 0.06), y1: ub.max.y - bs.y * 0.06, r }; e.focus.set(c.x, c.y, c.z); e.anchor.set(c.x, ub.max.y + 0.6, c.z); }
+            else { const r = Math.max(0.8, e.dist * 0.08); e.interior = { cx: f.x, cz: f.z, y0: Math.max(0.1, f.y - r * 1.5), y1: f.y + r * 1.5, r }; } }
         }
       });
       if (!mapped) { done('glb-no-nodes', 0); return; }
@@ -562,7 +602,7 @@ class SteelScene extends HTMLElement {
       model.updateMatrixWorld(true); const fb = new THREE.Box3();
       model.traverse(o => { if (!o.isMesh) return; for (let q = o; q && q !== model; q = q.parent) if (/^Floor_/.test(q.name)) { o.visible = false; o.castShadow = false; o.userData.floor = true; fb.expandByObject(o); break; } });
       if (!fb.isEmpty()) { z.floorBox = fb; this._neonAll(); }
-      z.root.add(model); z.anchorMode = !!cfg?.anchors;
+      z.root.add(model); z.glb = model; z.anchorMode = !!cfg?.anchors; this._addSmoke(z, model);
       z.path = cfg?.flow ? cfg.flow.map(M) : [z.eqs[0].focus.clone().add(new THREE.Vector3(-6, 0, 0)), ...z.eqs.map(e => e.focus.clone()), z.eqs[z.eqs.length - 1].focus.clone().add(new THREE.Vector3(6, 0, 0))];
       if (cfg?.home) { const t = cfg.home.target || [0, 1.5, 0]; z.home = { ...z.home, ...cfg.home, target: [t[0] + z.ox, t[1], t[2]] }; }
       z.ringScale = cfg?.ringScale ?? 1; z.stops = cfg?.stops || null; z.rail = !!cfg?.rail; z.matScale = cfg?.materialScale ?? 1;
@@ -574,10 +614,13 @@ class SteelScene extends HTMLElement {
   _setMaterial(stateIdx, x) {
     if (this.matIdx !== stateIdx) {
       if (this.material) this.scene.remove(this.material);
-      this.material = materialMesh(this.states[stateIdx]); this.material.name = 'MATERIAL'; this.material.scale.setScalar(this.matScale || 1); this.material._fresh = true; this.matBase = new THREE.Box3().setFromObject(this.material).min.y; this.material.visible = !!(this.zone && this.zone.root.visible); this.scene.add(this.material); this.material.traverse(o => { if (o.isMesh) o.visible = false; }); /* [UI 시안] 소재 덩어리는 그리지 않음(위치만 진행 계산에 씀) */
+      if (!this._dotTex) { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,.75)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); this._dotTex = new THREE.CanvasTexture(c); }
+      this.material = materialMesh(this.states[stateIdx]); this.material.name = 'MATERIAL'; this.material.scale.setScalar(this.matScale || 1); this.material._fresh = true; this.matBase = new THREE.Box3().setFromObject(this.material).min.y; this.material.visible = !!(this.zone && this.zone.root.visible); this.scene.add(this.material);
+      const hot = this.states[stateIdx], hc = new THREE.Color(hot.color); if (hc.r > 0.85 || hot.shape === 'liquid') { const L = new THREE.PointLight(hc, 2.6, 9 * (this.matScale || 1), 2); L.position.y = 0.8; this.material.add(L); }
+      this.material.traverse(o => { if (o.isMesh || o.isPoints) { o.castShadow = false; o.visible = !!(this.zone && this.zone.root.visible) && (this.touring || this.playing || !!this.move); } });
       this.matIdx = stateIdx;
     }
-    this.material.position.copy(x); if (this.rail) this.material.position.y -= this.matBase || 0;
+    this.material.position.copy(x); if (this.rail) this.material.position.y -= this.matBase || 0; this.material.visible = !this._hideMat;
   }
   _stopPos(i) { return this.path[this._stopIdx(i)]; }
   _stopList() { return this.stops || this.path.map((_, i) => i); }
@@ -602,13 +645,13 @@ class SteelScene extends HTMLElement {
     const id = this.getAttribute('selected');
     this.eqs.forEach(e => {
       const on = e.id === id;
-      e.group.traverse(o => { if (o.isMesh && o.material.emissive) { o.material.emissive.setHex(on ? ACCENT : o.userData.base); o.material.emissiveIntensity = on ? 0.35 : (o.userData.base ? (o.userData.baseI ?? 0.6) : 0); } });
+      e.group.traverse(o => { if (o.isMesh && o.material.emissive) { const tint = on && !this._noTint(); o.material.emissive.setHex(tint ? ACCENT : o.userData.base); o.material.emissiveIntensity = tint ? 0.35 : (o.userData.base ? (o.userData.baseI ?? 0.6) : 0); } });
     });
     this._styleLabels();
     const sel = this.eqs.find(e => e.id === id);
     const sec = sel && sel.interior && (this.getAttribute('view') === 'section' || this.touring) ? sel : null;
     if (sec !== this._secShown) { this._secShown = sec; this._showInterior(sec); this._dimOthers(sec); }
-    this.ring.material.color.set(this.dark ? 0x5cc8ff : 0x22c7f0); this.ring.material.opacity = 0.75; this.ring.visible = !!sel; if (sel) this.ring.position.set(sel.focus.x, 0.02 + (this.anchorMode ? 0.4 : 0), sel.focus.z); if (this._2d && this._drawMode !== 'top') this.ring.visible = false;
+    this.ring.material.color.set(this.dark ? 0x5cc8ff : 0x22c7f0); this.ring.material.opacity = 0.75; this.ring.visible = !!sel && !sec && !this._isVehicle(sel); if (sel) this.ring.position.set(sel.focus.x, 0.02 + (this.anchorMode ? 0.4 : 0), sel.focus.z); if (this._2d && this._drawMode !== 'top') this.ring.visible = false;
 
   }
   // 선택된 설비 내부 단면(X-ray): data.js의 equipment.interior 레이어를 색깔 층으로 표시
@@ -736,11 +779,25 @@ class SteelScene extends HTMLElement {
     L.pool.position.set(f.x, 0.06 + (this.anchorMode ? 0.4 : 0), f.z); L.pool.scale.setScalar(r * 3.2);
   }
   // 선택한 설비 주변 메시를 직접 밝게 (GLB에 설비 노드가 없어서 거리로 찾음)
+  _isVehicle(e) { return !!e && /torpedo|_car$/.test(e.id); }
   _glowNear(sel) {
     const zr = this.zone?.root; if (!zr) return;
     (this._glowed || []).forEach(o => { const m = o.material; if (m.emissive) { m.emissive.setHex(o.userData.base || 0); m.emissiveIntensity = o.userData.base ? (o.userData.baseI ?? 0.6) : 0; } }); this._glowed = [];
     if (!sel || !this.dark) return;
     const f = sel.focus, R = Math.max(3, (sel.dist || 20) * 0.28), c = new THREE.Vector3(), box = new THREE.Box3();
+    if (this._isVehicle(sel)) { // 토페도카: 차체는 쇳물 열기(주황)로, 쇳물이 흘러드는 라인(탕도·러너)은 녹은 쇠 색으로
+      const k = this.eqs.indexOf(sel), prev = this.eqs[Math.max(0, k - 1)]; let a = this._stopPos(Math.max(0, k - 1)).clone(), b = this._stopPos(k).clone(); if (a.distanceTo(b) < 3 && prev && prev !== sel) { a = prev.focus.clone(); b = sel.focus.clone(); } // 정거장이 겹치면 이전 설비(출선구) 중심 → 토페도카 중심 구간
+      const ab = new THREE.Vector3().subVectors(b, a), L2 = Math.max(1e-6, ab.lengthSq()), corr = Math.max(0.9, ab.length() * 0.18);
+      zr.traverse(o => { if (!o.isMesh || !o.material.emissive) return; const nm = (o.name + ' ' + (o.parent?.name || '')).toLowerCase(); if (/rail|track|ground|floor/.test(nm)) return;
+        if (!o.userData._c) { box.setFromObject(o); o.userData._c = box.getCenter(new THREE.Vector3()); o.userData._s = box.getSize(new THREE.Vector3()).length(); } if (!o.userData._bs) { box.setFromObject(o); o.userData._bs = box.getSize(new THREE.Vector3()); }
+        const cc = o.userData._c, bs = o.userData._bs, elong = Math.max(bs.x, bs.z) > 2.5 * Math.max(0.05, Math.min(bs.x, bs.z)) && bs.y < Math.max(bs.x, bs.z) * 0.5; let hot = 0;
+        if (/torpedo|ladle_car|hot_metal_car|_car\b/.test(nm)) hot = 1;
+        else if (/runner|trough|launder|spout|tapping|tap_hole|channel/.test(nm)) hot = 2;
+        else if (/casthouse|cast_house|taphole/.test(nm) && elong && o.userData._s >= 1 && o.userData._s <= 5.5 && cc.y > 0.5 && cc.y < 1.6) hot = 2; // 주상 바닥의 길쭉하고 낮은 조각 = 탕도(쇳물 홈통)
+        else { const t = Math.max(0, Math.min(1, new THREE.Vector3().subVectors(cc, a).dot(ab) / L2)); const p = a.clone().addScaledVector(ab, t); if (t > 0.02 && t < 0.98 && Math.hypot(cc.x - p.x, cc.z - p.z) < corr && o.userData._s < 3 && cc.y > 0.5 && cc.y < Math.max(a.y, b.y) + 1.5) hot = 2; }
+        if (hot === 1) { o.material.emissive.setHex(0xff6a1a); o.material.emissiveIntensity = 0.85; this._glowed.push(o); }
+        else if (hot === 2) { o.material.emissive.setHex(0xffa03a); o.material.emissiveIntensity = 1.1; this._glowed.push(o); } });
+      this._dirty = true; return; }
     zr.traverse(o => { if (!o.isMesh || !o.material.emissive) return; if (!o.userData._c) { box.setFromObject(o); o.userData._c = box.getCenter(new THREE.Vector3()); o.userData._s = box.getSize(new THREE.Vector3()).length(); } if (o.userData._s > R * 4) return; const d = Math.hypot(o.userData._c.x - f.x, o.userData._c.z - f.z); if (d < R && Math.abs(o.userData._c.y - f.y) < R * 2.5) { o.material.emissive.setHex(0x9fd8ff); o.material.emissiveIntensity = 0.55; this._glowed.push(o); } });
     this._dirty = true;
   }
@@ -749,9 +806,9 @@ class SteelScene extends HTMLElement {
     const z = this.zone, on = !!z && this.dark && !this._isOverview;
     if (!this.zl) {
       const g = new THREE.Group(); g.name = 'ZONE_LIGHT';
-      const spot = new THREE.SpotLight(0xffe6c4, 0, 0, Math.PI / 4.2, 0.7, 1.1), tgt = new THREE.Object3D(); spot.target = tgt; g.add(spot, tgt);
-      const fill = new THREE.PointLight(0xffd9a8, 0, 0, 1.2); g.add(fill);
-      const tex = (() => { const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'), gr = x.createRadialGradient(128, 128, 0, 128, 128, 128); gr.addColorStop(0, 'rgba(255,214,160,.18)'); gr.addColorStop(0.55, 'rgba(255,190,120,.07)'); gr.addColorStop(1, 'rgba(255,170,90,0)'); x.fillStyle = gr; x.fillRect(0, 0, 256, 256); return new THREE.CanvasTexture(c); })();
+      const spot = new THREE.SpotLight(0xeef4ff, 0, 0, Math.PI / 4.2, 0.7, 1.1), tgt = new THREE.Object3D(); spot.target = tgt; g.add(spot, tgt);
+      const fill = new THREE.PointLight(0xdce8f5, 0, 0, 1.2); g.add(fill);
+      const tex = (() => { const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'), gr = x.createRadialGradient(128, 128, 0, 128, 128, 128); gr.addColorStop(0, 'rgba(170,190,215,.12)'); gr.addColorStop(0.55, 'rgba(140,165,195,.05)'); gr.addColorStop(1, 'rgba(120,145,180,0)'); x.fillStyle = gr; x.fillRect(0, 0, 256, 256); return new THREE.CanvasTexture(c); })();
       const pool = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); pool.rotation.x = -Math.PI / 2; pool.renderOrder = 5; g.add(pool);
       const poles = new THREE.Group(); g.add(poles);
       this.zl = { g, spot, tgt, fill, pool, poles }; this.scene.add(g);
@@ -759,18 +816,20 @@ class SteelScene extends HTMLElement {
     const L = this.zl; L.g.visible = on; this._dirty = true;
     if (!on) { L.spot.intensity = 0; L.fill.intensity = 0; return; }
     const box = new THREE.Box3().setFromObject(z.root), c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3()), r = Math.max(sz.x, sz.z) * 0.6, h = Math.max(sz.y * 2.2, r * 1.3);
-    L.tgt.position.set(c.x, 0, c.z); L.spot.position.set(c.x, h, c.z + r * 0.25); L.spot.angle = Math.min(1.1, Math.atan(r / h) * 1.15); L.spot.distance = h * 3; L.spot.intensity = 0.9 * h * h / 10;
-    L.fill.position.set(c.x, sz.y * 0.8, c.z + r * 0.6); L.fill.distance = r * 3; L.fill.intensity = 0.25 * r;
+    L.tgt.position.set(c.x, 0, c.z); L.spot.position.set(c.x, h, c.z + r * 0.25); L.spot.angle = Math.min(1.1, Math.atan(r / h) * 1.15); L.spot.distance = h * 3; L.spot.intensity = 1.3 * h * h / 10;
+    L.fill.position.set(c.x, sz.y * 0.8, c.z + r * 0.6); L.fill.distance = r * 3; L.fill.intensity = 0.4 * r;
     L.pool.position.set(c.x, 0.08, c.z); L.pool.scale.set(r * 2.6, r * 1.9, 1);
     // 네 모서리 투광등 기둥 (불 켜진 머리)
     // [UI 시안] 투광등은 유지하되 카메라 쪽(앞) 두 기둥은 반투명·작은 빛으로 약하게 → 설비를 가리지 않음
     L.poles.clear(); const ph = Math.max(6, sz.y * 0.9);
     [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz2]) => { const front = sz2 > 0, pm = new THREE.MeshBasicMaterial({ color: 0x2a3038, transparent: front, opacity: front ? 0.18 : 1, depthWrite: !front }), hm = new THREE.MeshBasicMaterial({ color: 0xfff0d0, fog: false, transparent: front, opacity: front ? 0.3 : 1 });
-      const x = c.x + sx * sz.x * 0.56, zz = c.z + sz2 * sz.z * 0.62; const p = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, ph, 6), pm); p.position.set(x, ph / 2, zz); L.poles.add(p); const hd = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.35, 0.45), hm); hd.position.set(x - sx * 0.4, ph, zz - sz2 * 0.4); hd.lookAt(c.x, 0, c.z); L.poles.add(hd); L.poles.add(new THREE.Mesh(this._crossGeo([[hd.position.x, hd.position.y, hd.position.z]], front ? 3.5 : 6), this._glowMat(0xffc890, front ? 0.18 : 0.45))); });
+      const x = c.x + sx * sz.x * 0.56, zz = c.z + sz2 * sz.z * 0.62; const p = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, ph, 6), pm); p.position.set(x, ph / 2, zz); L.poles.add(p); const hd = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.35, 0.45), hm); hd.position.set(x - sx * 0.4, ph, zz - sz2 * 0.4); hd.lookAt(c.x, 0, c.z); L.poles.add(hd); L.poles.add(new THREE.Mesh(this._crossGeo([[hd.position.x, hd.position.y, hd.position.z]], front ? 3.5 : 6), this._glowMat(0xe6efff, front ? 0.18 : 0.45))); });
   }
+  _noTint() { return this.touring || this.getAttribute('view') === 'section'; } // 작동/단면 보기: 하늘색 칠 없이 투명도로만 구분
   _dimOthers(sel) { this._dirty = true;
     const dim = !!sel;
-    const set = (o) => { if (!o.isMesh) return; if (!o.userData._m) o.userData._m = { t: o.material.transparent, op: o.material.opacity, dw: o.material.depthWrite }; o.material.transparent = dim ? true : o.userData._m.t; o.material.opacity = dim ? 0.28 : o.userData._m.op; o.material.depthWrite = dim ? false : o.userData._m.dw; /* 흐린 설비가 층 강조선을 가리지 않게 */ o.material.needsUpdate = true; };
+    const mine = new Set(); if (sel && sel.group) sel.group.traverse(o => { if (o.isMesh) mine.add(o); }); // 지금 설명하는 설비는 덜 투명, 나머지는 더 투명
+    const set = (o) => { if (!o.isMesh || Array.isArray(o.material)) return; if (!o.userData._m) { o.material = o.material.clone(); o.userData._m = { t: o.material.transparent, op: o.material.opacity, dw: o.material.depthWrite }; } const on = mine.has(o); o.material.transparent = dim ? true : o.userData._m.t; o.material.opacity = dim ? (on ? 0.88 : 0.1) : o.userData._m.op; o.material.depthWrite = dim ? on : o.userData._m.dw; /* 흐린 설비가 층 강조선을 가리지 않게 */ o.material.needsUpdate = true; };
     if (this.root) this.root.traverse(set);
     if (this.material) this.material.traverse(set);
     if (this.skyline) this.skyline.traverse(set);
@@ -797,7 +856,7 @@ class SteelScene extends HTMLElement {
     this.eqs.forEach(e => {
       const on = e.id === id && e.id !== sel;
       // 3D: 살짝 밝아지는 emissive + 바닥 점선 사각
-      e.group.traverse(o => { if (o.isMesh && o.material.emissive && o.userData.eq) { const selOn = e.id === sel; o.material.emissive.setHex(selOn ? ACCENT : on ? 0x22c7f0 : o.userData.base); o.material.emissiveIntensity = selOn ? 0.35 : on ? 0.22 : (o.userData.base ? (o.userData.baseI ?? 0.6) : 0); } });
+      e.group.traverse(o => { if (o.isMesh && o.material.emissive && o.userData.eq) { const selOn = e.id === sel && !this._noTint(); o.material.emissive.setHex(selOn ? ACCENT : on ? 0x22c7f0 : o.userData.base); o.material.emissiveIntensity = selOn ? 0.35 : on ? 0.22 : (o.userData.base ? (o.userData.baseI ?? 0.6) : 0); } });
       // 라벨: 밑줄·역할 툴팁
       const tip = e.label.querySelector('u');
       e.label.style.fontWeight = on ? '700' : '500';
@@ -814,12 +873,16 @@ class SteelScene extends HTMLElement {
   _select(id, user = false) { this.dispatchEvent(new CustomEvent('steel-select', { detail: { id, user }, bubbles: true, composed: true })); }
   _bindPointer() {
     const el = this.renderer.domElement; let down = null, moved = false;
-    el.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; moved = false; el.setPointerCapture(e.pointerId); el.style.cursor = 'grabbing'; });
+    el.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, pan: e.button === 1 }; moved = false; el.setPointerCapture(e.pointerId); el.style.cursor = e.button === 1 ? 'move' : 'grabbing'; if (e.button === 1) e.preventDefault(); });
+    el.addEventListener('auxclick', e => { if (e.button === 1) e.preventDefault(); });
     el.addEventListener('pointermove', e => {
       if (!down) return; const dx = e.clientX - down.x, dy = e.clientY - down.y;
       if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
-      if (this._2d) { this._pan2d(dx, dy); down = { x: e.clientX, y: e.clientY }; return; }
-      const [y0, y1] = this._yawRange(); this.orbit.yaw = Math.min(y1, Math.max(y0, this.orbit.yaw - dx * 0.005)); this.orbit.pitch = Math.min(1.25, Math.max(0.12, this.orbit.pitch + dy * 0.005)); this._lastOrbitMove = performance.now(); down = { x: e.clientX, y: e.clientY };
+      if (this._2d) { this._pan2d(dx, dy); down = { x: e.clientX, y: e.clientY, pan: down.pan }; return; }
+      if (down.pan) { // 휠(가운데) 버튼 드래그: 화면 평면을 따라 보는 위치(target) 이동
+        this.anim = null; const o = this.orbit, k = o.dist * 0.0012, right = new THREE.Vector3(Math.cos(o.yaw), 0, -Math.sin(o.yaw)), up = new THREE.Vector3(0, 1, 0);
+        o.target.addScaledVector(right, -dx * k).addScaledVector(up, dy * k); o.target.y = Math.max(0, o.target.y); this._lastOrbitMove = performance.now(); this._dirty = true; down = { x: e.clientX, y: e.clientY, pan: true }; return; }
+      const [y0, y1] = this._yawRange(); this.orbit.yaw = Math.min(y1, Math.max(y0, this.orbit.yaw - dx * 0.005)); this.orbit.pitch = Math.min(1.25, Math.max(0.12, this.orbit.pitch + dy * 0.005)); this._lastOrbitMove = performance.now(); down = { x: e.clientX, y: e.clientY, pan: false };
     });
     el.addEventListener('pointermove', e => { if (down || !this.zoneLabels || this.orbit.dist <= 120) return; const r = el.getBoundingClientRect(); const v = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); const zid = this._zoneAt(v); (this.zoneLabels || []).forEach(z => { if (z.id === zid) { z.label.style.borderColor = '#22c7f0'; z.label.style.background = 'rgba(34,199,240,.35)'; } }); if (zid !== this._hoverZone) { this._hoverZone = zid; if (!zid) this._styleZoneLabels(); } el.style.cursor = zid ? 'pointer' : 'grab'; });
     el.addEventListener('pointermove', e => { if (down || !this.root || this.anchorMode || this.orbit.dist > 120) return; const nowT = performance.now(); if (nowT - (this._lastHover || 0) < 90) return; this._lastHover = nowT; const r = el.getBoundingClientRect(); const v = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); this.ray.setFromCamera(v, this.camera); const hit = this.ray.intersectObjects(this.root.children, true)[0]; let id = hit ? hit.object.userData.eq : null; if (hit && !id && this.anchorMode) { let best = null, bd = Infinity; this.eqs.forEach(q => { const d = q.focus.distanceTo(hit.point); if (d < bd) { bd = d; best = q; } }); if (best && bd < best.dist * 0.9) id = best.id; } this._hover(id); el.style.cursor = id ? 'pointer' : 'grab'; });
@@ -868,7 +931,139 @@ class SteelScene extends HTMLElement {
     v.position.copy(e.focus).addScaledVector(dir, back); v.quaternion.copy(this.camera.quaternion);
     const d = cam.distanceTo(v.position), hgt = 2 * d * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) * 2.2; v.scale.set(hgt * this.camera.aspect, hgt, 1);
   }
-  _frame(now) {
+  // 작동 보기 중 설비별 작업 연출(입자·불빛). GLB 교체와 무관하게 설비 위치(e.focus/anchor) 기준으로 붙음
+  _workRecipe(id) {
+    const R = { sinter_plant: [['embers', 0.35], ['glow', 0.3, 0xff6a20], ['glow', 0.9, 0xff7a28]], coke_oven: [['steam', 0.9], ['embers', 0.4], ['glow', 0.4, 0xff5a1a]], hot_stove: [['flow', 0.35], ['glow', 0.5, 0xff8030], ['glow', 1.0, 0xff7020]],
+      blast_furnace: [['steam', 1.0], ['tap', 0.5], ['glow', 0.3, 0xff6a10], ['glow', 0.7, 0xff7a20]], hot_metal_pretreatment: [['swirl', 0.5], ['glow', 0.5, 0xff8a30], ['glow', 0.2, 0xff7a28]], bof_converter: [['sparks', 0.85], ['glow', 0.8, 0xffa040], ['glow', 0.3, 0xff7a28]],
+      secondary_refining: [['bubbles', 0.45], ['glow', 0.5, 0xff9a40]], tundish: [['pour', 0.55], ['glow', 0.3, 0xff9030], ['glow', 0.7, 0xff8030]], cc_mold: [['steam', 0.6], ['glow', 0.5, 0xff8a30], ['glow', 0.15, 0xff6a20]],
+      secondary_cooling: [['spray', 0.85], ['steam', 0.4], ['glow', 0.2, 0xff6a20]], torch_cutter: [['sparksDown', 0.6], ['glow', 0.35, 0xffb050], ['glow', 0.2, 0xff8030]], reheating_furnace: [['embers', 0.6], ['glow', 0.4, 0xff6a20], ['glow', 0.9, 0xff7020]],
+      roughing_mill: [['spray', 0.7], ['glow', 0.25, 0xff7a30], ['glow', 0.6, 0xff8030]], finishing_mill: [['spray', 0.6], ['glow', 0.25, 0xff7a30], ['glow', 0.6, 0xff8a38]], runout_table: [['spray', 0.6], ['steam', 0.25], ['glow', 0.25, 0xff8a38]], coiler: [['swirl', 0.4], ['glow', 0.4, 0xff7a30], ['glow', 0.15, 0xff7a28]] };
+    if (R[id]) return R[id];
+    if (/cool|spray|runout|water/.test(id)) return [['spray', 0.8], ['steam', 0.4]]; if (/cut|torch/.test(id)) return [['sparksDown', 0.5], ['glow', 0.35, 0xffb050]];
+    if (/mill|roll|stand/.test(id)) return [['spray', 0.6], ['glow', 0.3, 0xff7a30]]; if (/convert|bof|lance/.test(id)) return [['sparks', 0.8], ['glow', 0.8, 0xffa040]];
+    if (/coil/.test(id)) return [['swirl', 0.4]]; if (/ladle|refin|rh|lf/.test(id)) return [['bubbles', 0.45], ['glow', 0.5, 0xff9a40]];
+    return [['embers', 0.5], ['glow', 0.4, 0xff7a30]];
+  }
+  _startWork(e) {
+    this._stopWork(); if (!e) return;
+    if (!this._dotTex) { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.4, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); this._dotTex = new THREE.CanvasTexture(c); }
+    const P = { embers: [0xff8a3a, 140, 1.8, 0.45], sparks: [0xffc070, 70, 0.9, 0.12], sparksDown: [0xffd090, 60, 0.8, 0.11], steam: [0x8a96a4, 90, 3.2, 2.2], spray: [0x9fd4ff, 200, 0.8, 0.22],
+      pour: [0xffa040, 120, 0.5, 0.5], bubbles: [0xffc080, 110, 1.4, 0.35], swirl: [0xffa050, 120, 2.0, 0.35], flow: [0xff7040, 160, 1.4, 0.4], tap: [0xffb050, 90, 0.9, 0.13] };
+    const STREAK = { sparks: 1, sparksDown: 1, tap: 1 };
+    const top = Math.max(1, e.anchor.y - 0.6), sc = Math.max(0.6, (e.dist || 16) / 16), g = new THREE.Group(), em = [];
+    this._workRecipe(e.id).forEach(([kind, h, col]) => {
+      const o = new THREE.Vector3(e.focus.x, top * h, e.focus.z);
+      if (kind === 'glow') { const L = new THREE.PointLight(col, 0, 14 * sc, 1.6); L.position.copy(o); g.add(L); em.push({ kind, L, o }); return; }
+      const [c, n, life, size] = P[kind], pos = new Float32Array(n * 3), colr = new Float32Array(n * 3), geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(colr, 3));
+      const mat = new THREE.PointsMaterial({ size: size * sc, map: this._dotTex, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: kind === 'steam' ? 0.5 : 1 });
+      const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; pts.renderOrder = 20; g.add(pts);
+      let ln = null; if (STREAK[kind]) { const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 6), 3)); lg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 6), 3)); ln = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); ln.frustumCulled = false; ln.renderOrder = 21; g.add(ln); }
+      const ps = Array.from({ length: n }, () => ({ age: Math.random() * life, L: life, p: new THREE.Vector3(), v: new THREE.Vector3(), a: 0 }));
+      em.push({ kind, pts, ln, ps, life, o, sc, c: new THREE.Color(c) });
+    });
+    this.scene.add(g); this._work = { g, em, last: performance.now(), e };
+  }
+  _spawn(m, q) {
+    const r = (a) => (Math.random() * 2 - 1) * a, s = m.sc; q.age = 0; q.L = m.ln ? m.life * (0.35 + Math.random() * 0.9) : m.life; q.p.copy(m.o); q.a = Math.random() * Math.PI * 2;
+    switch (m.kind) {
+      case 'embers': q.p.x += r(1.4 * s); q.p.z += r(1.2 * s); q.v.set(r(0.4), 1.2 + Math.random() * 1.8, r(0.4)).multiplyScalar(s); break;
+      case 'sparks': { const th = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 4.5; q.v.set(Math.cos(th) * sp * 0.7, 3 + Math.random() * 5, Math.sin(th) * sp * 0.7).multiplyScalar(s); break; }
+      case 'sparksDown': q.v.set(r(2.2), 0.5 + Math.random() * 2, r(2.2)).multiplyScalar(s); break;
+      case 'tap': q.p.x += 1.2 * s; q.v.set(1.5 + Math.random() * 2.5, 1 + Math.random() * 2.5, r(1.2)).multiplyScalar(s); break;
+      case 'steam': q.p.x += r(0.8 * s); q.p.z += r(0.8 * s); q.v.set(r(0.25) + 0.25, 1 + Math.random(), r(0.25)).multiplyScalar(s); break;
+      case 'spray': q.p.x += r(2.4 * s); q.p.z += r(0.5 * s); q.v.set(r(0.4), -(1 + Math.random() * 2.5), r(1.2)).multiplyScalar(s); break;
+      case 'pour': q.p.x += r(0.12 * s); q.p.z += r(0.12 * s); q.v.set(0, -0.5, 0); break;
+      case 'bubbles': q.p.x += r(0.7 * s); q.p.z += r(0.7 * s); q.v.set(r(0.15), 0.6 + Math.random() * 0.9, r(0.15)).multiplyScalar(s); break;
+      case 'flow': q.p.x -= 1.5 * s; q.p.y += r(0.6 * s); q.p.z += r(0.5 * s); q.v.set(3 + Math.random() * 2, r(0.2), r(0.2)).multiplyScalar(s); break;
+      case 'swirl': q.v.set(0, 0.2 + Math.random() * 0.3, 0); break;
+    }
+  }
+  _workTick(now) {
+    const W = this._work; if (!W) return; if (!this.touring) { this._stopWork(); return; }
+    const dt = Math.min(0.05, (now - W.last) / 1000); W.last = now; this._dirty = true;
+    const G = { sparks: 9, sparksDown: 9, tap: 6, spray: 3, pour: 14 };
+    W.em.forEach(m => {
+      if (m.kind === 'glow') { m.L.intensity = (3.4 + Math.sin(now / 160) * 1.0 + Math.sin(now / 47) * 0.5) * (this.dark ? 1.8 : 1.1); return; }
+      const pa = m.pts.geometry.attributes.position.array, ca = m.pts.geometry.attributes.color.array, g = G[m.kind] || 0;
+      m.ps.forEach((q, i) => {
+        q.age += dt; if (q.age > q.L) this._spawn(m, q);
+        if (m.kind === 'swirl') { q.a += dt * 2.4; const rad = (0.9 + q.age * 0.25) * m.sc; q.p.set(m.o.x + Math.cos(q.a) * rad, m.o.y + q.age * 0.4 * m.sc, m.o.z + Math.sin(q.a) * rad); }
+        else { q.v.y -= g * m.sc * dt; q.p.addScaledVector(q.v, dt); if (q.p.y < 0.05) { q.p.y = 0.05; q.v.y *= -0.25; q.v.x *= 0.6; q.v.z *= 0.6; } }
+        const k = q.age / q.L, f = m.kind === 'steam' ? Math.sin(Math.min(1, k) * Math.PI) : Math.max(0, 1 - k);
+        pa[i * 3] = q.p.x; pa[i * 3 + 1] = q.p.y; pa[i * 3 + 2] = q.p.z;
+        if (m.ln) { const h = this._heat(k), la = m.ln.geometry.attributes.position.array, lc = m.ln.geometry.attributes.color.array, j = i * 6, t = 0.035 + 0.02 * (1 - k); ca[i * 3] = h[0]; ca[i * 3 + 1] = h[1]; ca[i * 3 + 2] = h[2];
+          la[j] = q.p.x; la[j + 1] = q.p.y; la[j + 2] = q.p.z; la[j + 3] = q.p.x - q.v.x * t; la[j + 4] = q.p.y - q.v.y * t; la[j + 5] = q.p.z - q.v.z * t;
+          lc[j] = h[0]; lc[j + 1] = h[1]; lc[j + 2] = h[2]; lc[j + 3] = h[0] * 0.25; lc[j + 4] = h[1] * 0.12; lc[j + 5] = 0; }
+        else { ca[i * 3] = m.c.r * f; ca[i * 3 + 1] = m.c.g * f; ca[i * 3 + 2] = m.c.b * f; }
+      });
+      m.pts.geometry.attributes.position.needsUpdate = true; m.pts.geometry.attributes.color.needsUpdate = true;
+      if (m.ln) { m.ln.geometry.attributes.position.needsUpdate = true; m.ln.geometry.attributes.color.needsUpdate = true; }
+    });
+  }
+  // 불꽃 색: 백열(흰색) → 노랑 → 주황 → 어두운 빨강으로 식으며 사라짐
+  _heat(k) { const f = Math.pow(Math.max(0, 1 - k), 1.4); if (k < 0.12) return [f, f * 0.96, f * 0.82]; if (k < 0.4) return [f, f * 0.78, f * 0.32]; if (k < 0.7) return [f, f * 0.45, f * 0.08]; return [f * 0.8, f * 0.18, 0]; }
+  // 차량형 설비(토페도카)의 GLB 메시를 찾아 소재와 함께 레일 방향으로 이동시킨다
+  _driveVehicle(e, k, dur) {
+    this._resetVehicle(); const model = this.zone?.glb; if (!model) return Promise.resolve();
+    model.updateMatrixWorld(true); const f = e.focus, R0 = Math.max(2.5, e.dist * 0.22), bb = new THREE.Box3(), bc = new THREE.Vector3(), parts = [];
+    const add = (o) => parts.push({ o, p0: o.position.clone(), inv: new THREE.Matrix4().copy(o.parent.matrixWorld).invert() });
+    // 1순위: 이름으로 찾기(GLB에 Torpedo_Car 같은 이름이 있으면 그 메시만), 2순위: 포커스 주변 반경 탐색
+    model.traverse(o => { if (!o.isMesh || o.userData.floor) return; const nm = (o.name + ' ' + (o.parent?.name || '')).toLowerCase(); if (/torpedo|ladle_car|hot_metal_car|_car\b/.test(nm) && !/rail|track/.test(nm)) add(o); });
+    if (!parts.length) model.traverse(o => { if (!o.isMesh || o.userData.floor) return; const nm = (o.name + ' ' + (o.parent?.name || '')).toLowerCase(); if (/rail|track|ground|floor|road|fence|house|building/.test(nm)) return; bb.setFromObject(o); if (bb.isEmpty()) return; bb.getCenter(bc); const bs = bb.getSize(new THREE.Vector3()); if (Math.max(bs.x, bs.z) > R0 * 2.2) return; if (Math.hypot(bc.x - f.x, bc.z - f.z) < R0) add(o); });
+    if (!parts.length) return Promise.resolve();
+    parts.forEach(P => { P.o.matrixAutoUpdate = true; }); // GLB 메시는 행렬 자동 갱신이 꺼져 있어 켜 줘야 이동이 보인다
+    // 이동 방향: 직전 정거장 → 이 정거장 방향(들어온 레일을 그대로 따라감), 없으면 +x
+    const a = this._stopPos(Math.max(0, k - 1)), b = this._stopPos(k); const dir = new THREE.Vector3(b.x - a.x, 0, b.z - a.z); if (dir.lengthSq() < 0.01) dir.set(1, 0, 0); dir.normalize(); dir.set(-dir.z, 0, dir.x); // 진행 방향에서 오른쪽으로 90° 꺾어 레일을 따라감
+    const L = Math.max(6, e.dist * 0.9), m0 = this.material ? this.material.position.clone() : null;
+    return new Promise(resolve => { this._vehicle = { parts, dir, L, t0: performance.now(), dur, m0, resolve }; });
+  }
+  _vehicleTick(now) {
+    const V = this._vehicle; if (!V) return; const k = Math.min(1, (now - V.t0) / V.dur), s = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; const off = V.dir.clone().multiplyScalar(V.L * s);
+    V.parts.forEach(P => { P.o.position.copy(P.p0).add(this._localOffset(P, off)); P.o.updateMatrix(); P.o.updateMatrixWorld(true); });
+    if (this.material && V.m0) this.material.position.copy(V.m0).add(off);
+    this._dirty = true; if (k >= 1) { const r = V.resolve; this._vehicle = { ...V, done: true }; r(); }
+  }
+  _localOffset(P, off) { const m = new THREE.Matrix3().setFromMatrix4(P.inv); return off.clone().applyMatrix3(m); } // 부모 월드 행렬의 회전·스케일만 역적용(이동 제외)
+  _resetVehicle() { const V = this._vehicle; if (!V) return; V.parts.forEach(P => { P.o.position.copy(P.p0); P.o.updateMatrix(); P.o.updateMatrixWorld(true); }); if (!V.done) V.resolve(); this._vehicle = null; this._dirty = true; }
+  _stopWork() { this._resetVehicle(); this._hideMat = false; if (this.material) this.material.visible = true; const W = this._work; if (!W) return; this._work = null; this.scene.remove(W.g); W.g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); this._dirty = true; }
+  // 굴뚝 찾기: 가늘고 긴 수직 원기둥(높이가 지름의 4배 이상, 높이 6 이상) 꼭대기에서 연기 입자가 올라간다
+  _addSmoke(z, model) {
+    if (z.smoke) { z.smoke.parent?.remove(z.smoke); z.smoke = null; }
+    z.root.updateMatrixWorld(true); model.updateMatrixWorld(true); const box = new THREE.Box3(), sz = new THREE.Vector3(), tops = [], v = new THREE.Vector3();
+    // 모델 크기에 따라 기준을 맞춘다(열간압연처럼 작게 축소된 모델의 굴뚝도 잡히게)
+    const MB = new THREE.Box3().setFromObject(model), MS = MB.getSize(new THREE.Vector3()), minH = Math.max(2.2, Math.min(6, MS.y * 0.28)), G = Math.max(0.6, Math.min(1.2, MS.y * 0.06));
+    // 메쉬 하나가 통째로 굴뚝이면 바운딩 박스로, 다른 구조물과 합쳐진 굴뚝은 정점을 xz 격자(1.2 단위)로 묶어 '좁고 높이 솟은 기둥'을 찾는다
+    model.traverse(o => { if (!o.isMesh || o.userData.floor) return; const nm = (o.name + ' ' + (o.parent?.name || '')).toLowerCase(); box.setFromObject(o); box.getSize(sz); const w = Math.max(sz.x, sz.z), h = sz.y;
+      const mw = Math.min(sz.x, sz.z); if (/chimney|stack|flue|funnel|smoke/.test(nm) || (h >= minH && h > w * 4 && w < minH * 0.7) || (h >= minH * 0.85 && mw < minH * 0.35 && w < minH * 1.4 && h > mw * 3 && !/conveyor|belt|rail|pipe|duct|road|fence|stair|ladder|truss/.test(nm))) { const c = box.getCenter(new THREE.Vector3()); tops.push(new THREE.Vector3(c.x, box.max.y, c.z)); return; }
+      if (h < minH * 0.75 || /conveyor|belt|rail|pipe|duct|road|fence|stair|ladder|truss/.test(nm)) return;
+      const pa = o.geometry.attributes.position; if (!pa || pa.count > 60000) return; const cells = new Map();
+      for (let i = 0; i < pa.count; i++) { v.fromBufferAttribute(pa, i).applyMatrix4(o.matrixWorld); const k = Math.floor(v.x / G) + ',' + Math.floor(v.z / G); let c = cells.get(k); if (!c) cells.set(k, c = { lo: v.y, hi: v.y, sx: 0, sz: 0, n: 0 }); if (v.y < c.lo) c.lo = v.y; if (v.y > c.hi) c.hi = v.y; c.sx += v.x; c.sz += v.z; c.n++; }
+      const ys = [...cells.values()].map(c => c.hi).sort((p, q) => p - q), roofYs = ys.filter(y => y < box.max.y - 0.3), med = roofYs.length ? roofYs[Math.floor(roofYs.length * 0.5)] : ys[0] ?? 0;
+      cells.forEach(c => { if (c.hi >= minH * 0.7 && c.hi - c.lo >= minH * 0.85 && c.hi >= box.max.y - 0.6 && c.hi - med >= minH * 0.42 && c.n >= 8) tops.push(new THREE.Vector3(c.sx / c.n, c.hi, c.sz / c.n)); }); });
+    // 서로 가까운 꼭대기는 하나로 합친다
+    tops.sort((p, q) => q.y - p.y); for (let i = tops.length - 1; i > 0; i--) for (let j = 0; j < i; j++) { const dx = tops[i].x - tops[j].x, dz = tops[i].z - tops[j].z; if (Math.hypot(dx, dz) < G * 1.8) { tops.splice(i, 1); break; } } // 높은 꼭대기 우선, 가까운 건 하나로
+    // 합친 뒤: 같은 높이 꼭대기가 3개 이상 좁은 범위에 모이면 구조물 다리(2×2 기둥)로 보고 제외 — 쌍굴뚝(2개)은 남긴다
+    for (let i = 0; i < tops.length; i++) { let same = 0; for (let j = 0; j < tops.length; j++) if (j !== i && Math.abs(tops[j].y - tops[i].y) < 0.15 && Math.hypot(tops[j].x - tops[i].x, tops[j].z - tops[i].z) < G * 6) same++; if (same >= 2) tops[i]._leg = true; }
+    for (let i = tops.length - 1; i >= 0; i--) if (tops[i]._leg) tops.splice(i, 1);
+    if (!tops.length) return;
+    z.root.updateMatrixWorld(true); tops.forEach(t => z.root.worldToLocal(t)); // 공정 묶음(root)이 이동·회전해도 굴뚝을 따라가게 로컬 좌표로 보관
+    const n = 14, cnt = tops.length * n, pos = new Float32Array(cnt * 3), life = new Float32Array(cnt), seed = new Float32Array(cnt);
+    for (let i = 0; i < cnt; i++) { life[i] = Math.random(); seed[i] = Math.random(); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const cv = document.createElement('canvas'); cv.width = cv.height = 64; const cx = cv.getContext('2d'), gr = cx.createRadialGradient(32, 32, 2, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,.55)'); gr.addColorStop(0.5, 'rgba(255,255,255,.18)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); cx.fillStyle = gr; cx.fillRect(0, 0, 64, 64);
+    const SK = Math.max(0.45, Math.min(1, minH / 6)); const mat = new THREE.PointsMaterial({ size: 2.4 * SK, map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false, opacity: 0.55, color: 0xc9d2dc, sizeAttenuation: true });
+    const pts = new THREE.Points(geo, mat); pts.name = 'SMOKE'; pts.frustumCulled = false; pts.renderOrder = 5; pts.userData = { tops, n, life, seed, last: 0, sk: SK };
+    z.smoke = pts; z.root.add(pts); this._smokeTick(pts, 0, true);
+  }
+  _smokeTick(pts, now, init) {
+    const U = pts.userData, dt = init ? 0 : Math.min(0.05, (now - U.last) / 1000); U.last = now; const p = pts.geometry.attributes.position.array;
+    for (let t = 0; t < U.tops.length; t++) { const T = U.tops[t]; for (let k = 0; k < U.n; k++) { const i = t * U.n + k; let L = U.life[i] + dt * 0.22; if (L > 1) L -= 1; U.life[i] = L; const K = U.sk || 1, s = U.seed[i], drift = L * L * 1.2 * K, wob = Math.sin(L * 9 + s * 20) * 0.25 * L * K;
+      // 굴뚝 바로 위에서 거의 수직으로 올라가고, 살짝 왼쪽(-x)으로만 흘러간다
+      p[i * 3] = T.x - 0.4 * K + (s - 0.5) * 0.4 * K - drift * 0.6 + wob; p[i * 3 + 1] = T.y + 0.2 * K + L * 6.5 * K; p[i * 3 + 2] = T.z + (Math.sin(s * 40) * 0.2 * K) + drift * 0.25; } }
+    pts.geometry.attributes.position.needsUpdate = true; pts.material.opacity = this.dark ? 0.42 : 0.55; this._dirty = true;
+  }
+  _frame(now) { this._workTick(now); if (this.material && this.material.visible && this.material.userData.tick && (this.touring || this.playing || this.move)) { this.material.updateMatrixWorld(); this.material.userData.tick(now); this._dirty = true; } if (this._vehicle && !this._vehicle.done) this._vehicleTick(now); if (this.zones) for (const id in this.zones) { const z = this.zones[id]; if (z.smoke && z.root.visible) { z.smoke.visible = !this._2d; if (z.smoke.visible) this._smokeTick(z.smoke, now); } else if (z.smoke) z.smoke.visible = false; }
     if (this._navG) { const vis = !!this.zone && !this._2d && this.orbit.dist <= 120 && !this.getAttribute('selected') && !this.touring && !this.playing; if (this._navG.visible !== vis) { this._navG.visible = vis; this._dirty = true; }
       if (vis && now - (this._navT || 0) > 50) { this._navT = now; this._placeNav(); const k = (now / 1000) % 1.4 / 1.4; this._navG.children.forEach(a => { const d = a.userData.dir, [m1, m2] = a.userData.m; m1.position.x = d * k * 0.9; m2.position.x = d * (k * 0.9 - 1.8); m2.material.opacity = 0.2 + 0.4 * (1 - k); }); this._dirty = true; } }
     if (this._skyAnim && !this.dark && !document.hidden && this.orbit.dist > 70) { const st = this._skyAnim; if (!st.last) st.last = now; if (now - st.last > 50) { this._skyStep(st, Math.min(0.2, (now - st.last) / 1000)); st.last = now; this._dirty = true; } }
@@ -891,7 +1086,7 @@ class SteelScene extends HTMLElement {
       if (mv.arc && !this.rail) pos.y += Math.sin(e * Math.PI) * mv.arc;
       if (this._tourTube) { const tt = this._tourTube.userData.total; this._tourTube.geometry.setDrawRange(0, Math.floor(tt * ee / 6) * 6); }
       this._setMaterial(k > 0.5 ? mv.state : mv.prevState, pos);
-      if (this.material) { if (this.rail) this._orient(dir); else this.material.rotation.y += 0.02; }
+      if (this.material) { this.material.traverse(o => { if (o.isMesh || o.isPoints) o.visible = !!(this.zone && this.zone.root.visible); }); if (this.rail) this._orient(dir); else this.material.rotation.y += 0.02; }
       this.t = (mv.from + ee) / (this._nStops() - 1);
       if (now - (this.lastEmit || 0) > 120 || k >= 1) { this.lastEmit = now; this._emitProgress(); }
       if (k >= 1) { this.move = null; mv.resolve(); }
@@ -922,6 +1117,30 @@ class SteelScene extends HTMLElement {
     if (this.ring.visible) this.ring.rotation.z += 0.01;
     if (this.hoverRing && this.hoverRing.visible) { this.hoverRing.rotation.z += 0.02; this._dirty = true; }
   }
+  // [UI 시안] 자동 시연 말풍선: 지금 설명 중인 설비/층 옆에 붙고, 같은 색 지시선으로 연결
+  _tourCallout() {
+    const st = this.touring ? this.tourStep : null;
+    if (!this._tc) { const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); Object.assign(svg.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', pointerEvents: 'none', overflow: 'visible', zIndex: '6' });
+      svg.innerHTML = '<line stroke-width="1.5" stroke-dasharray="3 3"></line><circle r="5" fill="none" stroke-width="2"></circle><circle r="2.2"></circle>';
+      const card = document.createElement('div'); Object.assign(card.style, { position: 'absolute', left: '0', top: '0', width: '300px', display: 'flex', flexDirection: 'column', gap: '5px', padding: '12px 14px', background: 'rgba(12,17,24,.92)', border: '1px solid', borderRadius: '8px', color: '#eef2f6', fontFamily: '"IBM Plex Sans KR", sans-serif', pointerEvents: 'none', zIndex: '7', transition: 'opacity .25s, border-color .25s', backdropFilter: 'blur(8px)', willChange: 'transform' });
+      card.innerHTML = '<div style="display:flex;justify-content:space-between;gap:10px"><em style="font-style:normal;font-size:11px;font-weight:700;letter-spacing:.08em"></em><code style="font-family:IBM Plex Mono,monospace;font-size:11px;color:#8c98a8"></code></div><b style="font-size:16px;font-weight:700;line-height:1.3"></b><span style="font-size:13px;line-height:1.55;color:#cfd7e1"></span>';
+      this.labels.append(svg, card); this._tc = { svg, card, key: null }; }
+    const T = this._tc; if (!st) { if (T.card.style.opacity !== '0') { T.card.style.opacity = '0'; T.svg.style.opacity = '0'; } T.key = null; return; }
+    let pos = null, col = '#22c7f0'; const e = st.eq ? this.eqs.find(q => q.id === st.eq) : null, it = st.layer != null ? this.layerItems?.[st.layer] : null;
+    if (it) { pos = it.mid; col = typeof it.L.color === 'string' ? it.L.color : '#' + new THREE.Color(it.L.color).getHexString(); } else if (e) pos = e.anchor; else if (this.material) pos = this.material.position;
+    const key = st.i + '|' + st.layer; if (T.key !== key) { T.key = key; T.card.querySelector('em').textContent = '자동 시연'; T.card.querySelector('code').textContent = st.i + ' / ' + st.total; T.card.querySelector('b').textContent = st.title || ''; T.card.querySelector('span').textContent = st.text || ''; }
+    T.card.style.borderColor = col; T.card.querySelector('em').style.color = col; T.card.style.boxShadow = '0 0 0 1px ' + col + '22, 0 10px 30px rgba(0,0,0,.35)';
+    const [ln, ring, dot] = T.svg.children; ln.setAttribute('stroke', col); ring.setAttribute('stroke', col); dot.setAttribute('fill', col);
+    const w = this.clientWidth, h = this.clientHeight; if (!pos) { T.card.style.opacity = '0'; T.svg.style.opacity = '0'; return; }
+    const v = pos.clone().project(this.camera); if (v.z > 1) { T.card.style.opacity = '0'; T.svg.style.opacity = '0'; return; }
+    const ax = (v.x + 1) / 2 * w, ay = (1 - v.y) / 2 * h, cw = 300, ch = T.card.offsetHeight || 100, m = 16;
+    const right = ax + 70 + cw < w - m; let cx = right ? ax + 70 : ax - 70 - cw, cy = ay - ch - 50; if (cy < 70) cy = ay + 50;
+    cx = Math.max(m, Math.min(w - cw - m, cx)); cy = Math.max(m, Math.min(h - ch - 90, cy));
+    T.card.style.transform = 'translate(' + Math.round(cx) + 'px,' + Math.round(cy) + 'px)'; T.card.style.opacity = '1'; T.svg.style.opacity = '1';
+    const ex = Math.max(cx, Math.min(cx + cw, ax)), ey = Math.max(cy, Math.min(cy + ch, ay)); const bx = ex === ax && ey === ay ? cx : ex;
+    ln.setAttribute('x1', ax); ln.setAttribute('y1', ay); ln.setAttribute('x2', bx); ln.setAttribute('y2', ey);
+    ring.setAttribute('cx', ax); ring.setAttribute('cy', ay); dot.setAttribute('cx', ax); dot.setAttribute('cy', ay);
+  }
   _emitProgress() { this.dispatchEvent(new CustomEvent('steel-progress', { detail: { t: this.t || 0, label: (this.states && this.states[this.matIdx]?.label) || '', playing: !!this.playing || !!this.touring, touring: !!this.touring, step: this.tourStep || null }, bubbles: true, composed: true })); }
   _emitTour(step) { this.tourStep = step; this.dispatchEvent(new CustomEvent('steel-tour', { detail: step, bubbles: true, composed: true })); this._emitProgress(); }
   _moveMaterial(from, to, dur, state, arc) { return new Promise(resolve => { this.move = { from, to, t0: performance.now(), dur, state, prevState: this.matIdx < 0 ? 0 : this.matIdx, arc, resolve }; }); }
@@ -948,20 +1167,20 @@ class SteelScene extends HTMLElement {
     let step = 0;
     this._select(null); this._setMaterial(0, this.path[0]); this.t = 0;
     if (startAt > 0) { step = 1 + startAt; this.matIdx = -1; this._setMaterial(startAt, this._stopPos ? this._stopPos(startAt) : this.path[startAt]); this.t = startAt / ((this._nStops ? this._nStops() : this.path.length) - 1); }
-    else if (only == null) { this._emitTour({ i: ++step, total, title: this.process.name + ' 한눈에 보기', text: '소재가 처음부터 끝까지 이렇게 흘러가요. 다음에 설비를 하나씩 확대해 볼게요.', eq: null });
-      this.reset(); this._flowTube(true); await this._wait(1200 * sp); if (token !== this._tourId) return this._flowTube(false);
-      await this._moveMaterial(0, this._nStops() - 1, 6000 * sp, this.states.length - 1, 0); this._flowTube(false); if (token !== this._tourId) return;
-      await this._wait(700 * sp); if (token !== this._tourId) return; this.matIdx = -1; this._setMaterial(0, this.path[0]); this.t = 0; }
+    else if (only == null) step = 1; // 개요 단계 없이 바로 첫 설비로
     if (only != null) { const e = this.eqs[only]; step = 0; this.matIdx = -1; this._setMaterial(only, this._stopPos(only));
       this._emitTour({ i: ++step, total, title: e.data.name + ' 작동 보기', text: '먼저 설비 전체 모습을 보고, 소재가 지나가는 순서대로 안쪽을 확대해요.', eq: e.id });
-      this._select(e.id); this._animateTo({ yaw: -0.55, pitch: 0.42, dist: e.dist * 1.8, target: e.focus.clone() }); await this._wait(2600 * sp); if (token !== this._tourId) return; }
+      this._select(e.id); this._animateTo({ yaw: -0.55, pitch: 0.42, dist: e.dist * 1.8, target: e.focus.clone() }); this._startWork(e); await this._wait(2600 * sp); if (token !== this._tourId) return; }
     const kEnd = only != null ? only + 1 : this.eqs.length;
     for (let k = only != null ? only : startAt; k < kEnd; k++) {
       const e = this.eqs[k];
-      this._emitTour({ i: ++step, total, title: `${String(k + 1).padStart(2, '0')} ${e.data.name}`, text: e.data.role, eq: e.id });
-      this._select(e.id); this.focus(e.id);
-      await this._moveMaterial(k, k + 1, 3200 * sp, k + 1, 1.5); if (token !== this._tourId) return;
+      // 소재가 레일을 따라 설비로 들어간 뒤 → 설비가 작동하고 설명 시작
+      this._select(e.id); this.focus(e.id); this._hideMat = false;
+      await this._moveMaterial(k, k + 1, 2400 * sp, k + 1, 0); if (token !== this._tourId) return;
+      if (this._isVehicle(e) && this.material) { this._hideMat = true; this.material.visible = false; this._dirty = true; } // 토페도카: 쇳물은 차 안에 실린 것으로 보고 덩어리는 숨김
+      this._emitTour({ i: ++step, total, title: `${String(k + 1).padStart(2, '0')} ${e.data.name}`, text: e.data.role, eq: e.id }); this._startWork(e);
       await this._wait(3000 * sp); if (token !== this._tourId) return;
+      if (/torpedo|_car$/.test(e.id)) { await this._driveVehicle(e, k, 3600 * sp); if (token !== this._tourId) return; } // 토페도카: 쇳물을 싣고 레일을 따라 이동
       if (e.interior && e.data.interior && this.layerItems?.length) {
         for (let L = 0; L < this.layerItems.length; L++) {
           const it = this.layerItems[L];
@@ -975,6 +1194,7 @@ class SteelScene extends HTMLElement {
       }
     }
     if (only != null) { const e = this.eqs[only]; this._emitTour({ i: ++step, total, title: e.data.name + ' 작동 보기 완료', text: e.data.materialOut?.label || e.data.output, eq: e.id }); this.focus(e.id); await this._wait(1800 * sp); this._select(e.id); return true; }
+    this._stopWork();
     this._emitTour({ i: ++step, total, title: '완료', text: this.states[this.states.length - 1].label + ' → 다음 공정으로', eq: null });
     this._select(null); this.reset();
     await this._moveMaterial(this.eqs.length, this.eqs.length + 1, 3200 * sp, this.states.length - 1, 0); if (token !== this._tourId) return;
@@ -1061,7 +1281,7 @@ class SteelScene extends HTMLElement {
   setNavWidth(px) { this.labels.dataset.navWidth = String(px); }
   // 공개 API
   play(speed = 1) { this.playing = true; this.t = 0; this.playT0 = performance.now(); this.playDur = (this._nStops() - 1) * 2600 / speed; this._setMaterial(0, this.path[0]); this._emitProgress(); return true; }
-  stop() { if (this.touring) return this.stopTour(); this.playing = false; this.t = 0; this.matIdx = -1; this._emitProgress(); }
+  stop() { if (this.touring) return this.stopTour(); this.playing = false; this.t = 0; this.matIdx = -1; if (this.material) this.material.traverse(o => { if (o.isMesh || o.isPoints) o.visible = false; }); this._emitProgress(); }
   toggle(speed) { (this.playing || this.touring) ? this.stop() : this.tour(speed); }
   focus(id) { const e = this.eqs.find(q => q.id === id); if (!e) return false; if (this._2d) { this._focus2d(e); return true; } const inner = !!e.interior && (this.getAttribute('view') === 'section' || this.touring); this._animateTo({ yaw: inner ? -0.25 : -0.5, pitch: inner ? 0.12 : 0.38, dist: inner ? e.dist * 0.75 : e.dist * 1.25, target: inner ? new THREE.Vector3(e.interior.cx, (e.interior.y0 + e.interior.y1) / 2, e.interior.cz) : e.focus.clone() }); return true; }
   // 왼쪽 네비(~260px)를 피해 남은 화면 중앙에 target이 오도록 카메라 target을 보정
@@ -1069,6 +1289,13 @@ class SteelScene extends HTMLElement {
   _overviewPose() { const a = this.camera.aspect || 1.6, dist = Math.max(130, Math.min(280, 272 / a)); return this._navShift({ yaw: -0.06, pitch: 0.56, dist, target: new THREE.Vector3(0, 0, 3) }); }
   overview() { this._showInterior(null); this._dimOthers?.(null); if (this.eqs) this.eqs.forEach(e => { e.label.style.display = 'none'; }); this._animateTo(this._overviewPose()); }
   reset() { if (this.eqs && this.zone?.root.visible) this.eqs.forEach(e => { e.label.style.display = 'flex'; }); this._animateTo(this._navShift({ yaw: this.home.yaw, pitch: this.home.pitch, dist: this.home.dist, target: new THREE.Vector3().fromArray(this.home.target) })); }
-  _animateTo(to) { const d = this.orbit.target.distanceTo(to.target); this.anim = { t0: performance.now(), dur: Math.min(1800, 700 + d * 6), from: { yaw: this.orbit.yaw, pitch: this.orbit.pitch, dist: this.orbit.dist, target: this.orbit.target.clone() }, to }; }
+  // 인트로: 아주 높은 하늘(안개 속)에서 전체 공정 시점으로 천천히 내려오며 줌인
+  // 인트로: 최대로 줌아웃(하늘 높이) → 안개가 걷힌 뒤 전체 공정으로 줌인. 멀리서도 보이게 안개 거리를 카메라 거리만큼 밀어 둠
+  introFly(hold = false, dur = 4800) { const to = this._overviewPose(); Object.assign(this.orbit, { yaw: to.yaw, pitch: to.pitch, dist: to.dist * 1.45 }); this.orbit.target.copy(to.target); this._dirty = true;
+    const f = this.scene.fog; if (f && !this._fogBase) this._fogBase = { n: f.near, f: f.far };
+    const lab = (o) => { (this.zoneLabels || []).forEach(z => { z.label.style.opacity = o; z.label.style.pointerEvents = o < 0.5 ? 'none' : ''; }); (this.zoneArrows || []).forEach(a => { if (a.el) a.el.style.opacity = o; }); };
+    const tick = () => { const fg = this.scene.fog, b = this._fogBase; const r = this.orbit.dist / to.dist; lab(r > 1.6 ? 0 : Math.max(0, Math.min(1, (1.6 - r) / 0.5))); if (!fg || !b) { if (!hold && r > 1.02) this._fogRaf = requestAnimationFrame(tick); else if (!hold) lab(1); return; } const ex = Math.max(0, this.orbit.dist - to.dist); fg.near = b.n + ex; fg.far = b.f + ex * 1.15; this._dirty = true; if (hold) return; if (ex > 0.5) this._fogRaf = requestAnimationFrame(tick); else { fg.near = b.n; fg.far = b.f; this._fogBase = null; lab(1); } };
+    cancelAnimationFrame(this._fogRaf); if (hold) { this.anim = null; tick(); } else { this._animateTo(to, dur); tick(); } }
+  _animateTo(to, durOverride) { const d = this.orbit.target.distanceTo(to.target); this.anim = { t0: performance.now(), dur: durOverride || Math.min(1800, 700 + d * 6), from: { yaw: this.orbit.yaw, pitch: this.orbit.pitch, dist: this.orbit.dist, target: this.orbit.target.clone() }, to }; }
 }
 customElements.define('steel-scene', SteelScene);
