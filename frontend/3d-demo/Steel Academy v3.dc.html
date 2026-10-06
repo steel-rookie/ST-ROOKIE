@@ -128,7 +128,8 @@
     </nav>
     <div style="flex:1;"></div>
     <div style="display:flex;gap:8px;align-items:center;position:relative;">
-      <button onClick="{{ toggleTutor }}" style="height:42px;padding:0 16px;display:flex;align-items:center;gap:9px;border-radius:9px;border:1px solid {{ topBtn.tutor.border }};background:{{ topBtn.tutor.bg }};color:var(--text);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;" style-hover="border-color:var(--accent);"><img src="{{ ic.bot }}" width="20" height="20" alt=""><span style="display:{{ L.topLbl }};">AI 튜터</span><sc-if value="{{ aiDown }}" hint-placeholder-val="{{ false }}"><span title="AI 튜터 연결 안 됨" style="width:8px;height:8px;border-radius:4px;background:#e5484d;box-shadow:0 0 6px #e5484d;"></span></sc-if><sc-if value="{{ aiUp }}" hint-placeholder-val="{{ true }}"><span title="AI 튜터 연결됨" style="width:8px;height:8px;border-radius:4px;background:#30c46b;box-shadow:0 0 6px #30c46b;"></span></sc-if></button>
+      <button onClick="{{ openLearningTutor }}" title="학습 튜터" aria-label="학습 튜터 열기" style="height:42px;padding:0 14px;display:flex;align-items:center;gap:8px;border-radius:9px;border:1px solid var(--line2);background:var(--chrome3);color:var(--text);cursor:pointer;"><img src="{{ ic.book }}" width="20" height="20" alt=""><span style="display:{{ L.topLbl }};">학습 튜터</span></button>
+      <button onClick="{{ openFreeSearch }}" title="자유 질문" aria-label="자유 질문 열기" style="height:42px;padding:0 14px;display:flex;align-items:center;gap:8px;border-radius:9px;border:1px solid var(--line2);background:var(--chrome3);color:var(--text);cursor:pointer;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="6"></circle><path d="m15 15 6 6"></path></svg><span style="display:{{ L.topLbl }};">자유 질문</span></button>
       <button onClick="{{ toggleTheme }}" title="{{ dn.tip }}" aria-label="{{ dn.tip }}" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1px solid var(--line2);background:var(--chrome3);cursor:pointer;" style-hover="border-color:var(--accent);"><img src="{{ dn.icon }}" width="19" height="19" alt=""></button>
       <button onClick="{{ toggleSettings }}" style="height:42px;padding:0 16px;display:flex;align-items:center;gap:9px;border-radius:9px;border:1px solid {{ topBtn.set.border }};background:{{ topBtn.set.bg }};color:var(--text);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;" style-hover="border-color:var(--accent);"><img src="{{ ic.user }}" width="19" height="19" alt=""><span style="display:{{ L.topLbl }};">마이페이지</span></button>
       <sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
@@ -254,7 +255,7 @@
         </sc-for>
       </div>
       <div style="display:flex;gap:8px;padding:14px 26px 18px;border-top:1px solid var(--line);">
-        <button onClick="{{ askTutorAboutEq }}" style="flex:1;height:42px;border-radius:9px;border:1px solid var(--line2);background:var(--chrome3);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;" style-hover="border-color:var(--accent);"><img src="{{ ic.bot }}" width="18" height="18" alt="">튜터에게 묻기</button>
+        <button onClick="{{ askTutorAboutEq }}" style="flex:1;height:42px;border-radius:9px;border:1px solid var(--line2);background:var(--chrome3);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;" style-hover="border-color:var(--accent);"><img src="{{ ic.bot }}" width="18" height="18" alt="">이 설비에 대해 질문</button>
         <sc-if value="{{ eqHasSection }}" hint-placeholder-val="{{ false }}">
           <button onClick="{{ openSection }}" style="flex:1;height:42px;border-radius:9px;border:none;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;cursor:pointer;" style-hover="filter:brightness(1.1);">단면 보기</button>
         </sc-if>
@@ -356,9 +357,11 @@
     <!-- AI 튜터 -->
     <sc-if value="{{ panel.tutor }}" hint-placeholder-val="{{ false }}">
       <div style="display:flex;align-items:flex-start;gap:10px;padding:24px 22px 14px;">
-        <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><span style="font-family:'Noto Sans KR',sans-serif;font-size:26px;font-weight:900;">AI 튜터</span><span style="font-size:15px;color:#c3ccd7;">질문 대상 · {{ ctxLabel }}</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><span style="font-family:'Noto Sans KR',sans-serif;font-size:26px;font-weight:900;">{{ agentTitle }}</span><span style="font-size:15px;color:#c3ccd7;">질문 대상 · {{ ctxLabel }}</span></div>
         <button onClick="{{ toggleTutor }}" title="닫기" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;border-radius:8px;background:transparent;cursor:pointer;" style-hover="background:var(--chrome3);"><img src="{{ ic.close }}" width="18" height="18" alt=""></button>
       </div>
+      <sc-if value="{{ cpIsLearningTab }}">
+      <sc-if value="{{ cpLearningLocked }}"><p role="status" style="padding:0 22px;color:var(--warn);">{{ cpLearningLockedText }}</p></sc-if>
       <div ref="{{ chatRef }}" style="flex:1;min-height:0;overflow-y:auto;padding:4px 22px 14px;display:flex;flex-direction:column;gap:12px;">
         <sc-if value="{{ aiDown }}" hint-placeholder-val="{{ false }}">
           <div style="display:flex;gap:14px;align-items:center;padding:16px 18px;border-radius:10px;background:rgba(245,177,61,.1);border:1px solid rgba(245,177,61,.55);">
@@ -406,9 +409,62 @@
         </div>
       </div>
       <form onSubmit="{{ send }}" style="display:flex;gap:8px;padding:14px 22px 18px;border-top:1px solid var(--line);">
-        <input value="{{ input }}" onChange="{{ onInput }}" placeholder="{{ inputPh }}" style="flex:1;min-width:0;height:46px;background:var(--chrome);color:var(--text);border:1px solid var(--line2);border-radius:9px;padding:0 14px;font-size:14px;outline:none;" style-focus="border-color:var(--accent);box-shadow:0 0 0 3px rgba(34,199,240,.2);">
-        <button type="submit" style="height:46px;padding:0 18px;border-radius:9px;border:none;background:{{ sendBg }};color:{{ sendColor }};font-size:14px;font-weight:700;cursor:pointer;flex:none;" style-hover="filter:brightness(1.1);">전송</button>
+        <input value="{{ input }}" onChange="{{ onInput }}" placeholder="{{ inputPh }}" disabled="{{ cpLearningLocked }}" style="flex:1;min-width:0;height:46px;background:var(--chrome);color:var(--text);border:1px solid var(--line2);border-radius:9px;padding:0 14px;font-size:14px;outline:none;" style-focus="border-color:var(--accent);box-shadow:0 0 0 3px rgba(34,199,240,.2);">
+        <button type="submit" disabled="{{ cpLearningLocked }}" style="height:46px;padding:0 18px;border-radius:9px;border:none;background:{{ sendBg }};color:{{ sendColor }};font-size:14px;font-weight:700;cursor:pointer;flex:none;" style-hover="filter:brightness(1.1);">전송</button>
       </form>
+      </sc-if>
+      <!-- 이해도 확인(체크포인트). 값은 checkpoint-chat.js의 vals() -->
+      <sc-if value="{{ cpIsCheckpointTab }}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{ !cpShowEntry }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:8px;padding:0 22px 12px;border-bottom:1px solid var(--line);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span style="font-size:16px;font-weight:700;">{{ cpTitle }}</span><span style="flex:none;padding:3px 10px;border-radius:999px;border:1px solid {{ cpStageColor }};color:{{ cpStageColor }};font-size:12px;font-weight:700;white-space:nowrap;">{{ cpStageLabel }}</span></div>
+          <div style="display:flex;align-items:center;gap:8px;"><span style="flex:1;min-width:0;font-size:13px;color:#c3ccd7;">{{ cpConceptName }}</span><sc-for list="{{ cpDots }}" as="d" hint-placeholder-count="0"><span style="width:9px;height:9px;border-radius:50%;background:{{ d.color }};"></span></sc-for></div>
+        </div>
+      </sc-if>
+      <div ref="{{ chatRef }}" style="flex:1;min-height:0;overflow-y:auto;padding:14px 22px;display:flex;flex-direction:column;gap:12px;">
+        <sc-if value="{{ cpShowEntry }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:10px;border:1px solid var(--line2);background:var(--chrome3);">
+            <span style="font-size:13px;color:#c3ccd7;">{{ cpTabCheckpointLabel }} · {{ cpEntrySectionName }}</span>
+            <span style="font-size:16px;font-weight:700;line-height:1.5;">{{ cpEntryStatus }}</span>
+            <sc-if value="{{ cpNeedsLogin }}" hint-placeholder-val="{{ false }}"><a href="{{ cpLoginUrl }}" style="align-self:flex-start;height:40px;padding:0 18px;display:flex;align-items:center;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;text-decoration:none;">{{ cpLoginLabel }}</a></sc-if>
+            <sc-if value="{{ cpShowStartButton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpStart }}" disabled="{{ !cpCanStart }}" style="align-self:flex-start;height:40px;padding:0 22px;border:none;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;cursor:pointer;opacity:{{ cpStartOpacity }};" style-hover="filter:brightness(1.1);">{{ cpStartLabel }}</button></sc-if>
+          </div>
+        </sc-if>
+        <sc-for list="{{ cpMessages }}" as="m" hint-placeholder-count="0">
+          <sc-if value="{{ m.isUser }}" hint-placeholder-val="{{ false }}"><div style="align-self:flex-end;max-width:85%;display:flex;align-items:center;gap:10px;background:var(--chrome4);color:var(--text);padding:11px 14px;border-radius:12px 12px 4px 12px;font-size:14px;line-height:1.5;"><img src="{{ ic.user }}" width="18" height="18" alt="" style="flex:none;opacity:.85;">{{ m.text }}</div></sc-if>
+          <sc-if value="{{ m.isTutor }}" hint-placeholder-val="{{ false }}"><div style="align-self:flex-start;max-width:94%;display:flex;flex-direction:column;gap:4px;background:var(--chrome3);padding:11px 14px;border-left:3px solid {{ m.color }};border-radius:4px 12px 12px 4px;font-size:14px;line-height:1.65;text-wrap:pretty;"><span style="font-size:12px;font-weight:700;color:{{ m.color }};">{{ m.label }}</span><span>{{ m.text }}</span></div></sc-if>
+        </sc-for>
+        <sc-if value="{{ cpPending }}" hint-placeholder-val="{{ false }}">
+          <div style="align-self:flex-start;display:flex;gap:4px;padding:12px 14px;background:var(--chrome3);border-radius:10px;"><span style="width:6px;height:6px;border-radius:3px;background:var(--muted);animation:blink 1s infinite;"></span><span style="width:6px;height:6px;border-radius:3px;background:var(--muted);animation:blink 1s .2s infinite;"></span><span style="width:6px;height:6px;border-radius:3px;background:var(--muted);animation:blink 1s .4s infinite;"></span></div>
+        </sc-if>
+        <sc-if value="{{ cpShowResult }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:14px;padding:16px;border-radius:10px;border:1px solid var(--line2);background:var(--chrome);">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;"><span style="font-size:14px;color:#c3ccd7;">{{ cpResult.understandingLabel }}</span><span style="font-size:26px;font-weight:800;">{{ cpResult.percent }}%</span></div>
+            <div style="position:relative;height:10px;margin-bottom:16px;border-radius:5px;background:var(--chrome3);"><div style="height:100%;width:{{ cpResult.percent }}%;border-radius:5px;background:{{ cpResult.color }};"></div><div style="position:absolute;top:-4px;bottom:-4px;left:{{ cpResult.thresholdPercent }}%;width:2px;background:var(--text);"><span style="position:absolute;top:18px;left:-26px;width:54px;text-align:center;font-size:11px;color:#c3ccd7;">{{ cpResult.thresholdLabel }}</span></div></div>
+            <span style="padding:9px 12px;border-radius:9px;border:1px solid {{ cpResult.color }};color:{{ cpResult.color }};font-size:14px;font-weight:700;">{{ cpResult.passLabel }}</span>
+            <sc-for list="{{ cpResult.bars }}" as="b" hint-placeholder-count="0">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 110px;align-items:center;gap:10px;"><div style="display:flex;flex-direction:column;min-width:0;"><span style="font-size:14px;font-weight:600;">{{ b.name }}</span><span style="font-size:12px;color:#c3ccd7;">{{ b.label }}</span></div><div style="height:8px;border-radius:4px;background:var(--chrome3);overflow:hidden;"><div style="height:100%;width:{{ b.widthPercent }}%;background:{{ b.color }};"></div></div></div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ cpHasNotice }}" hint-placeholder-val="{{ false }}"><div style="padding:10px 14px;border-radius:9px;background:rgba(255,90,90,.12);border:1px solid rgba(255,90,90,.4);color:#ffc9c9;font-size:13px;line-height:1.55;">{{ cpNotice }}</div></sc-if>
+      </div>
+      <sc-if value="{{ cpShowRunning }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:10px;padding:14px 22px 18px;border-top:1px solid var(--line);">
+          <div style="display:flex;gap:8px;">
+            <sc-if value="{{ cpShowReadyButton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpReady }}" style="height:36px;padding:0 16px;border-radius:9px;border:1px solid var(--accent);background:transparent;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;" style-hover="background:rgba(34,199,240,.12);">{{ cpReadyLabel }}</button></sc-if>
+            <sc-if value="{{ cpShowRetryButton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpRetry }}" style="height:36px;padding:0 16px;display:flex;align-items:center;gap:6px;border-radius:9px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;" style-hover="border-color:var(--accent);"><img src="{{ ic.refreshSm }}" width="14" height="14" alt="">{{ cpRetryLabel }}</button></sc-if>
+          </div>
+          <form onSubmit="{{ onCpSend }}" style="display:flex;gap:8px;opacity:{{ cpInputOpacity }};">
+            <input value="{{ cpInput }}" onChange="{{ onCpInput }}" disabled="{{ cpInputDisabled }}" placeholder="{{ cpPlaceholder }}" style="flex:1;min-width:0;height:46px;background:var(--chrome);color:var(--text);border:1px solid var(--line2);border-radius:9px;padding:0 14px;font-size:14px;outline:none;" style-focus="border-color:var(--accent);box-shadow:0 0 0 3px rgba(34,199,240,.2);">
+            <button type="submit" disabled="{{ cpInputDisabled }}" style="height:46px;padding:0 18px;border-radius:9px;border:none;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;cursor:pointer;flex:none;" style-hover="filter:brightness(1.1);">{{ cpSendLabel }}</button>
+          </form>
+        </div>
+      </sc-if>
+      <sc-if value="{{ cpShowResult }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;justify-content:flex-end;padding:14px 22px 18px;border-top:1px solid var(--line);"><button onClick="{{ onCpClose }}" style="height:40px;padding:0 18px;border-radius:9px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:14px;font-weight:700;cursor:pointer;" style-hover="border-color:var(--accent);">{{ cpCloseLabel }}</button></div>
+      </sc-if>
+      </sc-if>
     </sc-if>
 
     <!-- 개발자 -->
@@ -518,7 +574,7 @@ const reaction = (fml) => { if (!fml || !fml.includes('→')) return null; const
     : { text: x.text, pad: '5px 10px', bg: 'rgba(255,154,46,.2)', border: '1px solid #ff9a2e', color: '#ffd5a6', fs: '13px', shadow: '0 0 14px rgba(255,154,46,.45)', anim: `fuse .6s ease-out ${x.d.toFixed(2)}s both` }); };
 
 class Component extends DCLogic {
-  state = { ready: false, processId: 'site', selectedId: null, tutorOpen: false, devOpen: false, settingsOpen: false, theme: null, speed: 1, messages: [], input: '', pending: false, lastReq: null, lastRes: null, lastResults: [], progress: 0, matLabel: '', playing: false, view: 'exterior', drawMode: 'zone', layer: null, ai: 'unknown', expanded: {} };
+  state = { ready: false, processId: 'site', selectedId: null, tutorOpen: false, tutorMode: 'learning', devOpen: false, settingsOpen: false, theme: null, speed: 1, messages: [], input: '', pending: false, lastReq: null, lastRes: null, lastResults: [], progress: 0, matLabel: '', playing: false, view: 'exterior', drawMode: 'zone', layer: null, ai: 'unknown', expanded: {} };
   chatRef = React.createRef();
   introEl(dark) {
     const bg = dark ? '#0b1118' : '#fff', mist = dark ? 'rgba(14,20,28,.8)' : 'rgba(236,241,246,.8)', pc = dark ? ['rgba(40,52,66,.95)', 'rgba(24,33,44,.7)', 'rgba(24,33,44,0)'] : ['rgba(255,255,255,.95)', 'rgba(240,244,248,.7)', 'rgba(240,244,248,0)'];
@@ -540,8 +596,8 @@ class Component extends DCLogic {
     this._introKey = Date.now();
     this._onResize = () => { const vw = innerWidth, vh = innerHeight; if (vw !== this.state.vw || vh !== this.state.vh) this.setState(s => ({ vw, vh, navOpen: vw < 1000 ? false : (s.navOpen ?? true) })); };
     addEventListener('resize', this._onResize); this._onResize();
-    const [d, lc] = await Promise.all([import('./data_v2.js'), import('./learning-chat.js')]);
-    this.data = d; this.chat = await lc.createLearningChat(this); // 학습 모드 채팅(ask, 추천 질문)은 learning-chat.js
+    const [d, lc, cc] = await Promise.all([import('./data_v2.js'), import('./learning-chat.js'), import('./checkpoint-chat.js')]);
+    this.data = d; this.chat = await lc.createLearningChat(this); this.checkpoint = cc.createCheckpointChat(this); this.checkpoint.refreshAll(); // 학습 모드 채팅(ask, 추천 질문)은 learning-chat.js
     this.setState({ ready: true, speed: this.props.flowSpeed ?? 1 });
     // 3D 영역을 메뉴 밖에 따로 두므로 메뉴 폭 보정은 끈다
     customElements.whenDefined('steel-scene').then(() => setTimeout(() => { const sc = this.scene(); sc?.setNavWidth(0); sc?.setAttribute('external-cards', '1'); }, 0));
@@ -592,7 +648,8 @@ class Component extends DCLogic {
   goSite() { const sc = this.scene(); sc?.stop?.(); this.setState({ selectedId: null, processId: 'site', view: 'exterior', tutorOpen: false, devOpen: false, settingsOpen: false }); setTimeout(() => sc?.overview(), 80); } // 우측 패널이 닫혀 3D 영역 폭이 바뀐 뒤 시점 계산
   setView(v) { if (v === 'section') { const eq = this.data.findEquipment(this.state.processId, this.state.selectedId); if (!eq || !eq.interior) return; } this.setState({ view: v, layer: null, tutorOpen: false, devOpen: false }); }
   select(i) { const p = this.process(), e = p.equipment[Math.max(0, Math.min(i, p.equipment.length - 1))]; if (!e) return; this.setState(s => ({ selectedId: e.id, tutorOpen: false, view: s.view === 'section' && !e.interior ? 'exterior' : s.view })); this.scene()?.focus(e.id); }
-  ask(text) { return this.chat.ask(text); }
+  ask(text) { return this.checkpoint.runLearning(() => this.chat.ask(text)); }
+  openAgent(mode) { this.setState({ tutorOpen:true, panelHidden:false, devOpen:false, settingsOpen:false }); this.checkpoint.setMode(mode); }
   // [UI 시안] 2D 구역도: 공정 순서대로 칸을 ㄹ자로 놓는다(1행 왼→오, 2행 오→왼). 화살표는 늘 이웃 칸 사이 틈으로만 지나간다
   zoneDiagram(p, eq, k, cur, on, vpW, vpH, hasTb) {
     if (!on) return { on: false, cells: [] };
@@ -687,7 +744,7 @@ class Component extends DCLogic {
     // 튜터
     const aiDown = S.ai === 'down';
     const lastUser = [...S.messages].reverse().find(m => m.role === 'user');
-    const chatV = this.chat.vals(D);
+    const chatV = this.checkpoint.lockLearning(this.chat.vals(D));
     const messages = chatV.messages.map(m => ({ ...m, isError: m.role === 'assistant' && m.evidence === 'error', isOk: m.isAssistant && m.evidence !== 'error', retry: () => { this.pingAI(); if (lastUser) this.ask(lastUser.text); } }));
     const lightVp = !dark;
     // 2D 뷰: 탑뷰(실사) / 평면도·정면도(선화) + 표제란
@@ -697,7 +754,7 @@ class Component extends DCLogic {
     const zd = this.zoneDiagram(p, eq, k, cur, is2d && dm === 'zone', vpW, vpH, L.tbDisp !== 'none');
     const tb = { title: `${p.name} 공정 ${DM[dm][2]}`, no: `SA-${p.num || '00'}-${DM[dm][3]}${eq ? '-' + String(k + 1).padStart(2, '0') : ''}`, line: bpMode ? 'rgba(215,236,255,.75)' : 'rgba(255,255,255,.22)', bg: bpMode ? 'rgba(15,44,76,.75)' : 'rgba(18,24,32,.82)', color: bpMode ? '#d7ecff' : '#eef2f6' };
     return {
-      ...base, ...chatV, messages, L, steps, zd,
+      ...base, ...chatV, messages, ...this.checkpoint.vals(), agentTitle: S.tutorMode === 'checkpoint' ? '학습 튜터' : '자유 질문', L, steps, zd,
       toggleRail: () => this.setState({ navRail: !rail }), togglePanel: () => this.setState({ panelHidden: !panelHid }), viewTabs, bar, togglePlay, sec, aiDown, aiUp: !aiDown, is2d, drawTabs, tb, hintText: is2d ? '드래그 이동 · 휠 확대' : '드래그 회전 · 휠 확대',
       timeOfDay: this.qs('tod') ?? this.props.timeOfDay ?? 'afternoon',
       processId: S.processId, selectedAttr: S.selectedId || '', view: S.view, process: p, eq: eq || {}, eqNum: String(k + 1).padStart(2, '0'), eqIcon: icon(eq?.shape || 'box', '#e6ebf1', 1.4),
@@ -727,7 +784,7 @@ class Component extends DCLogic {
       walkEq: () => { if (eq) this.scene()?.walk(eq.id, sp); },
       introSteps: [{ n: 1, title: '공정 선택', text: '왼쪽이나 화면에서 보고 싶은 공정을 선택하세요.' }, { n: 2, title: '설비 살펴보기', text: '3D 설비를 돌려 보고, 작동 보기로 소재가 지나가는 순서를 따라가 보세요.' }, { n: 3, title: '내부 구조 확인', text: '단면 보기로 설비 안쪽 층과 온도, 반응을 확인하세요.' }],
       startFromFirst: () => { this.goProcess('ironmaking'); setTimeout(() => this.scene()?.tour(sp), 1700); },
-      askTutorAboutEq: () => { this.setState({ tutorOpen: true }); if (!aiDown) this.ask('이 설비의 역할은?'); this.scrollChat(); },
+      askTutorAboutEq: () => { this.openAgent('learning'); if (!aiDown) this.ask('이 설비의 역할은?'); this.scrollChat(); },
       touring, tourTitle: S.tourStep?.title || '', tourText: S.tourStep?.text || '', tourCount: S.tourStep ? `${String(S.tourStep.i).padStart(2, '0')} / ${String(S.tourStep.total).padStart(2, '0')}` : '',
       matShort: (S.matLabel || p.materialIn.label).split(':')[0].trim(), matIcon: MAT_ICON,
       speeds: [0.5, 1, 2].map(v => ({ label: v + '×', onClick: () => this.setState({ speed: v }), bg: sp === v ? AC : 'var(--chrome2)', border: sp === v ? AC : 'var(--line2)', color: sp === v ? INK : '#c3ccd7' })),
@@ -737,7 +794,8 @@ class Component extends DCLogic {
       ctxLabel: eq ? eq.name : p.name,
       chips: aiDown ? chatV.chips.map(c => ({ ...c, onClick: () => {} })) : chatV.chips, chipOpacity: aiDown ? '0.45' : '1',
       inputPh: aiDown ? '연결 복구 후 질문할 수 있어요' : '질문을 입력하세요', sendBg: aiDown ? 'var(--chrome3)' : AC, sendColor: aiDown ? '#5f6b7a' : INK,
-      send: e => { e.preventDefault(); if (!aiDown) this.chat.ask(S.input); },
+      send: e => { e.preventDefault(); if (!aiDown) this.ask(S.input); },
+      openLearningTutor: () => this.openAgent('checkpoint'), openFreeSearch: () => this.openAgent('learning'),
       modelJson: j(S.model), screenContextJson: j(this.screenContext()), lastRequestJson: j(S.lastReq), lastResponseJson: j(S.lastRes),
     };
   }
