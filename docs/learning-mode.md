@@ -142,6 +142,7 @@ CREATE TABLE learning_turns (
 | `backend/src/learning/` | 라우트, 안전 규칙, `buildLearnerNotes`(`notes.ts`, 시그니처 고정), 대화 저장소 |
 | `frontend/3d-demo/learning-chat.js`의 `ask()` | `mockTutor` 대신 `/api/chat`. `session_id` 유지, 상태 표시와 출처 링크 |
 | `llm/eval/run-learning.ts`, `llm/eval/learning/ironmaking.jsonl` | 학습 모드 품질 평가(`npm run eval:learning`) |
+| `frontend/3d-demo/learning-suggestions.js` | 화면(공정·설비)별 추천 질문 |
 
 ## 품질 평가 (`npm run eval:learning`)
 
@@ -149,8 +150,15 @@ CREATE TABLE learning_turns (
 - 라우트와 같은 순서(안전 질문 차단 → `retrieve()` → 튜터 1회)로 부르고, 이전 대화·학습자 메모는 넣지 않는다. 공정·설비 목록은 서버처럼 `data_v2.js`에서 읽는다.
 - 케이스 형식: `expect.scene`은 들어 있어야 하는 조작(순서 무관, 더 있어도 됨)이고 `[]`이면 조작이 없어야 하며 `"any"`면 보지 않는다. `expect.misconception`은 감지돼야 하는 개념 id 또는 `null`. 케이스의 id·개념·안전 기대가 실제 목록·루브릭·안전 규칙과 맞는지 `npm test`로 확인한다.
 - 결과 기록·`--resume`·연결 재시도는 `eval:evaluator`와 같은 `run-log.ts`를 쓴다(기본 기록 `llm/eval/results/learning-ironmaking.jsonl`). 채점은 보고서를 만들 때 하므로 기대값만 고치면 `--resume`으로 다시 부르지 않고 다시 채점된다.
+- 추천 질문(`frontend/3d-demo/learning-suggestions.js`)도 케이스로 만든다(유형 `chip`, grounded 기대, 화면 조작은 보지 않음). `--follow-up`이면 grounded 답의 '생각해 보기'를 같은 화면에서 다시 물어 근거 있는 답이 나오는지 센다.
 - 첫 측정(2026-10-06, `gemini-3.5-flash-lite`, 1회): 전체 통과 23/24(95.8%), 근거 판정 24/24, 화면 조작 16/17, 오개념 감지 24/24. 틀린 1개는 "용광로에서 나온 쇳물은 어떻게 옮겨?"에서 토페도카 대신 출선구로 카메라를 옮긴 것(답은 출선구 → 토페도카를 모두 설명).
-- 학습 프롬프트·검색·공개 자료 메모를 바꾸면 다시 돌려 확인한다.
+- 프롬프트 수정 뒤(질문이 묻는 대상 설비 하나만 보여 주기, '생각해 보기'는 근거로 답할 수 있는 질문만) 추천 질문 22개를 더해 `--follow-up`으로 측정(같은 날, 1회): 전체 통과 46/46, 화면 조작 17/17, 꼬리 질문 grounded 41/42. 남은 1개는 전체 공정 화면의 고로 답에서 나온 "고로에 들어가는 열풍은 어떻게 만들어지나요?"가 unverified.
+- 학습 프롬프트·검색·공개 자료 메모·추천 질문을 바꾸면 다시 돌려 확인한다.
+
+## 추천 질문 (`frontend/3d-demo/learning-suggestions.js`)
+
+- 튜터 패널의 질문 버튼. 제선은 설비를 고르지 않았을 때 4개, 설비 6개마다 3개씩 두고, 공개 자료로 답할 수 있는 질문만 넣는다(`eval:learning`의 `chip` 케이스로 확인).
+- `learning-chat.js`의 `vals()`가 `suggestionsFor(공정, 설비)`로 고르고, 정해 둔 것이 없는 공정(제강·연주·압연)은 `data_v2.js`의 `SUGGESTED`를 그대로 쓴다.
 
 ## 다음 단계로 미룬 것
 

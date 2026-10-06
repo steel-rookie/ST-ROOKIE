@@ -6,6 +6,9 @@
 // - 사용자 구분: 로그인 화면(/login)이 저장한 토큰(st-rookie-token)이 있으면 Authorization: Bearer로 보낸다.
 //   [임시] 토큰이 없으면 체크포인트 테스트 페이지와 같이 주소의 ?user=이름 → X-User-Id를 보낸다.
 // - 접속 비밀번호(TEST_PASSCODE)는 이 페이지에 입력 화면이 없어서 체크포인트 테스트 페이지가 저장한 값을 쓴다. 없거나 틀리면 401 안내를 보여 준다.
+// - 추천 질문은 learning-suggestions.js에서 화면(공정·설비)에 맞게 고르고, 정해 둔 것이 없으면 data_v2.js의 SUGGESTED를 쓴다.
+
+import { suggestionsFor } from './learning-suggestions.js';
 
 const SECTIONS = ['ironmaking', 'steelmaking', 'continuous_casting', 'rolling'];
 const PASS_KEY = 'st-rookie:passcode';
@@ -119,7 +122,7 @@ export async function createLearningChat(c) {
       const S = c.state;
       return {
         messages: S.messages.map(m => ({ ...m, isUser: m.role === 'user', isSafety: m.role === 'assistant' && m.mode === 'safety_redirect', isAssistant: m.role === 'assistant' && m.mode !== 'safety_redirect', hasFollowUp: !!m.followUp, askFollowUp: () => chat.ask(m.followUp) })),
-        chatRef: c.chatRef, pending: S.pending, chips: D.SUGGESTED.map(text => ({ text, onClick: () => chat.ask(text) })),
+        chatRef: c.chatRef, pending: S.pending, chips: (suggestionsFor(S.processId, S.selectedId) || D.SUGGESTED).map(text => ({ text, onClick: () => chat.ask(text) })),
         input: S.input, onInput: e => c.setState({ input: e.target.value }), send: e => { e.preventDefault(); chat.ask(S.input); },
       };
     },

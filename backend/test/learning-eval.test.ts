@@ -1,7 +1,7 @@
 // 학습 모드 평가 세트(llm/eval/learning/ironmaking.jsonl)의 형식과 채점 규칙을 검사한다. 실제 Gemini는 호출하지 않는다.
 import assert from "node:assert/strict";
 import test from "node:test";
-import { loadLearningSet, score, type LearningCase } from "../../llm/eval/run-learning.js";
+import { loadLearningSet, loadSuggestionCases, score, type LearningCase } from "../../llm/eval/run-learning.js";
 import { loadSceneCatalog } from "../src/learning/scene-catalog.js";
 import { isSafetyQuestion } from "../src/learning/safety.js";
 import { loadFinalRubrics } from "../src/rubrics.js";
@@ -24,6 +24,17 @@ test("평가 세트: 화면 조작은 화면 목록의 id, 오개념은 제선 �
     if (c.expect.misconception) assert.ok(concepts.has(c.expect.misconception), `${c.id} 개념`);
     assert.equal(isSafetyQuestion(c.question), c.expect.status === "safety_redirect", `${c.id} 안전 규칙`);
   }
+});
+
+test("추천 질문: 제선 설비 6개 모두 질문이 있고, 설비 id는 화면 목록에 있으며, 안전 규칙에 걸리지 않는다", async () => {
+  const chips = await loadSuggestionCases();
+  const scene = await loadSceneCatalog();
+  const ironmaking = scene.processes.find((p) => p.id === "ironmaking")!.equipment.map((e) => e.id);
+  const covered = new Set(chips.map((c) => c.screen.equipment_id).filter(Boolean));
+  assert.deepEqual([...covered].sort(), [...ironmaking].sort());
+  assert.ok(chips.some((c) => c.screen.equipment_id === null), "설비를 고르지 않았을 때 질문");
+  for (const c of chips) assert.equal(isSafetyQuestion(c.question), false, c.question);
+  assert.equal(new Set(chips.map((c) => c.id)).size, chips.length);
 });
 
 test("채점: 기대 조작이 모두 있으면 맞음(더 있어도 됨), []이면 조작이 없어야 하고, any는 보지 않는다", () => {

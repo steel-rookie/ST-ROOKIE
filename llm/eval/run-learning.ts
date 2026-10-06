@@ -1,6 +1,8 @@
 // 학습 모드 튜터 품질 평가: 실제 Gemini로 제선 질문 세트(llm/eval/learning/ironmaking.jsonl)를 돌려
 // 근거 판정(grounded·unverified·safety_redirect), 화면 조작(scene_actions), 오개념 감지가 기대와 맞는지 센다.
-// 실행: npm run eval:learning [-- --resume] [--records 파일.jsonl]
+// 실행: npm run eval:learning [-- --resume] [--follow-up] [--records 파일.jsonl]
+//  - 추천 질문(frontend/3d-demo/learning-suggestions.js)도 케이스로 만든다(유형 chip, grounded 기대, 화면 조작은 보지 않음).
+//  - --follow-up이면 grounded 답의 '생각해 보기'(follow_up)를 같은 화면에서 한 번 더 물어 근거 있는 답이 나오는지 센다.
 //  - GEMINI_API_KEY 필요, npm test에는 포함하지 않는다. 라우트(backend/src/learning/routes.ts)와 같은 순서로
 //    안전 질문 차단 → retrieve() → 튜터 1회를 부르고(이전 대화·학습자 메모 없음), 공정·설비 목록은 data_v2.js에서 읽는다.
 //  - 결과는 케이스마다 --records(기본 llm/eval/results/learning-ironmaking.jsonl)에 바로 기록하고, 채점은 보고서를 만들 때 한다.
@@ -8,6 +10,7 @@
 //  - 케이스 사이에 EVAL_DELAY_MS(기본 1000ms)만큼 쉰다. 429·시간 초과·연결 실패는 run-log.ts의 재시도를 따른다.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import { loadSceneCatalog } from "../../backend/src/learning/scene-catalog.js";
 import { isSafetyQuestion } from "../../backend/src/learning/safety.js";
@@ -61,6 +64,23 @@ export function loadLearningSet(path = LEARNING_SET_PATH): LearningCase[] {
   return cases;
 }
 
+export const SUGGESTIONS_PATH = join(process.cwd(), "frontend", "3d-demo", "learning-suggestions.js");
+const Suggestions = z.object({ process: z.array(z.string().min(1)), equipment: z.record(z.string(), z.array(z.string().min(1))) });
+
+/** 화면에 띄우는 제선 추천 질문을 케이스로 만든다. 버튼을 누르면 근거 있는 답이 나와야 한다. */
+export async function loadSuggestionCases(path = SUGGESTIONS_PATH): Promise<LearningCase[]> {
+  const mod = (await import(pathToFileURL(path).href)) as { SUGGESTIONS?: Record<string, unknown> };
+  const s = Suggestions.parse(mod.SUGGESTIONS?.[SECTION]);
+  const make = (equipment_id: string | null, question: string, i: number): LearningCase => ({
+    id: `chip-${equipment_id ?? "process"}-${i + 1}`,
+    type: "chip",
+    question,
+    screen: { process_id: SECTION, equipment_id },
+    expect: { status: "grounded", scene: "any", misconception: null },
+  });
+  return [...s.process.map((q, i) => make(null, q, i)), ...Object.entries(s.equipment).flatMap(([eq, qs]) => qs.map((q, i) => make(eq, q, i)))];
+}
+
 export interface LearningRecord extends RunRecord {
   model: string;
   status: "grounded" | "unverified" | "safety_redirect" | "format_error" | "infra_error";
@@ -68,6 +88,9 @@ export interface LearningRecord extends RunRecord {
   misconception: string | null;
   source_ids: string[];
   answer: string;
+  /** --follow-up: 튜터가 낸 '생각해 보기' 질문과 그 질문을 다시 물었을 때의 근거 판정. */
+  follow_up?: string | null;
+  follow_up_status?: LearningRecord["status"] | null;
   infra_retries: string[];
   error?: string;
   at: string;
@@ -109,28 +132,29 @@ async function main(): Promise<void> {
   const client = new RetryingGeminiClient();
   const agent = new GeminiLearningAgent(client);
   const streak = new InfraStreak();
-  const cases = loadLearningSet();
+  const followUp = flag("follow-up");
+  const cases = [...loadLearningSet(), ...(await loadSuggestionCases())];
   const done: { c: LearningCase; r: LearningRecord }[] = [];
   let skipped = 0;
   let stopped = false;
+  const inputFor = (question: string, screen: LearningCase["screen"]): LearningInput => ({
+    section: SECTION,
+    question,
+    screen: { ...screen, equipment_name: scene.processes.flatMap((p) => p.equipment).find((e) => e.id === screen.equipment_id)?.name ?? null },
+    chunks: retriever.retrieve(SECTION, question, { process_id: SECTION, equipment_id: screen.equipment_id }),
+    history: [],
+    openMisconceptions: [],
+    concepts: rubric?.concepts.map((k) => ({ concept_id: k.concept_id, name: k.name })) ?? [],
+    glossary: rubric?.glossary ?? [],
+    scene,
+  });
 
-  console.log(`결과 파일: ${records.path} (모델: ${model}, 케이스 ${cases.length}개)`);
+  console.log(`결과 파일: ${records.path} (모델: ${model}, 케이스 ${cases.length}개${followUp ? ", 꼬리 질문 확인" : ""})`);
   for (const c of cases) {
-    const equipmentName = scene.processes.flatMap((p) => p.equipment).find((e) => e.id === c.screen.equipment_id)?.name ?? null;
-    const input: LearningInput = {
-      section: SECTION,
-      question: c.question,
-      screen: { process_id: c.screen.process_id, equipment_id: c.screen.equipment_id, equipment_name: equipmentName },
-      chunks: retriever.retrieve(SECTION, c.question, { process_id: SECTION, equipment_id: c.screen.equipment_id }),
-      history: [],
-      openMisconceptions: [],
-      concepts: rubric?.concepts.map((k) => ({ concept_id: k.concept_id, name: k.name })) ?? [],
-      glossary: rubric?.glossary ?? [],
-      scene,
-    };
+    const input = inputFor(c.question, c.screen);
     const safety = isSafetyQuestion(c.question);
-    // 모델·프롬프트(근거 조각·화면 목록 포함)가 같으면 같은 결과로 본다. 안전 질문은 모델을 부르지 않는다.
-    const fp = safety ? fingerprint("safety", c.question) : fingerprint(model, learningSystemPrompt(input), learningUserPrompt(input));
+    // 모델·프롬프트(근거 조각·화면 목록 포함)·꼬리 질문 확인 여부가 같으면 같은 결과로 본다. 안전 질문은 모델을 부르지 않는다.
+    const fp = safety ? fingerprint("safety", c.question) : fingerprint(model, learningSystemPrompt(input), learningUserPrompt(input), followUp ? "follow-up" : "");
     const prior = records.done(c.id, fp);
     if (prior) {
       done.push({ c, r: prior });
@@ -158,6 +182,20 @@ async function main(): Promise<void> {
           answer: reply.answer,
           infra_retries: client.retries,
         };
+        if (followUp) {
+          record.follow_up = reply.status === "grounded" ? reply.follow_up : null;
+          record.follow_up_status = null;
+          if (record.follow_up) {
+            if (delayMs) await sleep(delayMs);
+            try {
+              record.follow_up_status = (await agent.reply(inputFor(record.follow_up, c.screen))).status;
+            } catch (error) {
+              if (error instanceof LearningFormatError) record.follow_up_status = "format_error";
+              else if (isInfraError(error)) record.follow_up_status = "infra_error";
+              else throw error;
+            }
+          }
+        }
       } catch (error) {
         if (error instanceof LearningFormatError) {
           record = { ...base, infra_error: false, status: "format_error", scene_actions: [], misconception: null, source_ids: [], answer: "", infra_retries: client.retries, error: error.message };
@@ -196,6 +234,13 @@ function report(all: { c: LearningCase; r: LearningRecord }[]): void {
   console.log(`  화면 조작: ${scene.filter((o) => o.k.scene).length}/${scene.length} (${pct(scene.filter((o) => o.k.scene).length, scene.length)}, "any" ${rows.length - scene.length}개 제외)`);
   console.log(`  오개념 감지: ${rows.filter((o) => o.k.misconception).length}/${rows.length} (${pct(rows.filter((o) => o.k.misconception).length, rows.length)})`);
   console.log(`  형식 오류(format_error): ${rows.filter((o) => o.r.status === "format_error").length}개, 연결 오류(infra_error, 제외): ${infra.length}개`);
+
+  const asked = rows.filter((o) => o.r.follow_up && o.r.follow_up_status && o.r.follow_up_status !== "infra_error");
+  if (asked.length) {
+    const grounded = asked.filter((o) => o.r.follow_up_status === "grounded");
+    console.log(`  꼬리 질문('생각해 보기')을 다시 물었을 때 grounded: ${grounded.length}/${asked.length} (${pct(grounded.length, asked.length)})`);
+    for (const o of asked.filter((x) => x.r.follow_up_status !== "grounded")) console.log(`    - ${o.c.id}: "${o.r.follow_up}" → ${o.r.follow_up_status}`);
+  }
 
   console.log("\n유형별 전체 통과");
   for (const type of [...new Set(rows.map((o) => o.c.type))]) {
