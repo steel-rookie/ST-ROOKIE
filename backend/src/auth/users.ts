@@ -73,6 +73,12 @@ export class UserRepository {
     this.db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(hash, id);
   }
 
+  /** 시연 계정 표시(users.is_demo = 1). 관리자 화면의 'demo' 배지와 ?include_demo=false 필터에 쓴다. */
+  markDemo(usernames: readonly string[]): void {
+    const mark = this.db.prepare("UPDATE users SET is_demo = 1 WHERE username = ? AND role = 'trainee'");
+    for (const username of usernames) mark.run(username);
+  }
+
   exists(username: string): boolean {
     return this.db.prepare("SELECT 1 FROM users WHERE username = ?").get(username) !== undefined;
   }

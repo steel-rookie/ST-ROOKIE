@@ -44,9 +44,10 @@
 | 수민: 체크포인트·평가자·튜터·질문 은행·eval | `backend/src/checkpoint/`, `backend/src/rubrics.ts`, `backend/src/db/migrations/001_checkpoint.sql`, `llm/src/evaluator.ts`, `llm/src/tutor.ts`, `llm/src/question-check.ts`, `llm/prompts/evaluator.md`, `llm/prompts/tutor-*.md`, `llm/eval/`, `content/rubrics/`(`schema.json` 제외), `frontend/3d-demo/checkpoint-test.html`, 원격 테스트 장치(`backend/src/test-access.ts`, `usage.ts`, `request-user.ts`, `db/migrations/002_llm_usage.sql`, `scripts/tunnel.mjs`), 이 파일들의 테스트 |
 | ssoyoum: 학습 모드 | `llm/src/learning-agent.ts`·`llm/src/retrieval.ts`(둘 다 새로 만듦), `llm/prompts/learning*.md`, `backend/src/learning/`(단, `notes.ts`의 `LearnerNotes` 타입과 `buildLearnerNotes` 시그니처는 수민과 합의 후 변경), `frontend/3d-demo/learning-chat.js`, `frontend/3d-demo/tutor_v2.js`, 학습 모드 마이그레이션(`004`부터, `003_users.sql`은 로그인), 이 파일들의 테스트 |
 | 공용: 고치면 작은 PR + 팀 공유 | `llm/src/gemini.ts`, `backend/src/scoring.ts`, `content/rubrics/schema.json`, `backend/src/app.ts`(라우트 등록), `backend/src/db/database.ts`, `backend/src/checkpoint/types.ts`, `package.json`, `CLAUDE.md`, 마이그레이션 번호 |
-| 프론트(viiin2) | `Steel Academy v2.dc.html`, `data_v2.js`, `scene_v2.js`, `steel-2d*.js`, `models/`, `frontend/login_ui/` |
+| 프론트(viiin2) | `Steel Academy v2.dc.html`, `data_v2.js`, `scene_v2.js`, `steel-2d*.js`, `models/`, `frontend/login_ui/`(`Admin Dashboard.dc.html` 제외) |
+| 수민: 관리자 대시보드 | `backend/src/admin/`, `frontend/login_ui/Admin Dashboard.dc.html`, 시연 개념 목록 `content/demo/sections.json`·`backend/src/demo-sections.ts`, 이 파일들의 테스트 |
 
-- 마이그레이션 번호 규칙: `backend/src/db/migrations/NNN_이름.sql`을 파일 이름 순서로 한 번씩 적용하고 `schema_migrations`에 이름을 남긴다. 001~005는 사용 중이다(005: 기록 출처 `origin`). 새 번호는 지금 가장 큰 번호 + 1로 정하고, 같은 번호를 두 사람이 쓰지 않게 PR을 열기 전에 팀에 알린다. 이미 병합된 마이그레이션 파일은 고치지 않고 새 번호로 추가한다.
+- 마이그레이션 번호 규칙: `backend/src/db/migrations/NNN_이름.sql`을 파일 이름 순서로 한 번씩 적용하고 `schema_migrations`에 이름을 남긴다. 001~006은 사용 중이다(005: 기록 출처 `origin`, 006: 시연 계정 `users.is_demo`). 새 번호는 지금 가장 큰 번호 + 1로 정하고, 같은 번호를 두 사람이 쓰지 않게 PR을 열기 전에 팀에 알린다. 이미 병합된 마이그레이션 파일은 고치지 않고 새 번호로 추가한다.
 - 기존 `/api/chat`(`llm/src/ironmaking-agent.ts`)은 학습 모드로 대체되어 지웠다. 기본 모델 상수 `DEFAULT_GEMINI_MODEL`은 `llm/src/gemini.ts`에 있다. `ironmaking-sources.ts`(공개 자료 메모)는 학습 모드 검색(`retrieval.ts`)과 출처 표시(`learning/routes.ts`)가 쓰므로 남긴다.
 - 학습 모드 시작 안내: [docs/onboarding-learning-mode.md](docs/onboarding-learning-mode.md).
 
@@ -120,7 +121,7 @@ API·상태 머신·DB·프롬프트의 상세 설계는 [docs/checkpoint-api.md
 - **해금 조건**: 섹션의 모든 개념이 확정됐고, 이해도가 80% 이상.
 - **80% 미달**: 섹션 첫 화면으로 돌아간다. 재도전 때는 만점(1점)이 아닌 개념만 다시 묻고(`partial` 포함), 맞힌 개념의 점수는 유지한다.
 - 재도전한 개념은 새 결과로 **덮어쓴다**(이전보다 낮아질 수 있다). 이미 맞힌 개념의 결과를 다시 넣으면 에러다.
-- 이해도·통과는 **지금 final 루브릭의 개념만**으로 계산한다. 바뀌거나 빠진 `concept_id`의 결과는 버린다(행은 DB에 남김). 계산은 `backend/src/checkpoint/section-summary.ts`의 `summarizeSection` 하나로 하고, 엔진·관리자 통계·신입사원 대시보드가 같이 쓴다.
+- 이해도·통과는 **지금 final 루브릭의 개념만**으로 계산한다. 바뀌거나 빠진 `concept_id`의 결과는 버린다(행은 DB에 남김). 계산은 `backend/src/checkpoint/section-summary.ts`의 `summarizeSection` 하나로 하고, 엔진·관리자 통계·신입사원 대시보드가 같이 쓴다. 관리자 통계는 final 루브릭이 없는 섹션에 한해 시연 목록(`content/demo/sections.json`) 개념으로, 시연 기록(`seed`)만 계산한다.
 - 한 번 통과(완료 시점에 해금)한 섹션은 루브릭이 바뀌어도 통과로 둔다. 통과 뒤 새로 생긴 개념은 다시 묻지 않고 **미확인**으로 보여 준다(`/api/sections/:section/progress`의 `unconfirmed_concept_ids`). 미확인 개념은 0점이라 이해도는 낮아질 수 있다.
 
 ## 오개념 기록
@@ -161,10 +162,11 @@ content/
 - 시연 계정 `trainee01`~`20`(신입사원 20명), `admin01`은 서버 시작 때 만든다(`DEMO_ACCOUNTS=off`로 끔).
 - 아이디·비밀번호 찾기는 이름 + 사번으로 본인 확인을 한다(메일 발송 없음). 시연·사내용 수준이다.
 - 관리자는 `GET /api/admin/trainees`로 신입사원별 섹션 이해도·통과 여부·시도 횟수·오개념 개수·마지막 학습일을 본다(`backend/src/admin/`). 체크포인트 테이블(`attempts`, `misconceptions`)이 없으면 계정 목록만 준다.
+- 시연 계정은 `users.is_demo = 1`이다(`trainee11`~`20`, `006_demo_accounts.sql`, 서버 시작 때 `seedDemoAccounts`가 표시). 관리자 화면은 실제 계정과 섞어 보여 주고 시연 계정 이름 옆에 'demo' 배지를 붙인다. `?include_demo=false`면 실제 계정만 센다(`/api/admin/trainees`, `/api/admin/concepts`).
 - 화면: `frontend/login_ui/My Page.dc.html`, 서버의 `/login`. 관리자로 로그인하면 개인 학습 기록 대신 통계를 보여 준다.
 - `npm run db:seed-demo [seed]`: 시연 기록을 무작위로 다시 만든다(`backend/src/db/demo-records.ts`). 점수는 `scoring.ts` 규칙.
   - **계정 분리**: 시연 기록은 `trainee11`~`20`에만 넣는다. `trainee01`~`10`은 팀원 실제 테스트용이라 시연 기록이 없고, 실행할 때 남아 있는 `seed` 기록을 지운다.
-  - 개념은 `loadFinalRubrics()`에서 읽는다. 루브릭이 있는 섹션에만 기록을 만들고 나머지는 미시작으로 둔다(지금은 제선만). 루브릭이 추가되면 자동으로 채워진다.
+  - 개념은 `loadFinalRubrics()`에서 읽고, final 루브릭이 없는 섹션은 시연용 개념 목록 `content/demo/sections.json`(id·이름만)으로 채운다. 이 파일은 시연 기록(`db:seed-demo`)과 관리자 통계만 읽는다. 평가자·체크포인트 엔진·`loadFinalRubrics()`는 읽지 않으므로 실제 계정의 그 섹션 체크포인트는 계속 404다(테스트로 확인). final 루브릭이 생기면 그 섹션은 루브릭 개념을 쓰고 시연 목록은 무시한다.
   - 시연 기록은 `attempts`·`misconceptions`의 `origin = 'seed'`이고, 실제 기록은 `live`(기본값, `005_record_origin.sql`)다. 시연 계정으로 실제 테스트도 하므로 계정이 아니라 기록 단위로 구분한다.
   - 다시 만들 때 `seed` 기록만 지운다. 실제 기록(`live`)과 다른 계정의 기록은 건드리지 않는다.
   - 실제 기록만 읽는 곳: 체크포인트 엔진(시작·진행·`sectionProgress`, `CheckpointRepository`의 시도 조회)과 학습 모드 오개념 조회(`LearningRepository.openMisconceptions`·`recordMisconception`, 학습자 메모 포함). 관리자 통계는 시연을 위해 `seed`도 센다.

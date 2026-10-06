@@ -1,12 +1,13 @@
 // 시연용 체크포인트 기록. 관리자 통계 화면을 채우려고 시연 신입사원 trainee11~20에게만 넣는다.
 // trainee01~10은 팀원 실제 테스트용이라 시연 기록을 넣지 않는다(남아 있는 seed 기록은 지운다).
 // 테이블은 001_checkpoint.sql이고, 이해도·해금은 scoring.ts 규칙으로 계산한다.
-// 개념은 final 루브릭의 개념을 쓴다(seed-demo-records.ts가 넘김). 개념이 없는 섹션(루브릭 없음)은 기록을 만들지 않는다.
+// 개념은 seed-demo-records.ts가 넘긴다: final 루브릭 개념, final 루브릭이 없는 섹션은 시연 목록(content/demo/sections.json). 개념이 없는 섹션은 기록을 만들지 않는다.
+// 시연 기록 계정에는 users.is_demo = 1을 표시한다(006_demo_accounts.sql).
 // 모든 기록은 origin = 'seed'(005_record_origin.sql). 실제 기록(live)은 지우지 않는다.
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { SECTION_ORDER } from "../checkpoint/types.js";
-import { DEMO_ACCOUNTS } from "../auth/demo-accounts.js";
+import { DEMO_ACCOUNTS, DEMO_RECORD_TRAINEES } from "../auth/demo-accounts.js";
 import {
   applyRetry,
   conceptResult,
@@ -79,8 +80,8 @@ export function rng(seed: number): () => number {
 const DEMO_TRAINEES = DEMO_ACCOUNTS.filter((a) => a.role === "trainee").map((a) => a.username);
 /** 실제 테스트용 시연 계정. 시연 기록을 넣지 않는다. */
 export const LIVE_TEST_TRAINEES = DEMO_TRAINEES.slice(0, 10);
-/** 시연 기록을 넣는 계정(trainee11~20). */
-export const SEEDED_TRAINEES = DEMO_TRAINEES.slice(10);
+/** 시연 기록을 넣는 계정(trainee11~20, users.is_demo = 1). */
+export const SEEDED_TRAINEES = DEMO_RECORD_TRAINEES;
 
 /**
  * 시연 신입사원 전체(trainee01~20)의 시연 기록(origin = 'seed')을 지우고, trainee11~20에게만 새로 만든다.
@@ -118,6 +119,7 @@ export function seedDemoRecords(db: DatabaseSync, concepts: SectionConcepts, see
       const user = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
       if (!user) continue;
       const userId = String(user.id);
+      db.prepare("UPDATE users SET is_demo = 1 WHERE id = ?").run(userId);
       clock = now.getTime() - (2 + random() * 1.5) * 24 * 3600_000;
       const profile = profileOf(username, index);
 
