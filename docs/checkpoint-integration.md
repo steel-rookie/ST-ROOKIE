@@ -4,7 +4,7 @@
 
 ## 결정 사항
 
-1. **체크포인트 진행 중에는 학습 입력을 막는다.** 3D 화면은 계속 볼 수 있다. 학습 탭에는 "이해도 확인을 마치면 다시 질문할 수 있어요"를 보여 준다(`cpLearningLocked`, `cpLearningLockedText`).
+1. **답하는 중(준비·답변·재확인·채점 오류)에는 학습 입력을 막는다.** 3D 화면은 계속 볼 수 있다. 학습 질문을 하려 하면 "풀던 이해도 확인이 있어요. 잠깐 멈추고 질문할까요? [멈추고 질문하기]"를 보여 주고, 누르면 멈춘 뒤 그 질문을 보낸다(`cpShowPauseOffer`). '나중에 이어 풀기'로 멈춘 시도(`paused`)는 학습 입력을 막지 않는다. 규칙은 [checkpoint-api.md](checkpoint-api.md) '나중에 이어 풀기'.
 2. **잠그는 것은 체크포인트뿐이다.** 공정 탭에는 '미통과 / 단련 완료' 배지만 보여 준다(`cpSections`). 탭까지 잠그려면 `checkpoint-chat.js`의 `LOCK_PROCESS_TABS`를 `true`로 바꾼다. 기본값은 `false`다.
 3. **메인 페이지는 로그인 필수다.** `?user=이름` 방식은 ④에서 지운다. `TEST_PASSCODE`(접속 비밀번호)도 ④에서 지운다(아래 '접속 비밀번호 정리').
 4. **viiin2님이 v2에 체크포인트를 붙이는 것을 허락했다.** v2 수정 PR(③)의 리뷰어는 viiin2님이다.
@@ -74,26 +74,32 @@ send: e => { e.preventDefault(); if (!aiDown) this.ask(S.input); },  // #50의 s
 | `cpPending` | 요청 중 |
 | `cpNotice` | 오류·안내 문장 |
 | `cpProgress` | 섹션 → `SectionProgressView` 또는 `{ unavailable: true, status }`(404면 루브릭 없음) |
+| `cpConfirmPause` | [나중에 이어 풀기] 확인창이 열려 있음 |
+| `cpPauseOffer` | 답하는 중 학습 질문을 하려 해서 [멈추고 질문하기] 안내를 띄움 |
 
 ## 메서드
 
 | 메서드 | 언제 |
 |---|---|
-| `refreshAll()` | 페이지를 열 때. 네 섹션의 진입 상태를 읽고, 진행 중인 시도가 있으면 연다(새로고침 복원) |
+| `refreshAll()` | 페이지를 열 때. 네 섹션의 진입 상태를 읽고, 끝나지 않은 시도가 있으면 불러 둔다(새로고침 복원, 탭은 바꾸지 않음) |
 | `refresh(section = processId)` | 공정을 옮길 때. 그 섹션만 다시 읽는다 |
 | `start()` | 현재 공정의 이해도 확인 시작. 진행 중인 시도가 있으면 서버가 이어서 준다 |
 | `send(text)` | 답변 보내기. 준비·답변·재확인 단계에서만 보낸다. 실패하면 입력이 그대로 남는다 |
 | `ready()` | '준비됐어요' 버튼 |
 | `retry()` | 채점 오류(`state = error`) 뒤 같은 답변 다시 채점 |
 | `close()` | 결과 화면 닫기. 끝난 시도만 닫을 수 있다 |
-| `isActive()` | 진행 중인 시도가 있는지(= 학습 입력을 막을지) |
+| `isActive()` | 답하는 중인 시도가 있는지(= 학습 입력을 막을지). `paused`·`completed`는 `false` |
+| `askPause()` · `cancelPause()` | [나중에 이어 풀기] 확인창 열기·닫기 |
+| `pause()` | `POST /pause`. 답하는 중에만 |
+| `resume()` | [이어 풀기]. 이해도 확인 탭으로 옮기고, `paused`면 `POST /resume`(멈추지 않은 시도는 탭만 옮김) |
+| `pauseForLearning()` | [멈추고 질문하기]. 멈춘 뒤 학습 탭으로 옮기고 막혀 있던 학습 질문을 보낸다. 멈추기에 실패하면 보내지 않는다 |
 | `tabLocked(section)` | `LOCK_PROCESS_TABS`가 켜져 있고 열리지 않은 공정인지 |
 | `setMode(mode)` | 모드 탭 바꾸기(`learning` · `checkpoint`). 이해도 확인 탭을 열면 현재 공정의 진입 상태를 다시 읽는다 |
-| `runLearning(send)` | 페이지 `ask()`를 감싼다. 진행 중이면 보내지 않고, 아니면 학습 탭으로 바꾼 뒤 `send()` |
-| `lockLearning(learningVals)` | 학습 모드 값에 잠금을 씌운다. 진행 중이면 `chips: []`, `send`는 아무것도 안 함, 메시지의 '생각해 보기'(`hasFollowUp`) 숨김 |
+| `runLearning(send)` | 페이지 `ask()`를 감싼다. 학습 탭으로 바꾼 뒤 `send()`. 답하는 중이면 보내지 않고 질문을 들고 있다가 [멈추고 질문하기]를 띄운다 |
+| `lockLearning(learningVals)` | 학습 모드 값에 잠금을 씌운다. 답하는 중이면 `chips: []`, `send`는 [멈추고 질문하기]만 띄움, 메시지의 '생각해 보기'(`hasFollowUp`) 숨김 |
 | `sectionBadge(section)` | 공정 탭 항목에 펼칠 배지 값: `cpHasBadge`, `cpBadge`, `cpBadgeColor`, `cpTabLocked` |
 
-새로고침으로 진행 중인 시도를 이어서 열면 모드를 이해도 확인으로 바꾼다.
+로그인·새로고침으로 끝나지 않은 시도를 다시 열어도 모드는 바꾸지 않는다. 학습 탭에 "풀던 이해도 확인이 있어요 [이어 풀기]"(`cpShowResumeBanner`)가 뜬다.
 
 ## `vals()` 키
 
@@ -177,6 +183,18 @@ send: e => { e.preventDefault(); if (!aiDown) this.ask(S.input); },  // #50의 s
 | `cpLearningLocked` | 불리언 | 체크포인트 진행 중. 학습 입력과 추천 질문을 막는다 |
 | `cpLearningLockedText` | 문자열 | 학습 탭 안내 '이해도 확인을 마치면 다시 질문할 수 있어요.' |
 | `cpLearningInputOpacity` | 문자열 | 학습 입력 줄 투명도(잠겼으면 `.5`) |
+
+### 나중에 이어 풀기
+
+| 키 | 형식 | 설명 |
+|---|---|---|
+| `cpShowPauseButton`, `cpPauseLabel`, `onCpPause` | 불리언·문자열·핸들러 | 이해도 확인 탭의 [나중에 이어 풀기]. 답하는 중에만 |
+| `cpConfirmPause`, `cpConfirmPauseText` | 불리언·문자열 | 확인창과 문구(재확인 대기 중이면 '판정은 저장되고 다른 재확인 질문으로' 문구) |
+| `cpConfirmPauseYes`, `onCpConfirmPause` / `cpConfirmPauseNo`, `onCpCancelPause` | 문자열·핸들러 | 확인창 [멈추기] / [계속 풀기] |
+| `cpIsPaused` | 불리언 | 멈춘 시도(`state = paused`). 진행 화면의 단계 표시는 '멈춤 · 1/3 완료', 입력창(`cpShowComposer`)은 숨김 |
+| `cpShowResumeButton`, `cpResumeLabel`, `onCpResume` | 불리언·문자열·핸들러 | 이해도 확인 탭의 [이어 풀기 (1/3 완료)] |
+| `cpShowResumeBanner`, `cpResumeBannerText`, `cpResumeBannerLabel` | 불리언·문자열 | 학습 탭 안내 "풀던 이해도 확인이 있어요 · 제선 1/3 완료" [이어 풀기](핸들러는 `onCpResume`) |
+| `cpShowPauseOffer`, `cpPauseOfferText`, `cpPauseOfferLabel`, `onCpPauseForLearning` | 불리언·문자열·핸들러 | 학습 탭 안내 "풀던 이해도 확인이 있어요. 잠깐 멈추고 질문할까요?" [멈추고 질문하기] |
 
 ## 오류 문장 (api-client.js)
 

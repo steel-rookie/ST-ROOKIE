@@ -261,7 +261,7 @@ class Component extends DCLogic {
   statusOf(t, secs) {
     if (t.passed_sections === secs.length) return 'done';
     if (secs.some(s => t.sections[s] && !t.sections[s].passed)) return 'retry';
-    if (secs.some(s => t.sections[s])) return 'active';
+    if (secs.some(s => t.sections[s]) || t.in_progress_sections?.length) return 'active'; // 이어 풀기로 멈춘 시도도 진행 중
     return 'idle';
   }
   renderVals() {
@@ -323,8 +323,9 @@ class Component extends DCLogic {
       .sort(sorters[S.sort]);
     const rows = list.map(({ t, s }) => {
       let locked = false;
-      const cells = secs.map(k => { const x = t.sections[k];
-        if (x) { const c = { value: pct(x.understanding), sub: `${x.passed ? '통과' : '미통과'} · ${x.attempts}회`, color: uColor(x.understanding), bg: `color-mix(in srgb, ${uColor(x.understanding)} 12%, transparent)` }; if (!x.passed) locked = true; return c; }
+      const cells = secs.map(k => { const x = t.sections[k], going = (t.in_progress_sections || []).includes(k); // 끝나지 않은 시도(진행 중·멈춤)는 실패로 세지 않고 표시만
+        if (x) { const c = { value: pct(x.understanding), sub: `${x.passed ? '통과' : '미통과'} · ${x.attempts}회${going ? ' · 진행 중' : ''}`, color: uColor(x.understanding), bg: `color-mix(in srgb, ${uColor(x.understanding)} 12%, transparent)` }; if (!x.passed) locked = true; return c; }
+        if (going) { locked = true; return { value: '진행 중', sub: '응시 중', color: 'var(--accent)', bg: 'color-mix(in srgb, var(--accent) 10%, transparent)' }; }
         const c = { value: locked ? '잠김' : '—', sub: locked ? '' : '미응시', color: 'var(--muted)', bg: 'transparent' }; locked = true; return c; });
       return { name: t.name, username: t.username, emp: t.employee_no, cells,
         dots: secs.map(k => ({ bg: t.sections[k]?.passed ? 'var(--accent)' : 'var(--panel2)' })), progress: `${t.passed_sections}/${secs.length}`,
