@@ -92,7 +92,7 @@
           <button onClick="{{ t.onClick }}" title="{{ t.tip }}" style="height:30px;padding:0 14px;border:none;border-radius:6px;background:{{ t.bg }};color:{{ t.color }};font-size:13px;font-weight:{{ t.weight }};cursor:pointer;white-space:nowrap;" style-hover="filter:brightness(1.12);">{{ t.label }}</button>
         </sc-for>
       </div>
-      <div style="position:absolute;right:16px;bottom:16px;display:{{ L.tbDisp }};grid-template-columns:auto auto;min-width:300px;border:1.5px solid {{ tb.line }};background:{{ tb.bg }};color:{{ tb.color }};font-size:12px;pointer-events:none;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+      <div style="position:absolute;right:16px;bottom:60px;display:{{ L.tbDisp }};grid-template-columns:auto auto;min-width:300px;border:1.5px solid {{ tb.line }};background:{{ tb.bg }};color:{{ tb.color }};font-size:12px;pointer-events:none;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
         <span style="grid-column:1 / 3;padding:8px 12px;border-bottom:1px solid {{ tb.line }};font-size:15px;font-weight:700;">{{ tb.title }}</span>
         <span style="padding:6px 12px;border-right:1px solid {{ tb.line }};border-bottom:1px solid {{ tb.line }};opacity:.75;">도면 번호</span><span style="padding:6px 12px;border-bottom:1px solid {{ tb.line }};font-family:'IBM Plex Mono',monospace;">{{ tb.no }}</span>
         <span style="padding:6px 12px;border-right:1px solid {{ tb.line }};border-bottom:1px solid {{ tb.line }};opacity:.75;">축척</span><span style="padding:6px 12px;border-bottom:1px solid {{ tb.line }};">NTS (실제 치수 아님)</span>
@@ -100,6 +100,8 @@
       </div>
     </sc-if>
 
+    <!-- 공정 3D 모델 숨김/표시 (우측 하단, 기본 표시) -->
+    <button onClick="{{ toggleModels }}" title="{{ modelsBtnTitle }}" style="position:absolute;right:16px;bottom:16px;display:{{ L.modelsBtnDisp }};align-items:center;gap:8px;height:36px;padding:0 14px 0 12px;white-space:nowrap;border-radius:9px;border:1px solid {{ glass.border }};background:{{ glass.bg }};color:{{ glass.color }};font-size:13px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 14px rgba(0,0,0,.12);z-index:4;" style-hover="border-color:var(--accent);"><span style="width:8px;height:8px;border-radius:50%;background:{{ modelsDot }};"></span>{{ modelsBtnLabel }}</button>
     <div style="position:absolute;right:16px;top:16px;display:flex;flex-direction:column;align-items:flex-end;gap:10px;">
       <div style="display:{{ L.fitDisp }};gap:8px;">
         <button onClick="{{ fitView }}" title="지금 공정(또는 전체) 한눈에 보기" style="height:40px;padding:0 14px;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:8px;border-radius:9px;border:1px solid {{ glass.border }};background:{{ glass.bg }};color:{{ glass.color }};font-size:14px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 14px rgba(0,0,0,.12);" style-hover="border-color:var(--accent);"><img src="{{ ic.frame }}" width="18" height="18" alt=""><span style="display:{{ L.lbl }};">전체 보기</span></button>
@@ -436,21 +438,22 @@
   </sc-if>
   <!-- 하단 공정 애니메이션 바 -->
   <sc-if value="{{ bar.show }}" hint-placeholder-val="{{ false }}">
-  <footer style="position:absolute;left:{{ L.vpLeft }};margin-left:24px;bottom:16px;width:min(640px, calc(100% - {{ L.vpRight }} - 32px));height:64px;display:flex;align-items:center;gap:18px;padding:0 44px 0 12px;background:rgba(17,23,31,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line2);border-radius:26px;box-shadow:0 12px 36px rgba(0,0,0,.35);z-index:9;">
+  <footer style="position:absolute;left:{{ L.vpLeft }};margin-left:24px;bottom:16px;width:min(640px, calc(100% - {{ L.vpRight }} - 32px));height:64px;display:flex;align-items:center;gap:16px;padding:0 12px 0 12px;background:rgba(17,23,31,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line2);border-radius:26px;box-shadow:0 12px 36px rgba(0,0,0,.35);z-index:9;">
     <button onClick="{{ togglePlay }}" title="{{ bar.playLabel }}" aria-label="{{ bar.playLabel }}" style="width:40px;height:40px;flex:none;border-radius:20px;border:2px solid var(--accent);background:{{ bar.playBg }};display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;" style-hover="filter:brightness(1.15);"><img src="{{ bar.playIcon }}" width="16" height="16" alt=""></button>
     <div style="flex:1;position:relative;height:44px;min-width:140px;">
       <div style="position:absolute;left:7px;right:7px;top:11px;height:2px;border-radius:1px;background:var(--chrome4);"></div>
       <div style="position:absolute;left:7px;top:11px;height:2px;border-radius:1px;background:var(--accent);width:{{ bar.fill2 }};transition:width .25s ease;"></div>
       <sc-for list="{{ bar.dots2 }}" as="d" hint-placeholder-count="6">
         <button onClick="{{ d.onClick }}" title="{{ d.name }}" aria-label="{{ d.name }}" style="position:absolute;left:{{ d.left }};top:12px;width:{{ d.size }};height:{{ d.size }};transform:translate(-50%,-50%);border-radius:50%;border:none;background:{{ d.bg }};cursor:pointer;padding:0;box-shadow:{{ d.shadow }};transition:width .2s ease, height .2s ease;" style-hover="background:var(--accent);"></button>
-        <span onClick="{{ d.onClick }}" style="position:absolute;left:{{ d.left }};top:26px;transform:translateX(-50%);white-space:nowrap;font-size:12px;line-height:1;font-weight:{{ d.fw }};color:{{ d.lc }};cursor:pointer;">{{ d.short }}</span>
+        <span onClick="{{ d.onClick }}" style="position:absolute;left:{{ d.left }};top:26px;transform:translateX({{ d.tx }});white-space:nowrap;font-size:12px;line-height:1;font-weight:{{ d.fw }};color:{{ d.lc }};cursor:pointer;">{{ d.short }}</span>
       </sc-for>
     </div>
+    <button onClick="{{ bar.toggleFast }}" title="{{ bar.fastTitle }}" aria-label="{{ bar.fastTitle }}" style="flex:none;height:30px;min-width:46px;padding:0 10px;border-radius:15px;border:1.5px solid {{ bar.fastBorder }};background:{{ bar.fastBg }};color:{{ bar.fastColor }};font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;cursor:pointer;" style-hover="filter:brightness(1.2);">2×</button>
   </footer>
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;,&quot;section&quot;:&quot;화면&quot;},&quot;timeOfDay&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;morning&quot;,&quot;afternoon&quot;,&quot;evening&quot;],&quot;default&quot;:&quot;afternoon&quot;,&quot;tsType&quot;:&quot;'auto'|'morning'|'afternoon'|'evening'&quot;,&quot;section&quot;:&quot;화면&quot;},&quot;flowSpeed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0.5,&quot;max&quot;:3,&quot;step&quot;:0.5,&quot;unit&quot;:&quot;x&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;3D&quot;},&quot;autoPlay&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;3D&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;,&quot;section&quot;:&quot;화면&quot;},&quot;timeOfDay&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;auto&quot;,&quot;morning&quot;,&quot;afternoon&quot;,&quot;evening&quot;],&quot;default&quot;:&quot;auto&quot;,&quot;tsType&quot;:&quot;'auto'|'morning'|'afternoon'|'evening'&quot;,&quot;section&quot;:&quot;화면&quot;},&quot;flowSpeed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0.5,&quot;max&quot;:3,&quot;step&quot;:0.5,&quot;unit&quot;:&quot;x&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;3D&quot;},&quot;autoPlay&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;3D&quot;}}">
 // [UI 시안] 아이콘: 선 아이콘 SVG를 data URI로 만들어 <img>에 넣는다 (템플릿에 SVG를 직접 넣을 수 없어서)
 const ICON = {
   home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
@@ -640,7 +643,7 @@ class Component extends DCLogic {
       navToggle: false, navToggleX: (16 + navW - 13) + 'px', ovL: (narrow ? 16 : navW + 32) + 'px', ovL2: (narrow ? 36 : navW + 52) + 'px', navToggleIc: icon(rail ? 'chevR' : 'chevL', '#dfe5ec', 2), navToggleTip: rail ? '메뉴 펼치기' : '메뉴 접기(아이콘만)',
       panelToggle: panelShown, panelToggleX: (rightPx - 13) + 'px', panelHandle: !!panelKind && panelHid, handleText: eq ? eq.name + ' 정보' : panelKind === 'tutor' ? 'AI 튜터' : '정보 패널',
       topLbl: vw < 1200 ? 'none' : 'inline', lbl: vpW < 820 ? 'none' : 'inline', hintDisp: vpW < 820 ? 'none' : 'flex', fitDisp: site ? 'none' : 'flex', tabPad: vpW < 760 ? '10px' : '14px', tabFs: vpW < 760 ? '13px' : '14px',
-      tbDisp: vpW < 820 || vpH < 520 ? 'none' : 'grid', titleSz: vpW < 700 ? '24px' : '34px',
+      tbDisp: vpW < 820 || vpH < 520 ? 'none' : 'grid', titleSz: vpW < 700 ? '24px' : '34px', modelsBtnDisp: S.introDone === false || touring ? 'none' : 'flex',
       fGap: vw < 1200 ? '12px' : '22px', fPad: vw < 1200 ? '14px' : '24px', fFilm: vw < 900 ? 'none' : 'flex', fLbl: vw < 1350 ? 'none' : 'inline', fBtnLbl: vw < 1000 ? 'none' : 'inline', fMat: vw < 1100 ? 'none' : 'flex', fSpdLbl: vw < 1200 ? 'none' : 'inline', spdW: vw < 1000 ? '44px' : '56px' };
     // 공정 메뉴
     const steps = D.PROCESSES.filter(x => !touring || x.id === S.processId).map(x => { /* 작동 보기 중에는 지금 공정만 */ const on = x.id === S.processId, open = S.expanded[x.id] ?? (on && !Object.values(S.expanded).some(Boolean)); // 지금 공정은 기본으로 펼침, 누르면 접힘
@@ -672,7 +675,9 @@ class Component extends DCLogic {
         const size = on ? 30 : 18; return { name: eqi?.name || '', left: dotsN < 2 ? '50%' : `calc(11px + (100% - 22px) * ${i / (dotsN - 1)})`, top: on ? '13px' : '19px', size: size + 'px', ml: -size / 2 + 'px', border: on ? `2.5px solid ${AC}` : done ? `2px solid ${AC}` : '2px solid #6b7686', bg: on ? '#11171f' : done ? AC : '#11171f', inner: on ? String(i + 1) : '', numColor: AC, shadow: on ? '0 0 0 4px rgba(34,199,240,.18)' : 'none', below: on ? '' : String(i + 1), labelColor: done ? '#c3ccd7' : '#6b7686', onClick: () => go(i) }; }) };
     Object.assign(bar, { show: !site, fill2: dotsN < 2 ? '0%' : `calc((100% - 14px) * ${Math.max(0, cur) / (dotsN - 1)})`,
       dots2: bar.dots.map((d, i) => { const on = i === cur, done = i < cur; return { name: d.name, onClick: d.onClick, left: dotsN < 2 ? '50%' : `calc(7px + (100% - 14px) * ${i / (dotsN - 1)})`,
-        size: on ? '14px' : '8px', short: (d.name || '').split(/[·(]/)[0].trim(), fw: on ? '700' : '500', lc: on ? AC : done ? '#c3ccd7' : '#8a95a3', bg: on || done ? AC : 'var(--chrome4)', shadow: on ? '0 0 0 4px rgba(34,199,240,.22)' : 'none' }; }) });
+        tx: i === 0 ? '-7px' : i === dotsN - 1 ? 'calc(-100% + 7px)' : '-50%', size: on ? '14px' : '8px', short: (d.name || '').split(/[·(]/)[0].trim(), fw: on ? '700' : '500', lc: on ? AC : done ? '#c3ccd7' : '#8a95a3', bg: on || done ? AC : 'var(--chrome4)', shadow: on ? '0 0 0 4px rgba(34,199,240,.22)' : 'none' }; }) });
+    const fast = sp >= 2; Object.assign(bar, { fastTitle: fast ? '기본 속도로' : '2배속 재생', fastBg: fast ? AC : 'transparent', fastBorder: fast ? AC : 'var(--line2)', fastColor: fast ? INK : '#c3ccd7',
+      toggleFast: () => { const v = fast ? 1 : 2; this.setState({ speed: v }); if (touring) this.scene()?.jumpTo(Math.max(0, cur), v); } }); // 현재 속도 ↔ 2배속, 시연 중이면 현재 단계부터 새 속도로
     const togglePlay = () => { if (site) return; const sc = this.scene(); if (S.playing || touring) { sc?.stop(); if (S.view === 'flow') this.setState({ view: 'exterior' }); } else sc?.tour(sp, Math.max(0, k)); };
     // 단면 패널
     const lys = (eq && eq.interior) || [], li = S.layer;
@@ -701,7 +706,7 @@ class Component extends DCLogic {
     return {
       ...base, ...chatV, messages, L, steps, zd,
       toggleRail: () => this.setState({ navRail: !rail }), togglePanel: () => this.setState({ panelHidden: !panelHid }), viewTabs, bar, togglePlay, sec, aiDown, aiUp: !aiDown, is2d, drawTabs, tb, hintText: is2d ? '드래그 이동 · 휠 확대' : '드래그 회전 · 휠 확대',
-      timeOfDay: this.qs('tod') ?? this.props.timeOfDay ?? 'afternoon',
+      timeOfDay: this.qs('tod') ?? this.props.timeOfDay ?? 'auto', // auto = 실제 시각으로 오전/오후/저녁
       processId: S.processId, selectedAttr: S.selectedId || '', view: S.view, process: p, eq: eq || {}, eqNum: String(k + 1).padStart(2, '0'), eqIcon: icon(eq?.shape || 'box', '#e6ebf1', 1.4),
       isSite: site, inProcess: !site, titleColor: lightVp ? '#1b232d' : '#f1f4f8', subColor: lightVp ? '#4b5665' : '#c3ccd7',
       glass: { bg: 'rgba(18,24,32,.82)', border: 'rgba(255,255,255,.14)', color: '#eef2f6', hint: lightVp && !bpMode ? '#4b5665' : '#c3ccd7' },
@@ -714,7 +719,10 @@ class Component extends DCLogic {
       hero: { show: S.processId === 'site' && !this.state.touring, title: dark ? '#f2f5f8' : '#141b24', sub: dark ? '#b9c3cf' : '#4a5563', shadow: dark ? '0 2px 14px rgba(0,0,0,.55)' : '0 1px 10px rgba(255,255,255,.7)' },
       dn: { icon: icon(dark ? 'sun' : 'moon', '#e6ebf1'), tip: dark ? '라이트 모드로' : '다크 모드로' },
       toggleSettings: () => this.setState({ settingsOpen: !S.settingsOpen }), settingsOpen: !!S.settingsOpen,
+      toggleModels: () => { const v = !S.zoneLabelsHidden; this.setState({ zoneLabelsHidden: v }); this.scene()?.setZoneLabelsVisible?.(!v); },
+      modelsBtnLabel: S.zoneLabelsHidden ? '공정 이름표 표시' : '공정 이름표 숨김', modelsBtnTitle: S.zoneLabelsHidden ? '01 제선 · 02 제강 … 선택 이름표 다시 표시' : '01 제선 · 02 제강 … 선택 이름표 숨기기 (3D 모델은 유지)', modelsDot: S.zoneLabelsHidden ? '#93a0b0' : AC,
       settingsItems: [
+        { label: '공정 3D 모델', value: S.modelsHidden ? '숨김' : '표시', valColor: S.modelsHidden ? '#93a0b0' : AC, onClick: () => { const v = !S.modelsHidden; this.setState({ modelsHidden: v }); this.scene()?.setModelsVisible?.(!v); } },
         { label: '개발자 패널', value: S.devOpen ? '켜짐' : '꺼짐', valColor: S.devOpen ? AC : '#93a0b0', onClick: () => this.setState({ devOpen: !S.devOpen, tutorOpen: false, settingsOpen: false }) },
         { label: 'AI 연결 다시 확인', value: S.ai === 'ok' ? '연결됨' : S.ai === 'down' ? '연결 안됨' : '확인 중', valColor: S.ai === 'ok' ? '#5ad19a' : '#ff8a8a', onClick: () => this.pingAI() },
       ],
