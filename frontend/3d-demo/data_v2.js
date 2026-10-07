@@ -235,7 +235,7 @@ export const PROCESSES = [
           { label: '응고 쉘 (겉면)', temp: '약 1,100℃', color: '#d8551a', h: 0.24, formula: '' },
           { label: '수냉 구리 벽', temp: '약 300℃', color: '#5a7fa0', h: 0.28, formula: '냉각수 순환' },
         ] },
-      { id: 'secondary_cooling', name: '2차 냉각·가이드 롤', shape: 'rollers', role: '물을 분사해 속까지 굳히고, 가이드 롤이 가닥을 받쳐 곡선 경로로 안내합니다.',
+      { id: 'secondary_cooling', name: '2차 냉각·가이드 롤', shape: 'rollers', interiorLayout: 'strand', role: '물을 분사해 속까지 굳히고, 가이드 롤이 가닥을 받쳐 곡선 경로로 안내합니다.',
         input: '겉만 굳은 주편', output: '속까지 굳은 주편', notes: ['롤러로 받쳐 가며 물을 뿌립니다.', '식는 속도가 품질(내부 결함)을 좌우합니다.'],
         materialOut: { shape: 'slab', color: '#a8514a', label: '2차 냉각: 속까지 굳으며 어두워짐' },
         steps: [
@@ -249,7 +249,7 @@ export const PROCESSES = [
           { label: '중심 액상부 (점점 줄어듦)', temp: '약 1,450℃', color: '#ffb54a', h: 0.22, formula: '' },
           { label: '완전 응고', temp: '약 900℃', color: '#a8514a', h: 0.28, formula: '' },
         ] },
-      { id: 'withdrawal_straightener', name: '인발·교정 롤', shape: 'rollers', role: '굳어 가는 강을 일정 속도로 끌어내고 곡선을 수평으로 펴 줍니다.',
+      { id: 'withdrawal_straightener', name: '인발·교정 롤', shape: 'rollers', interiorLayout: 'strand', role: '굳어 가는 강을 일정 속도로 끌어내고 곡선을 수평으로 펴 줍니다.',
         input: '곡선 주편', output: '수평으로 펴진 주편', notes: ['인발 속도가 곧 주조 속도입니다.', '속이 덜 굳었을 때 무리하게 펴면 내부 균열이 생깁니다.'],
         materialOut: { shape: 'slab', color: '#8a5a4a', label: '교정: 수평으로 펴진 주편' },
         steps: [
