@@ -24,6 +24,13 @@ export const TEXT = {
     send: '보내기',
     close: '닫기',
     login: '로그인',
+    // 나중에 이어 풀기
+    pause: '나중에 이어 풀기',
+    confirmPause: '멈추기',
+    keepGoing: '계속 풀기',
+    resumeShort: '이어 풀기',
+    resumeProgress: (done, total) => `이어 풀기 (${done}/${total} 완료)`,
+    pauseForLearning: '멈추고 질문하기',
   },
   // 체크포인트 진입 상태(섹션별).
   entry: {
@@ -35,6 +42,7 @@ export const TEXT = {
     locked: '잠김 · 앞 공정의 이해도 확인을 통과해야 열려요',
     passed: (percent) => `통과 · ${percent}%`,
     inProgress: '진행 중',
+    paused: (done, total) => `멈춤 · ${done}/${total} 완료`,
     retry: (count) => `재도전 · 개념 ${count}개`,
     notStarted: '시작 전',
   },
@@ -47,6 +55,7 @@ export const TEXT = {
     recheck: '재확인',
     error: '채점 오류',
     done: '완료',
+    paused: (done, total) => `멈춤 · ${done}/${total} 완료`,
   },
   readyHint: {
     first: '준비되면 시작할게요',
@@ -57,6 +66,7 @@ export const TEXT = {
     ready: '준비됐어요를 누르거나 입력하세요',
     answer: '답변을 입력하세요',
     error: '다시 채점하기를 눌러 주세요',
+    paused: '이어 풀기를 누르면 계속할 수 있어요',
   },
   // 튜터 메시지 종류별 머리말(서버 Utterance.type).
   messageLabels: {
@@ -86,6 +96,12 @@ export const TEXT = {
   },
   // 체크포인트 진행 중 학습 탭에 보이는 안내.
   learningLocked: '이해도 확인을 마치면 다시 질문할 수 있어요.',
+  // 나중에 이어 풀기. 확인창(recheck: 재확인 대기 중), 학습 탭 안내.
+  pauseConfirm: (recheck, done, total) => recheck
+    ? `지금까지 판정은 저장되고, 이어 풀 때 다른 재확인 질문으로 물어볼게요. 확인을 마친 개념은 ${done}/${total}개예요. 멈출까요?`
+    : `지금 풀던 개념은 이어 풀 때 다른 질문으로 다시 물어볼게요. 확인을 마친 개념(${done}/${total})은 저장돼요. 멈출까요?`,
+  resumeBanner: (sectionName, done, total) => `풀던 이해도 확인이 있어요 · ${sectionName} ${done}/${total} 완료`,
+  pauseOffer: '풀던 이해도 확인이 있어요. 잠깐 멈추고 질문할까요?',
   // 요청 오류 안내(api-client.js).
   errors: {
     network: '서버에 연결하지 못했어요. 서버가 켜져 있는지 확인한 뒤 다시 시도해 주세요.',

@@ -162,7 +162,7 @@ test("시작 → 답변 → 재확인 → 결과: 단계 표시, 학습 잠금, 
   assert.equal(v.cpCanStart, false, "통과한 섹션은 다시 시작하지 않는다");
 });
 
-test("새로고침 복원: 진행 중인 시도가 있으면 기록과 함께 이어서 연다", async () => {
+test("새로고침 복원: 진행 중인 시도를 기록과 함께 불러 두고, 탭은 학습 그대로 두고 [이어 풀기] 안내를 띄운다", async () => {
   const { chat, vals } = setup({
     "GET /api/sections/ironmaking/progress": progress("ironmaking", { in_progress_attempt_id: "a1" }),
     ...otherSections,
@@ -184,6 +184,9 @@ test("새로고침 복원: 진행 중인 시도가 있으면 기록과 함께 �
   assert.deepEqual(v.cpDots.map((d: Json) => d.status), ["done", "current", "pending"]);
   assert.equal(v.cpLearningLocked, true);
   assert.equal(v.cpTitle, "이해도 확인 · 제선");
+  assert.equal(v.cpIsLearningTab, true, "이해도 확인 탭으로 자동으로 옮기지 않는다");
+  assert.equal(v.cpShowResumeBanner, true);
+  assert.equal(v.cpResumeBannerText, TEXT.resumeBanner("제선", 1, 3));
 });
 
 test("채점 오류 → 다시 채점하기", async () => {
@@ -295,7 +298,7 @@ test("진입 상태: 준비 중(404), 잠김, 재도전, 409는 서버 문장", 
   assert.equal(s.vals().cpEntryStatus, TEXT.entry.passed(83), "실패하면 진입 상태를 다시 읽는다");
 });
 
-test("모드 탭: 기본은 학습, 이해도 확인 탭을 열면 진입 상태를 읽는다, 새로고침 복원은 이해도 확인 탭", async () => {
+test("모드 탭: 기본은 학습, 이해도 확인 탭을 열면 진입 상태를 읽는다, 새로고침 복원은 탭을 바꾸지 않는다", async () => {
   const s = setup({
     "GET /api/sections/ironmaking/progress": [progress("ironmaking"), progress("ironmaking", { in_progress_attempt_id: "a1" })],
     "GET /api/checkpoints/a1": { body: view("awaiting_answer", { concept: concept(1), history: [] }) },
@@ -314,10 +317,10 @@ test("모드 탭: 기본은 학습, 이해도 확인 탭을 열면 진입 상태
 
   s.chat.setMode("learning");
   await s.chat.refresh();
-  assert.equal(s.vals().cpIsCheckpointTab, true, "진행 중인 시도를 이어서 열면 이해도 확인 탭으로 바꾼다");
+  assert.equal(s.vals().cpIsLearningTab, true, "진행 중인 시도를 불러와도 학습 탭 그대로");
 });
 
-test("학습 잠금: 진행 중에는 학습 보내기·추천 질문·생각해 보기를 끄고 ask를 막는다", async () => {
+test("학습 잠금: 답하는 중에는 학습 보내기·추천 질문·생각해 보기를 끄고 ask를 막은 뒤 [멈추고 질문하기]를 안내한다", async () => {
   const s = setup({
     "GET /api/sections/ironmaking/progress": progress("ironmaking", { in_progress_attempt_id: "a1" }),
     "GET /api/checkpoints/a1": { body: view("awaiting_answer", { concept: concept(1), history: [] }) },
@@ -327,7 +330,8 @@ test("학습 잠금: 진행 중에는 학습 보내기·추천 질문·생각해
   assert.equal(s.chat.lockLearning(learning), learning, "진행 중이 아니면 그대로");
   assert.equal(s.chat.runLearning(() => "보냄"), "보냄");
 
-  await s.chat.refresh(); // 진행 중인 시도를 연다(이해도 확인 탭으로 바뀐다)
+  await s.chat.refresh(); // 진행 중인 시도를 불러 둔다
+  s.chat.setMode("checkpoint");
   const locked = s.chat.lockLearning(learning);
   assert.deepEqual(locked.chips, []);
   assert.equal(locked.messages[0].hasFollowUp, false);
@@ -335,9 +339,14 @@ test("학습 잠금: 진행 중에는 학습 보내기·추천 질문·생각해
   locked.send({ preventDefault() { prevented = true; } });
   assert.equal(sent, 0);
   assert.equal(prevented, true);
-  assert.equal(s.chat.runLearning(() => "보냄"), undefined, "진행 중에는 학습 질문을 보내지 않는다");
-  assert.equal(s.vals().cpIsCheckpointTab, true, "막힌 질문이 탭을 바꾸지 않는다");
-  assert.equal(s.vals().cpLearningLocked, true);
+  assert.equal(s.chat.runLearning(() => "보냄"), undefined, "답하는 중에는 학습 질문을 보내지 않는다");
+  const v = s.vals();
+  assert.equal(v.cpIsLearningTab, true, "막힌 질문은 학습 탭에서 [멈추고 질문하기]를 보여 준다");
+  assert.equal(v.cpShowPauseOffer, true);
+  assert.equal(v.cpPauseOfferText, TEXT.pauseOffer);
+  assert.equal(v.cpPauseOfferLabel, TEXT.buttons.pauseForLearning);
+  assert.equal(v.cpShowResumeBanner, false, "멈추고 질문하기 안내가 뜨면 이어 풀기 안내는 숨긴다");
+  assert.equal(v.cpLearningLocked, true);
 });
 
 test("학습 질문(runLearning)은 이해도 확인 탭에서 학습 탭으로 바꾼다", () => {
@@ -399,4 +408,146 @@ test("api-client: 토큰·접속 비밀번호 헤더, X-User-Id 없음, 오류 �
   assert.equal(local.getItem("st-rookie:passcode"), "새 비번");
   api.setPasscode("");
   assert.equal(local.has("st-rookie:passcode"), false);
+});
+
+// --- 나중에 이어 풀기 ---
+
+const answering = (extra: Json = {}) => view("awaiting_answer", { concept: concept(2), progress: progressList(["done", "current", "pending"]), ...extra });
+const pausedView = (extra: Json = {}) => view("paused", { concept: concept(2), progress: progressList(["done", "current", "pending"]), ...extra });
+const learningVals = () => ({ chips: [{ text: "추천" }], send: () => undefined, messages: [], input: "" });
+
+test("이어 풀기: [나중에 이어 풀기] → 확인창 → 멈춤, 멈춘 동안 학습 잠금 해제, [이어 풀기 (1/3 완료)] → 새 질문", async () => {
+  const s = setup({
+    "GET /api/sections/ironmaking/progress": progress("ironmaking", { in_progress_attempt_id: "a1" }),
+    "GET /api/checkpoints/a1": { body: answering({ history: [{ role: "tutor", type: "question", text: "Q2" }] }) },
+    "POST /api/checkpoints/a1/pause": { body: pausedView({ tutor: [{ type: "intro", text: "여기서 멈출게요." }] }) },
+    "POST /api/checkpoints/a1/resume": { body: answering({ tutor: [{ type: "intro", text: "이어서 할게요." }, { type: "question", text: "Q2-다른 질문" }] }) },
+  });
+  await s.chat.refresh();
+  s.chat.setMode("checkpoint");
+  let v = s.vals();
+  assert.equal(v.cpShowPauseButton, true);
+  assert.equal(v.cpPauseLabel, TEXT.buttons.pause);
+  assert.equal(v.cpConfirmPause, false);
+
+  v.onCpPause();
+  v = s.vals();
+  assert.equal(v.cpConfirmPause, true);
+  assert.equal(v.cpShowPauseButton, false);
+  assert.equal(v.cpConfirmPauseText, TEXT.pauseConfirm(false, 1, 3));
+  v.onCpCancelPause();
+  assert.equal(s.vals().cpConfirmPause, false, "[계속 풀기]는 확인창만 닫는다");
+  assert.deepEqual(s.net.keys().filter((k) => k.includes("pause")), []);
+
+  s.vals().onCpPause();
+  await s.vals().onCpConfirmPause();
+  v = s.vals();
+  assert.equal(v.cpState, "paused");
+  assert.equal(v.cpIsPaused, true);
+  assert.equal(v.cpStageLabel, TEXT.stage.paused(1, 3));
+  assert.equal(v.cpShowComposer, false);
+  assert.equal(v.cpShowPauseButton, false);
+  assert.equal(v.cpShowResumeButton, true);
+  assert.equal(v.cpResumeLabel, "이어 풀기 (1/3 완료)");
+  assert.equal(v.cpLearningLocked, false, "멈춘 동안에는 학습 채팅을 쓸 수 있다");
+  const learning = learningVals();
+  assert.equal(s.chat.lockLearning(learning), learning);
+  assert.equal(s.chat.runLearning(() => "보냄"), "보냄");
+  assert.equal(s.vals().cpIsLearningTab, true);
+  assert.equal(s.vals().cpShowResumeBanner, true);
+
+  await s.vals().onCpResume();
+  v = s.vals();
+  assert.equal(v.cpIsCheckpointTab, true);
+  assert.equal(v.cpState, "awaiting_answer");
+  assert.deepEqual(v.cpMessages.map((m: Json) => m.text), ["Q2", "여기서 멈출게요.", "이어서 할게요.", "Q2-다른 질문"]);
+  assert.equal(v.cpLearningLocked, true);
+  assert.deepEqual(s.net.keys().slice(-2), ["POST /api/checkpoints/a1/pause", "POST /api/checkpoints/a1/resume"]);
+});
+
+test("이어 풀기: 재확인 대기 중 확인창은 판정이 저장되고 다른 재확인 질문으로 묻는다고 안내한다", async () => {
+  const s = setup({
+    "GET /api/sections/ironmaking/progress": progress("ironmaking", { in_progress_attempt_id: "a1" }),
+    "GET /api/checkpoints/a1": { body: view("awaiting_recheck", { concept: concept(1), progress: progressList(["current", "pending", "pending"]), history: [] }) },
+  });
+  await s.chat.refresh();
+  s.vals().onCpPause();
+  assert.equal(s.vals().cpConfirmPauseText, TEXT.pauseConfirm(true, 0, 3));
+});
+
+test("이어 풀기: 로그인·새로고침 때 멈춘 시도는 학습 탭에 [이어 풀기] 안내만 띄우고, 누르면 이해도 확인 탭에서 이어 푼다", async () => {
+  const s = setup({
+    "GET /api/sections/ironmaking/progress": progress("ironmaking", { in_progress_attempt_id: "a1", in_progress: { attempt_id: "a1", state: "paused", done: 1, total: 3 } }),
+    ...otherSections,
+    "GET /api/checkpoints/a1": { body: pausedView({ history: [{ role: "tutor", type: "intro", text: "여기서 멈출게요." }] }) },
+    "POST /api/checkpoints/a1/resume": { body: answering({ tutor: [{ type: "question", text: "새 질문" }] }) },
+  });
+  await s.chat.refreshAll();
+  let v = s.vals();
+  assert.equal(v.cpIsLearningTab, true);
+  assert.equal(v.cpLearningLocked, false);
+  assert.equal(v.cpShowResumeBanner, true);
+  assert.equal(v.cpResumeBannerText, "풀던 이해도 확인이 있어요 · 제선 1/3 완료");
+  assert.equal(v.cpResumeBannerLabel, TEXT.buttons.resumeShort);
+  assert.deepEqual(s.net.keys().filter((k) => k.startsWith("POST")), [], "불러올 때는 이어 풀지 않는다");
+
+  await v.onCpResume();
+  v = s.vals();
+  assert.equal(v.cpIsCheckpointTab, true);
+  assert.equal(v.cpState, "awaiting_answer");
+  assert.equal(v.cpShowResumeBanner, false);
+});
+
+test("이어 풀기: 멈추지 않은 시도를 다시 열면 [이어 풀기]는 요청 없이 이해도 확인 탭으로만 옮긴다", async () => {
+  const s = setup({
+    "GET /api/sections/ironmaking/progress": progress("ironmaking", { in_progress_attempt_id: "a1" }),
+    "GET /api/checkpoints/a1": { body: answering({ history: [] }) },
+  });
+  await s.chat.refresh();
+  await s.vals().onCpResume();
+  assert.equal(s.vals().cpIsCheckpointTab, true);
+  assert.deepEqual(s.net.keys(), ["GET /api/sections/ironmaking/progress", "GET /api/checkpoints/a1"]);
+});
+
+test("멈추고 질문하기: 답하는 중 학습 질문은 들고 있다가, 누르면 멈춘 뒤 학습 탭에서 그 질문을 보낸다", async () => {
+  const s = setup({
+    "GET /api/sections/ironmaking/progress": progress("ironmaking", { in_progress_attempt_id: "a1" }),
+    "GET /api/checkpoints/a1": { body: answering({ history: [] }) },
+    "POST /api/checkpoints/a1/pause": [
+      { status: 409, body: { error: "이전 요청을 처리하는 중입니다." } },
+      { body: pausedView({ tutor: [{ type: "intro", text: "여기서 멈출게요." }] }) },
+    ],
+  });
+  await s.chat.refresh();
+  const sent: string[] = [];
+  assert.equal(s.chat.runLearning(() => sent.push("고로가 뭐예요?")), undefined);
+  assert.deepEqual(sent, []);
+  assert.equal(s.vals().cpShowPauseOffer, true);
+
+  await s.vals().onCpPauseForLearning(); // 멈추기 실패(409): 질문을 보내지 않고 안내를 남긴다
+  assert.deepEqual(sent, []);
+  assert.equal(s.vals().cpShowPauseOffer, true);
+  assert.equal(s.vals().cpNotice, "이전 요청을 처리하는 중입니다.");
+
+  await s.vals().onCpPauseForLearning();
+  const v = s.vals();
+  assert.deepEqual(sent, ["고로가 뭐예요?"], "멈춘 뒤 들고 있던 질문을 한 번 보낸다");
+  assert.equal(v.cpState, "paused");
+  assert.equal(v.cpIsLearningTab, true);
+  assert.equal(v.cpShowPauseOffer, false);
+  assert.equal(v.cpLearningLocked, false);
+  assert.equal(v.cpShowResumeBanner, true);
+});
+
+test("학습 입력창 전송(lockLearning의 send)도 답하는 중에는 [멈추고 질문하기]를 띄운다", async () => {
+  const s = setup({
+    "GET /api/sections/ironmaking/progress": progress("ironmaking", { in_progress_attempt_id: "a1" }),
+    "GET /api/checkpoints/a1": { body: answering({ history: [] }) },
+  });
+  await s.chat.refresh();
+  assert.equal(s.vals().cpShowPauseOffer, false);
+  s.chat.lockLearning(learningVals()).send({ preventDefault() {} });
+  assert.equal(s.vals().cpShowPauseOffer, true);
+  s.chat.setMode("checkpoint");
+  assert.equal(s.vals().cpShowPauseOffer, false, "이해도 확인 탭으로 가면 안내를 접는다");
 });
