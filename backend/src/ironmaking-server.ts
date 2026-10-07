@@ -59,6 +59,12 @@ const learning = createLearningRouter({
   rubrics,
   // 튜터의 3D 화면 조작(scene_actions)에 쓸 공정·설비 목록. data_v2.js 형식이 틀리면 서버가 시작되지 않는다.
   scene: await loadSceneCatalog(),
+  // 체크포인트에서 아직 만점이 아닌 개념(튜터에 넘김)과 진행 중 여부(진행 중이면 키워드 카드를 붙이지 않음). 이해도 계산은 엔진(summarizeSection)이 한다.
+  checkpointProgress: (userId, section) => {
+    if (!rubrics.some((r) => r.section === section)) return null;
+    const p = engine.sectionProgress(userId, section);
+    return { retry_concept_ids: p.retry_concept_ids, in_progress: p.in_progress_attempt_id !== null };
+  },
 });
 
 const app = createApp({ engine, usage, learning });

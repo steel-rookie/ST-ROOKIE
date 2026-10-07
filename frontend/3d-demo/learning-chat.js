@@ -72,8 +72,24 @@ function toMessage(res) {
     evidence: res.status,
     citations: (res.sources || []).map(s => ({ title: s.title, document_id: s.id, url: s.url })),
     followUp: res.follow_up || null,
+    keywordCard: toKeywordCard(res.keyword_card),
   };
 }
+
+/**
+ * 서버의 키워드 카드(keyword_card) → 템플릿 값. 없으면 null. 용어집의 같은 말은 괄호로 붙인다(예: 일산화탄소 (CO)).
+ * 카드 내용은 서버가 루브릭에서 꺼낸 것이다(backend/src/learning/keywords.ts). 새로고침으로 다시 불러온 대화에는 없다.
+ */
+function toKeywordCard(card) {
+  if (!card || !Array.isArray(card.keywords) || !card.keywords.length) return null;
+  return {
+    title: card.name,
+    keywords: card.keywords.map(k => ({ text: k.aliases?.length ? `${k.term} (${k.aliases.join(', ')})` : k.term })),
+    hasSource: !!card.source?.title, sourceTitle: card.source?.title || '',
+  };
+}
+// 카드가 없는 메시지에도 같은 모양을 둔다(템플릿이 m.keywordCard.title 등을 읽어도 오류가 나지 않게).
+const NO_CARD = { title: '', keywords: [], hasSource: false, sourceTitle: '' };
 
 /** 페이지 컴포넌트에 붙일 학습 채팅을 만든다. componentDidMount에서 한 번 부른다. */
 export async function createLearningChat(c) {
@@ -146,10 +162,11 @@ export async function createLearningChat(c) {
     },
 
     // 튜터 패널 템플릿 값: 메시지, 추천 질문(chips), 입력창.
+    // 메시지의 키워드 카드는 hasKeywordCard·keywordCard다. 체크포인트 진행 중에는 checkpoint-chat.js의 lockLearning()이 숨긴다(정답 용어가 모여 있어서).
     vals(D) {
       const S = c.state;
       return {
-        messages: S.messages.map(m => ({ ...m, isUser: m.role === 'user', isSafety: m.role === 'assistant' && m.mode === 'safety_redirect', isAssistant: m.role === 'assistant' && m.mode !== 'safety_redirect', hasFollowUp: !!m.followUp, askFollowUp: () => chat.ask(m.followUp) })),
+        messages: S.messages.map(m => ({ ...m, isUser: m.role === 'user', isSafety: m.role === 'assistant' && m.mode === 'safety_redirect', isAssistant: m.role === 'assistant' && m.mode !== 'safety_redirect', hasFollowUp: !!m.followUp, askFollowUp: () => chat.ask(m.followUp), hasKeywordCard: !!m.keywordCard, keywordCard: m.keywordCard || NO_CARD })),
         chatRef: c.chatRef, pending: S.pending, chips: (suggestionsFor(S.processId, S.selectedId) || D.SUGGESTED).map(text => ({ text, onClick: () => chat.ask(text) })),
         input: S.input, onInput: e => c.setState({ input: e.target.value }), send: e => { e.preventDefault(); chat.ask(S.input); },
       };
