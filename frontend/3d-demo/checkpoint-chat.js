@@ -1,4 +1,4 @@
-// 체크포인트(이해도 확인) 채팅(최종 페이지 Steel Academy v2.dc.html 전용). 설계: docs/checkpoint-integration.md
+// 체크포인트(이해도 확인) 채팅(최종 페이지 Steel Academy v3.dc.html, 이전 페이지 v2도 같이 씀). 설계: docs/checkpoint-integration.md
 // - checkpoint-test.html의 진행 로직(진입 상태, 시작, 답변, 재채점, 새로고침 복원, 결과)을 화면 코드 없이 옮겼다.
 // - learning-chat.js와 같은 방식: 페이지 컴포넌트(c)의 state·setState를 쓰고, 화면 값은 vals()로 돌려준다.
 //   DOM은 쓰지 않는다. 상태 키와 vals() 키는 학습 모드와 겹치지 않게 cp로 시작한다.
@@ -30,7 +30,7 @@ export const CHECKPOINT_STATE = {
 
 const ANSWERING = ['awaiting_ready', 'awaiting_answer', 'awaiting_recheck'];
 const VERDICT_TONE = { correct: 'ok', partial: 'warn', wrong: 'danger' };
-// v2 페이지에는 --ok·--warn 변수가 없어서 기본색을 함께 준다.
+// 페이지(v2·v3)에 --ok 변수가 없어서 기본색을 함께 준다.
 const TONE_COLOR = { ok: 'var(--ok, #2f9e44)', warn: 'var(--warn, #e8590c)', danger: 'var(--danger)' };
 const ACCENT = 'var(--accent)';
 const MODES = ['learning', 'checkpoint'];
