@@ -48,6 +48,18 @@ void main(){
   float beat = 0.75 + 0.25 * sin(t * 3.0), lit = clamp(ring * beat + dot0 + exp(-d * 3.0) * 0.25 * dark, 0.0, 1.0);
   gl_FragColor = vec4(mix(groove, core, lit), max(plate * mix(0.7, 0.9, dark), lit));
 }`;
+// 하늘 돔: 카메라를 감싸는 구. 방향의 높이(y)로 천정 → 중간 → 지평선 → 땅 색을 섞고, 해 쪽을 밝힌다. 지평선 색 = 안개 색이라 먼 경치가 하늘에 녹아든다
+const SKY_VS = 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
+const SKY_FS = `uniform vec3 top, mid, hor, low, sunCol; uniform vec3 sunDir; uniform float sunAmt; varying vec3 vDir;
+void main(){
+  vec3 d = normalize(vDir); float h = d.y;
+  vec3 c = h >= 0.0 ? mix(hor, mid, smoothstep(0.0, 0.22, h)) : mix(hor, low, smoothstep(0.0, 0.1, -h));
+  c = mix(c, top, smoothstep(0.22, 0.85, h));
+  float s = max(dot(d, normalize(sunDir)), 0.0);
+  c += sunCol * (pow(s, 90.0) * 0.55 + pow(s, 8.0) * 0.16 + pow(s, 2.0) * 0.05) * sunAmt * smoothstep(-0.05, 0.05, h);
+  gl_FragColor = vec4(c, 1.0);
+  #include <colorspace_fragment>
+}`;
 // 꺾인 선(pts)을 따라 바닥에 붙는 폭 w의 띠를 만든다. 꼭짓점마다 앞뒤 방향의 평균으로 좌우를 잡는다
 function linkRibbon(pts, w) {
   const n = pts.length, pos = new Float32Array(n * 6), uv = new Float32Array(n * 4), idx = []; let d = 0;
@@ -214,8 +226,14 @@ class SteelScene extends HTMLElement {
     const dark = (this.getAttribute('theme') || 'dark') === 'dark';
     // [UI 시안] 낮 하늘은 스튜디오 회색 쪽으로 옅게 섞어 설비가 먼저 보이게 한다 (팀원 배경은 유지)
     const hz = (c, k) => '#' + new THREE.Color(c).lerp(new THREE.Color(HAZE), k).getHexString();
-    this.scene.background = this._gradientTex(dark ? ['#02040a', '#0a1324', '#1b2740'] : T.sky.map((c, i) => hz(c, 0.03 + i * 0.03)));
-    this._fog0 = null; this.scene.fog = null; // 안개 없음(요청) // 카메라 거리에 따라 _frame 에서 밀어 줌
+    // 원근감: 하늘 돔과 거리 안개를 같은 지평선 색으로 맞춘다. 안개는 공정이 있는 가까운 곳은 건드리지 않고(시작 거리 near) 먼 산·바다·도시만 흐리게 하며,
+    // 카메라가 멀어지면 _frame 에서 near·far를 같이 밀어 전체 보기에서도 부지는 선명하게 둔다
+    const sky = dark ? { top: '#02040a', mid: '#0a1428', hor: '#22324d', low: '#0b1119', sunCol: '#ff9a5a', sunAmt: 0.35, sunDir: [0.3, 0.05, -1] }
+      : { top: hz(T.sky[0], 0.05), mid: hz(T.sky[2], 0.12), hor: hz(T.sky[4], 0.28), low: hz(T.sky[4], 0.4), sunCol: '#' + new THREE.Color(T.sunCol).getHexString(), sunAmt: 1, sunDir: T.sunPos };
+    this.scene.background = new THREE.Color(sky.hor);
+    this._skyDome(sky);
+    this.scene.fog = new THREE.Fog(new THREE.Color(sky.hor), 0, 1); this._fog0 = dark ? [150, 760] : [170, 900];
+    this.scene.fog.near = this._fog0[0] + Math.max(0, this.orbit.dist - 130); this.scene.fog.far = this._fog0[1] + Math.max(0, this.orbit.dist - 130) * 1.3;
     this.scene.environment = dark ? null : this._envTex;
     this.renderer.toneMappingExposure = dark ? 0.95 : 1.0;
     if (this.sunLight) { if (dark) { this.sunLight.color.set(0xffffff); this.sunLight.intensity = 1.4; this._sunDir = new THREE.Vector3(10, 20, 12).normalize(); } else { this.sunLight.color.set(T.sl[0]); this.sunLight.intensity = T.sl[1] * 0.95; this._sunDir = new THREE.Vector3(...T.sl[2]).normalize(); } this._placeSun(); }
@@ -229,6 +247,14 @@ class SteelScene extends HTMLElement {
     this.nightSky.visible = dark;
     this.dark = dark; this._styleLabels(); this._styleZoneLabels(); this._paintSite(); Object.values(this.zones || {}).forEach(z => { if (z.neon) z.neon.visible = dark; });
     this._zoneLight(); if (this._2d) this._2dStyle();
+  }
+  _skyDome(sky) {
+    if (!this.skyDome) {
+      const uni = { top: { value: new THREE.Color() }, mid: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, low: { value: new THREE.Color() }, sunCol: { value: new THREE.Color() }, sunDir: { value: new THREE.Vector3() }, sunAmt: { value: 1 } };
+      const m = new THREE.Mesh(new THREE.SphereGeometry(1800, 48, 24), new THREE.ShaderMaterial({ uniforms: uni, vertexShader: SKY_VS, fragmentShader: SKY_FS, side: THREE.BackSide, depthWrite: false, depthTest: false, fog: false }));
+      m.name = 'SKY_DOME'; m.renderOrder = -10; m.frustumCulled = false; m.raycast = () => {}; this.skyDome = m; this.scene.add(m);
+    }
+    const u = this.skyDome.material.uniforms; ['top', 'mid', 'hor', 'low', 'sunCol'].forEach(k => u[k].value.set(sky[k])); u.sunDir.value.set(...sky.sunDir).normalize(); u.sunAmt.value = sky.sunAmt; this._dirty = true;
   }
   // [UI 시안] 공정 안에서는 그 공정만 보이게(다른 공정은 숨김), 전체 보기에서는 모두
   _zoneVis() { Object.values(this.zones || {}).forEach(z => { const loaded = !!z.modelStatus && z.modelStatus !== 'loading'; z.root.visible = loaded && (this._isOverview !== false || z === this.zone); }); this._dirty = true; }
@@ -1409,6 +1435,7 @@ class SteelScene extends HTMLElement {
     if (this.scene.fog && this._fog0) { const ex = Math.max(0, o.dist - 130), fn = this._fog0[0] + ex, ff = this._fog0[1] + ex * 1.3; if (Math.abs(this.scene.fog.near - fn) > 0.5) { this.scene.fog.near = fn; this.scene.fog.far = ff; this._dirty = true; } }
     this.camera.position.set(o.target.x + o.dist * Math.sin(o.yaw) * Math.cos(o.pitch), o.target.y + o.dist * Math.sin(o.pitch), o.target.z + o.dist * Math.cos(o.yaw) * Math.cos(o.pitch));
     if (this.nightSky) this.nightSky.position.set(this.camera.position.x, 0, this.camera.position.z);
+    if (this.skyDome) this.skyDome.position.copy(this.camera.position);
     this.camera.lookAt(o.target); this.camera.updateMatrixWorld(); // 라벨 투영이 이번 프레임 카메라를 쓰게(한 프레임 늦어 떨리던 문제)
     }
     if (this.move) {
@@ -1583,7 +1610,7 @@ class SteelScene extends HTMLElement {
     }
     if (!this._bpGrid) { const gr = new THREE.Group(); [[400, 200, 0x24507e, 0.55], [400, 40, 0x3d6c9c, 0.9]].forEach(([size, div, col, op]) => { const h = new THREE.GridHelper(size, div, col, col); h.material.transparent = true; h.material.opacity = op; h.material.fog = false; gr.add(h); }); this._bpGrid = gr; this.scene.add(gr); }
     this._bpGrid.visible = bp; if (bp) { const p = this._2dCenter || new THREE.Vector3(z?.ox || 0, 0, z?.oz || 0); if (this._drawMode === 'front') { this._bpGrid.rotation.set(Math.PI / 2, 0, 0); this._bpGrid.position.set(p.x, 0, new THREE.Box3().setFromObject(m).min.z - 2); } else { this._bpGrid.rotation.set(0, 0, 0); this._bpGrid.position.set(p.x, -0.05, 0); } }
-    [this.backdrop, this.ground, this._links?.g, this._waves?.g].forEach(o => { if (o) o.visible = !bp; }); if (this.nightSky) this.nightSky.visible = !bp && !!this.dark; if (this.zl) this.zl.g.visible = !bp && !!this.dark && !this._isOverview;
+    [this.backdrop, this.ground, this._links?.g, this._waves?.g].forEach(o => { if (o) o.visible = !bp; }); if (this.nightSky) this.nightSky.visible = !bp && !!this.dark; if (this.skyDome) this.skyDome.visible = !bp; if (this.zl) this.zl.g.visible = !bp && !!this.dark && !this._isOverview;
     if (this.material) this.material.visible = !bp && !!this.zone?.root.visible;
     if (bp) { this.scene.background = new THREE.Color(0x0f2c4c); this.scene.fog = null; this.ring.visible = false; }
     this._dirty = true;
