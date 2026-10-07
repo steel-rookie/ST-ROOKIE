@@ -41,13 +41,13 @@
 
 | 담당 | 파일 |
 |---|---|
-| 수민: 체크포인트·평가자·튜터·질문 은행·eval | `backend/src/checkpoint/`, `backend/src/rubrics.ts`, `backend/src/db/migrations/001_checkpoint.sql`, `llm/src/evaluator.ts`, `llm/src/tutor.ts`, `llm/src/question-check.ts`, `llm/prompts/evaluator.md`, `llm/prompts/tutor-*.md`, `llm/eval/`, `content/rubrics/`(`schema.json` 제외), `frontend/3d-demo/checkpoint-test.html`, `frontend/3d-demo/checkpoint-chat.js`, 원격 테스트 장치(`backend/src/test-access.ts`, `usage.ts`, `request-user.ts`, `db/migrations/002_llm_usage.sql`, `scripts/tunnel.mjs`), 이 파일들의 테스트 |
+| 수민: 체크포인트·평가자·튜터·질문 은행·eval | `backend/src/checkpoint/`, `backend/src/rubrics.ts`, `backend/src/db/migrations/001_checkpoint.sql`·`007_checkpoint_pause.sql`, `llm/src/evaluator.ts`, `llm/src/tutor.ts`, `llm/src/question-check.ts`, `llm/prompts/evaluator.md`, `llm/prompts/tutor-*.md`, `llm/eval/`, `content/rubrics/`(`schema.json` 제외), `frontend/3d-demo/checkpoint-test.html`, `frontend/3d-demo/checkpoint-chat.js`, 원격 테스트 장치(`backend/src/test-access.ts`, `usage.ts`, `request-user.ts`, `db/migrations/002_llm_usage.sql`, `scripts/tunnel.mjs`), 이 파일들의 테스트 |
 | ssoyoum: 학습 모드 | `llm/src/learning-agent.ts`·`llm/src/retrieval.ts`(둘 다 새로 만듦), `llm/prompts/learning*.md`, `backend/src/learning/`(단, `notes.ts`의 `LearnerNotes` 타입과 `buildLearnerNotes` 시그니처는 수민과 합의 후 변경), `frontend/3d-demo/learning-chat.js`, `frontend/3d-demo/tutor_v2.js`, 학습 모드 마이그레이션(`004`부터, `003_users.sql`은 로그인), 이 파일들의 테스트 |
 | 공용: 고치면 작은 PR + 팀 공유 | `llm/src/gemini.ts`, `backend/src/scoring.ts`, `content/rubrics/schema.json`, `backend/src/app.ts`(라우트 등록), `backend/src/db/database.ts`, `backend/src/checkpoint/types.ts`, `package.json`, `CLAUDE.md`, 마이그레이션 번호 |
 | 프론트(viiin2) | `Steel Academy v3.dc.html`, `scene_v3.js`, `step-fx.js`, `Steel Academy v2.dc.html`, `data_v2.js`, `scene_v2.js`, `steel-2d*.js`, `models/`, `frontend/login_ui/`(`Admin Dashboard.dc.html` 제외) |
 | 수민: 관리자 대시보드 | `backend/src/admin/`, `frontend/login_ui/Admin Dashboard.dc.html`, 시연 개념 목록 `content/demo/sections.json`·`backend/src/demo-sections.ts`, 이 파일들의 테스트 |
 
-- 마이그레이션 번호 규칙: `backend/src/db/migrations/NNN_이름.sql`을 파일 이름 순서로 한 번씩 적용하고 `schema_migrations`에 이름을 남긴다. 001~006은 사용 중이다(005: 기록 출처 `origin`, 006: 시연 계정 `users.is_demo`). 새 번호는 지금 가장 큰 번호 + 1로 정하고, 같은 번호를 두 사람이 쓰지 않게 PR을 열기 전에 팀에 알린다. 이미 병합된 마이그레이션 파일은 고치지 않고 새 번호로 추가한다.
+- 마이그레이션 번호 규칙: `backend/src/db/migrations/NNN_이름.sql`을 파일 이름 순서로 한 번씩 적용하고 `schema_migrations`에 이름을 남긴다. 001~007은 사용 중이다(005: 기록 출처 `origin`, 006: 시연 계정 `users.is_demo`, 007: 이어 풀기 질문 기록 `attempt_questions`). 새 번호는 지금 가장 큰 번호 + 1로 정하고, 같은 번호를 두 사람이 쓰지 않게 PR을 열기 전에 팀에 알린다. 이미 병합된 마이그레이션 파일은 고치지 않고 새 번호로 추가한다.
 - 기존 `/api/chat`(`llm/src/ironmaking-agent.ts`)은 학습 모드로 대체되어 지웠다. 기본 모델 상수 `DEFAULT_GEMINI_MODEL`은 `llm/src/gemini.ts`에 있다. `ironmaking-sources.ts`(공개 자료 메모)는 학습 모드 검색(`retrieval.ts`)과 출처 표시(`learning/routes.ts`)가 쓰므로 남긴다.
 - 학습 모드 시작 안내: [docs/onboarding-learning-mode.md](docs/onboarding-learning-mode.md).
 
@@ -219,6 +219,12 @@ content/
 - 이미 통과한 섹션은 다시 응시할 수 없다(409).
 - 같은 시도 안에서 재확인으로 맞혀도 그 개념의 오개념은 해결됨으로 바꾼다.
 - 재확인에서 나온 오개념도 기록한다.
+- 이해도 확인 중간에 '나중에 이어 풀기'로 멈출 수 있다(새 상태 `paused`, `POST /api/checkpoints/:id/pause`·`resume`). 확정한 개념은 그대로 둔다. 상세는 [docs/checkpoint-api.md](docs/checkpoint-api.md) '나중에 이어 풀기'.
+  - 답 대기 중에 멈추면 그 개념을 초기화하고, 이어 풀 때 이 시도에서 안 쓴 은행 질문으로 다시 묻는다. 은행을 다 썼으면 `fallback_question`을 다시 쓴다.
+  - 재확인 대기 중에 멈추면 첫 판정을 유지하고, 이어 풀 때 안 쓴 재확인 질문으로 묻는다. 멈춰서 재확인을 건너뛰고 새 첫 질문으로 1점을 받는 우회를 막기 위해서다.
+  - 멈춘 시도는 실패로 세지 않는다. 관리자 통계에는 '진행 중'으로 보인다(`in_progress_sections`).
+  - 멈춘 동안 학습 채팅을 쓸 수 있다. 답하는 중(`awaiting_*`, `error`)에만 학습 채팅을 잠그고, 학습 채팅에 입력하려 하면 [멈추고 질문하기]를 안내한다.
+  - 로그인·새로고침 때 이해도 확인 탭으로 자동으로 옮기지 않는다. 학습 탭에서 시작하고 "풀던 이해도 확인이 있어요 [이어 풀기]" 안내만 띄운다. 새로고침은 시도를 바꾸지 않는다.
 
 ## 브랜치와 병합 순서
 
