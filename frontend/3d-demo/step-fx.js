@@ -33,7 +33,8 @@ const ICON = {
 const CS = '#include <colorspace_fragment>\n';
 const VS_UV = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
 const FS_ARROW = 'uniform vec3 c1, c2; uniform float t, grow, op, rep, bk; varying vec2 vUv; void main(){ float y = vUv.y; if (y > grow) discard; float s = step(0.55, fract(y * rep - t * 1.4)); vec3 c = mix(c1, c2, y); c = mix(c, vec3(1.0), s * 0.45); gl_FragColor = bk > 0.5 ? vec4(0.0, 0.0, 0.0, op * 0.32) : vec4(c, op);\n' + CS + '}';
-const VS_W = 'varying vec3 wp; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); wp = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }';
+// wp: 단면 모형 안쪽 좌표(공정 회전 전). 공정이 돌아가 있어도 그라데이션 방향이 단면과 같이 돈다
+const VS_W = 'uniform mat4 toLocal; varying vec3 wp; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); wp = (toLocal * w).xyz; gl_Position = projectionMatrix * viewMatrix * w; }';
 const FS_GRAD = 'uniform vec3 cA, cB; uniform float yT, yB, cx, hx, rv, ax, op; varying vec3 wp; void main(){ float k = ax > 0.5 ? 1.0 - clamp(abs(wp.x - cx) / hx, 0.0, 1.0) : clamp((yT - wp.y) / max(1e-4, yT - yB), 0.0, 1.0); if (k > rv) discard; float edge = smoothstep(rv - 0.08, rv, k) * step(rv, 0.999); vec3 c = mix(mix(cA, cB, k), vec3(1.0), edge * 0.6); gl_FragColor = vec4(c, op * 0.92);\n' + CS + '}';
 const VS_PT = 'attribute float k; varying float vk; uniform float size, scale; void main(){ vk = k; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = size * scale / max(0.1, -mv.z); gl_Position = projectionMatrix * mv; }';
 const FS_PT = 'uniform vec3 c1, c2; uniform sampler2D map; uniform float op; varying float vk; void main(){ if (vk < 0.0) discard; float a = smoothstep(0.0, 0.12, vk) * (1.0 - smoothstep(0.7, 1.0, vk)); vec4 tx = texture2D(map, gl_PointCoord); gl_FragColor = vec4(mix(c1, c2, vk), tx.a * a * op);\n' + CS + '}';
@@ -204,8 +205,9 @@ export class StepFx {
     const spec = e && idx != null ? STEP_FX[e.id]?.[idx] : null, L = this.h.layerItems;
     if (!spec || !L?.length || !this.h.interior) return false;
     if (!document.getElementById('sfx-style')) { const st = document.createElement('style'); st.id = 'sfx-style'; st.textContent = CSS; document.head.appendChild(st); }
-    this.h.interior.updateMatrixWorld(true);
-    this.U = e.interior.r; this.g = new THREE.Group(); this.g.name = 'STEP_FX'; this.h.scene.add(this.g); this.t0 = performance.now();
+    // 단면 모형 안쪽 좌표계(공정 회전 전)에서 그린다. 회전한 공정이면 바깥 묶음이 돌아가므로 시각화도 같이 돈다
+    this.h.interior.updateMatrixWorld(true); this.root = this.h.interiorInner || this.h.interior; this.toLocal = new THREE.Matrix4().copy(this.root.matrixWorld).invert();
+    this.U = e.interior.r; this.g = new THREE.Group(); this.g.name = 'STEP_FX'; this.root.add(this.g); this.t0 = performance.now();
     spec.forEach(o => { const fn = this['_' + o.t]; if (fn) fn.call(this, o, this._frame(o.span, idx)); });
     return true;
   }
@@ -214,21 +216,27 @@ export class StepFx {
     this.added.forEach(o => o.parent?.remove(o)); this.added = [];
     this.restore.reverse().forEach(fn => fn()); this.restore = [];
     this.mats.forEach(m => m.dispose()); this.mats = [];
-    if (this.g) { this.h.scene.remove(this.g); this.g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); this.g = null; }
+    if (this.g) { this.g.parent?.remove(this.g); this.g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); this.g = null; }
     this.h._dirty = true;
   }
   tick(now) {
     if (!this.g) return false;
     const t = (now - this.t0) / 1000 - START; this.items.forEach(it => it(t));
     const h = this.h, w = h.clientWidth, H = h.clientHeight, v = V();
-    this.els.forEach(el => { v.copy(el._pos).project(h.camera); const vis = v.z < 1; el.style.display = vis ? '' : 'none'; if (vis) { el.style.left = ((v.x + 1) / 2 * w).toFixed(1) + 'px'; el.style.top = ((1 - v.y) / 2 * H).toFixed(1) + 'px'; } });
+    this.els.forEach(el => { v.copy(el._pos).applyMatrix4(this.root.matrixWorld).project(h.camera); const vis = v.z < 1; el.style.display = vis ? '' : 'none'; if (vis) { el.style.left = ((v.x + 1) / 2 * w).toFixed(1) + 'px'; el.style.top = ((1 - v.y) / 2 * H).toFixed(1) + 'px'; } });
     return true;
   }
   _frame(span, idx) {
     const L = this.h.layerItems, n = L.length, [a, b] = span === 'all' ? [0, n - 1] : Array.isArray(span) ? span : [idx, idx];
-    const box = new THREE.Box3(), lo = Math.max(0, a), hi = Math.min(n - 1, b); for (let i = lo; i <= hi; i++) box.expandByObject(L[i].m);
+    const box = new THREE.Box3(), lo = Math.max(0, a), hi = Math.min(n - 1, b); for (let i = lo; i <= hi; i++) this._localBox(L[i].m, box);
     const c = box.getCenter(V()), s = box.getSize(V());
     return { c, hx: Math.max(s.x / 2, 0.05), hy: Math.max(s.y / 2, 0.05), a: lo, b: hi };
+  }
+  /** obj의 메시들을 단면 안쪽 좌표(this.root 기준) 상자로 box에 더한다. */
+  _localBox(obj, box) {
+    const b = new THREE.Box3(), m = new THREE.Matrix4();
+    obj.traverse(o => { if (!o.isMesh || !o.geometry || o.userData.layerIdx === undefined) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); box.union(b.copy(o.geometry.boundingBox).applyMatrix4(m.multiplyMatrices(this.toLocal, o.matrixWorld))); });
+    return box;
   }
   _p(f, uv) { return V(f.c.x + uv[0] * f.hx, f.c.y + uv[1] * f.hy, f.c.z); }
   _layers(f) { const out = []; for (let i = f.a; i <= f.b; i++) out.push(this.h.layerItems[i].m); return out; }
@@ -270,7 +278,7 @@ export class StepFx {
   // 온도 그라데이션: 층 모양을 그대로 덮어 위→아래(axis 'y') 또는 가장자리→가운데(axis 'r')로 색이 번진다
   _grad(o, f) {
     const d = o.delay || 0, dur = o.dur || 1.6;
-    const mat = new THREE.ShaderMaterial({ uniforms: { cA: { value: new THREE.Color(o.from) }, cB: { value: new THREE.Color(o.to) }, yT: { value: f.c.y + f.hy }, yB: { value: f.c.y - f.hy }, cx: { value: f.c.x }, hx: { value: f.hx }, rv: { value: 0 }, ax: { value: o.axis === 'r' ? 1 : 0 }, op: { value: 0 } }, vertexShader: VS_W, fragmentShader: FS_GRAD, transparent: true, depthTest: false, depthWrite: false });
+    const mat = new THREE.ShaderMaterial({ uniforms: { toLocal: { value: this.toLocal }, cA: { value: new THREE.Color(o.from) }, cB: { value: new THREE.Color(o.to) }, yT: { value: f.c.y + f.hy }, yB: { value: f.c.y - f.hy }, cx: { value: f.c.x }, hx: { value: f.hx }, rv: { value: 0 }, ax: { value: o.axis === 'r' ? 1 : 0 }, op: { value: 0 } }, vertexShader: VS_W, fragmentShader: FS_GRAD, transparent: true, depthTest: false, depthWrite: false });
     this.mats.push(mat);
     this._layers(f).forEach(root => root.traverse(m => { if (!m.isMesh || m.userData.layerIdx === undefined) return; const ov = new THREE.Mesh(m.geometry, mat); ov.renderOrder = 14; ov.raycast = () => {}; m.add(ov); this.added.push(ov); }));
     this.items.push((t) => { mat.uniforms.rv.value = ease((t - d) / dur); mat.uniforms.op.value = c01((t - d) / 0.3); });

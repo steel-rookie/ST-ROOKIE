@@ -9,8 +9,12 @@ import { StepFx } from './step-fx.js';
 // 포항제철소 위성 사진 기준 배치. 사진 px → 월드 (X = (px-640)·S, Z = (py-620)·S). 북쪽이 -Z(화면 안쪽), 동쪽이 +X
 const MAP_S = 0.18, MAP_W = 640, PX = (x, y) => [(x - 640) * MAP_S, (y - 620) * MAP_S];
 // 공정 위치(c), 구역 이름표 오프셋(lab), 바닥판(ap: dx, dz, w, d). 제선=고로가 있는 북쪽 매립지(원료 야적장 옆), 제강·연주=그 옆 서쪽 라인, 열간압연=남쪽 긴 공장 라인
-const SITE = { ironmaking: { c: PX(760, 235), lab: [0, 13], ap: [0, -1.4, 38, 18] }, steelmaking: { c: PX(470, 440), lab: [-33, 4], ap: [0.8, 0.4, 35, 14] }, continuous_casting: { c: PX(400, 620), lab: [-34, 4], ap: [0, 0, 36, 15] }, rolling: { c: PX(540, 980), lab: [-32, -4], ap: [0, 0, 33, 9] } }; // 열간압연 이름표: 남쪽(화면 아래)이 아니라 모델 왼쪽 옆에
+// rot: 공정 회전(라디안, three.js rotation.y와 같음). 모델·설비·단면·경로·카메라가 모두 이 각도를 따른다. 흐름이 하나로 이어지도록
+// 제선은 부두(동쪽)에서 서쪽으로(180°), 제강·연주는 세로 도로를 따라 위→아래로(-90°) 흐르게 돌려 놓았다.
+const SITE = { ironmaking: { c: PX(760, 235), rot: Math.PI, lab: [0, 13], ap: [0, -1.4, 38, 18] }, steelmaking: { c: [-12, -43], rot: -Math.PI / 2, lab: [-33, 4], ap: [0.8, 0.4, 35, 14] }, continuous_casting: { c: [-34, 2.5], rot: -Math.PI / 2, lab: [-34, 4], ap: [0, 0, 36, 15] }, rolling: { c: PX(540, 980), lab: [-32, -4], ap: [0, 0, 33, 9] } }; // 열간압연 이름표: 남쪽(화면 아래)이 아니라 모델 왼쪽 옆에
 const zonePos = (p, i) => SITE[p.id]?.c || [(i - (PROCESSES.length - 1) / 2) * 44, 0];
+/** 공정 안쪽 좌표(x, z)를 공정 회전(r)만큼 돌린다. three.js의 rotation.y와 같은 방향. */
+const rotXZ = (x, z, r) => [x * Math.cos(r) + z * Math.sin(r), -x * Math.sin(r) + z * Math.cos(r)];
 // 부지 윤곽(월드 XZ, 시계 방향): 매립지(제철소)·도시(강 건너 서쪽과 남쪽)
 const SITE_LAND = [[590, 40], [1180, 215], [1232, 300], [1196, 388], [746, 350], [700, 440], [614, 580], [538, 700], [500, 745], [760, 745], [760, 660], [1010, 630], [1040, 680], [1050, 800], [900, 870], [600, 1244], [62, 800], [235, 300], [340, 230]].map(p => PX(p[0], p[1]));
 const SITE_CITY = [[-320, -95], [-125, -95], [-86, -62], [-117, 36], [47, 47], [125, 92], [210, 160], [320, 230], [320, 320], [-320, 320]];
@@ -19,7 +23,7 @@ const SITE_ROADS = { R7: [[-30, -80], [0, -90], [40, -84], [88, -70]], RJ: [[-30
   R2: [[-2, -89], [-2, -24], [-12, -6], [-20, 10], [-27, 24], [-40, 48], [-46, 62], [-38, 80], [-22, 96], [-14, 102]],
   R4: [[-86, -19], [0, -21]], R5: [[-84, 46], [44, 46]], R6: [[-24, 26], [20, 26]], R31: [[-125, 10], [-106, 34], [-9, 114], [14, 125], [70, 126], [130, 98], [200, 120]] };
 // 공정 사이 레일 경유점 (null = 앞쪽은 출구 Z, 뒤쪽은 입구 Z를 그대로 씀)
-const SITE_LINKS = { 'ironmaking>steelmaking': [[43, null], [43, -58], [-63, -58], [-63, null]], 'steelmaking>continuous_casting': [[-6.7, null], [-6.7, -16], [-66, -16], [-66, null]], 'continuous_casting>rolling': [[-24, null], [-24, 12], [-30, 20], [-30, 32], [-50, 32], [-50, null]] };
+const SITE_LINKS = { 'ironmaking>steelmaking': [[-11.2, null]], 'steelmaking>continuous_casting': [[-12, -17], [-34, -17]], 'continuous_casting>rolling': [[-34, null]] };
 
 // 공정 사이 연결선: 바닥에 붙은 띠(uv.x = 시작부터 거리(월드 단위), uv.y = 0~1 가로). 홈 + 테두리 + 발광선 + 흐름 방향으로 지나가는 빛
 const LINK_VS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
@@ -545,7 +549,7 @@ class SteelScene extends HTMLElement {
       let tk = 17; const tr = () => (tk = (tk * 16807) % 2147483647) / 2147483647; x.fillStyle = tetC; const bw = [[72, 12], [76, -24]]; for (let i = 0; i < 40; i++) { const t = tr(), u = bw[0][0] + (bw[1][0] - bw[0][0]) * t + 1.8 + tr() * 0.6, v = bw[0][1] + (bw[1][1] - bw[0][1]) * t; x.beginPath(); x.arc((u + Wd / 2) * S, (v + Wd / 2) * S, (0.45 + tr() * 0.35) * S, 0, Math.PI * 2); x.fill(); } // 방파제 바깥 테트라포드
       [[-14, 30, 10, 6, 0], [30, 38, 8, 5, 0.12], [-50, 70, 9, 6, 0.7]].forEach(([u, v, w, d, an]) => { rect(x, S, u, v, w, d, an, lotC); x.save(); x.translate((u + Wd / 2) * S, (v + Wd / 2) * S); x.rotate(an); x.strokeStyle = dark ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.7)'; x.lineWidth = 0.12 * S; for (let i = -Math.floor(w / 2) + 1; i < Math.floor(w / 2); i++) { x.beginPath(); x.moveTo(i * S, -d / 2 * S); x.lineTo(i * S, d / 2 * S); x.stroke(); } x.restore(); }); // 주차장 줄선
     }
-    Object.values(SITE).forEach(q => rect(x, S, q.c[0] + q.ap[0], q.c[1] + q.ap[1], q.ap[2], q.ap[3], 0, C.apron));
+    Object.values(SITE).forEach(q => { const r = q.rot || 0, [dx, dz] = rotXZ(q.ap[0], q.ap[1], r), odd = Math.abs(Math.sin(r)) > 0.5; rect(x, S, q.c[0] + dx, q.c[1] + dz, odd ? q.ap[3] : q.ap[2], odd ? q.ap[2] : q.ap[3], 0, C.apron); });
     // 도로(테두리 + 노면). 31번 국도는 노란색
     const road = (pts, w, f, e) => { strokeP(x, S, pts, e, w + 0.9); strokeP(x, S, pts, f, w); };
     ['R7', 'RJ', 'R1', 'R2', 'R4', 'R5', 'R6'].forEach(k => road(SITE_ROADS[k], k === 'R2' ? 2.6 : 2.2, C.road, C.edge)); road(SITE_ROADS.R31, 3.2, C.r31, C.r31e);
@@ -669,7 +673,8 @@ class SteelScene extends HTMLElement {
   setModelsVisible(v) { this._modelsHidden = !v; Object.values(this.zones || {}).forEach(z => { if (z.root) z.root.visible = v; if (z.label) z.label.style.display = v ? '' : 'none'; }); if (this._links) this._links.g.visible = v; this._dirty = true; }
   _buildZone(p, pos, zi) {
     const [ox, oz] = pos;
-    const z = { id: p.id, ox, oz, root: new THREE.Group(), eqs: [], anchorMode: false, home: { yaw: -0.5, pitch: 0.36, dist: 48, target: [ox, 1.5, oz] }, ringScale: 1 };
+    const rot = SITE[p.id]?.rot || 0;
+    const z = { id: p.id, ox, oz, rot, root: new THREE.Group(), eqs: [], anchorMode: false, home: { yaw: -0.5 + rot, pitch: 0.36, dist: 48, target: [ox, 1.5, oz] }, ringScale: 1 };
     z.root.name = `PROCESS_${p.id}`;
     const n = p.equipment.length;
     p.equipment.forEach((e, i) => {
@@ -705,7 +710,7 @@ class SteelScene extends HTMLElement {
     const go = (ev) => { ev.stopPropagation(); ev.preventDefault(); this.dispatchEvent(new CustomEvent('steel-goto', { detail: { process: p.id }, bubbles: true, composed: true })); };
     zl.onpointerdown = go; zl.onpointerup = (ev) => ev.stopPropagation();
     zl.onclick = (ev) => ev.stopPropagation();
-    this.labels.appendChild(zl); z.label = zl; const ap = SITE[p.id]?.ap || [0, 0]; z.labelPos = new THREE.Vector3(ox + ap[0], 3, oz + ap[1]); // 핀 끝: 공정 바닥판 가운데 위(모델을 불러오면 높이를 맞춘다)
+    this.labels.appendChild(zl); z.label = zl; const ap = SITE[p.id]?.ap || [0, 0], [apx, apz] = rotXZ(ap[0], ap[1], rot); z.labelPos = new THREE.Vector3(ox + apx, 3, oz + apz); // 핀 끝: 공정 바닥판 가운데 위(모델을 불러오면 높이를 맞춘다)
     this.zones[p.id] = z; this.zoneLabels.push(z); if (this._modelsHidden) { z.root.visible = false; zl.style.display = 'none'; } if (this._zoneLabelsHidden) zl.style.display = 'none';
     // 지금 보는 공정 먼저, 나머지는 순서대로 조금씩 늦게 불러온다
     const cur = this.getAttribute('process'), first = !cur || cur === 'site' ? zi === 0 : cur === p.id;
@@ -766,8 +771,10 @@ class SteelScene extends HTMLElement {
     const done = (status, mapped) => { z.modelStatus = status; z.mapped = mapped; z.root.visible = true; this._zoneVis(); if (this.zone === z) { this.eqs.forEach(e => { e.label.style.display = 'flex'; }); if (this.material) this.material.visible = true; this._emitModel(status, url, mapped); this._zoneLight(); } this._dirty = true; };
     new GLTFLoader().load(url, (gltf) => {
       const model = gltf.scene; model.name = `GLB_${p.id}`;
-      const sc = cfg?.scale ?? 1, off = new THREE.Vector3().fromArray(cfg?.offset || [0, 0, 0]).add(new THREE.Vector3(z.ox, 0, z.oz || 0));
-      model.scale.setScalar(sc); model.position.copy(off);
+      const sc = cfg?.scale ?? 1, rot = z.rot || 0, local = new THREE.Vector3().fromArray(cfg?.offset || [0, 0, 0]), off = new THREE.Vector3(z.ox, 0, z.oz || 0).add(local);
+      // 공정 회전: 공정 원점(ox, oz)을 축으로 도는 받침에 모델을 얹는다(회전이 0이면 예전과 같은 위치)
+      const pivot = new THREE.Group(); pivot.name = `PIVOT_${p.id}`; pivot.position.set(z.ox, 0, z.oz || 0); pivot.rotation.y = rot;
+      model.scale.setScalar(sc); model.position.copy(local); pivot.add(model); pivot.updateMatrixWorld(true);
       // [UI 시안] 재질 보정: 금속 재질은 환경맵 반사로 밝히고, 쇳물·고온 슬라브는 더 뜨겁게 빛나게, 그림자 주고받기
       model.traverse(o => { if (o.isMesh) { const m = o.material = o.material.clone(), nm = m.name || '';
         o.castShadow = true; o.receiveShadow = true; m.envMapIntensity = 0.9;
@@ -781,22 +788,22 @@ class SteelScene extends HTMLElement {
         if (nm === 'Glass') { m.envMapIntensity = 0.3; m.roughness = 0.35; }
         if (nm === 'Blue_Steel') { m.envMapIntensity = 0.5; m.roughness = Math.max(0.55, m.roughness); }
         o.userData.base = m.emissive ? m.emissive.getHex() : 0; o.userData.baseI = m.emissiveIntensity; } }); this._paintSite();
-      const M = (a) => new THREE.Vector3().fromArray(a).multiplyScalar(sc).add(off);
+      const M = (a) => { const v = new THREE.Vector3().fromArray(a).multiplyScalar(sc).add(local), [rx, rz] = rotXZ(v.x, v.z, rot); return new THREE.Vector3(z.ox + rx, v.y, (z.oz || 0) + rz); };
       let mapped = 0;
       z.eqs.forEach(e => {
         const node = model.getObjectByName(`EQ_${e.id}`), a = cfg?.anchors?.[e.id];
         if (node) {
           node.traverse(o => { if (o.isMesh) o.userData.eq = e.id; });
-          model.updateMatrixWorld(true);
+          pivot.updateMatrixWorld(true);
           const box = new THREE.Box3().setFromObject(node), c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3()).length();
           e.group.visible = false; e.group = node; e.x = c.x; e.anchor.set(c.x, box.max.y + 0.6, c.z); e.focus.set(c.x, c.y, c.z); e.dist = Math.max(10, sz * 1.6); mapped++;
           // 내부 단면: anchors의 interiors(또는 anchors.interior) 좌표를 쓰고, 없으면 노드 경계 상자로 잡는다
-          if (e.data.interior) { const iv = cfg?.interiors?.[e.id] || a?.interior; if (iv) { const ic = M([iv.center[0], 0, iv.center[1]]); e.interior = { cx: ic.x, cz: ic.z, y0: iv.y0 * sc + off.y, y1: iv.y1 * sc + off.y, r: iv.r * sc, box: iv.box ? [iv.box[0] * sc, iv.box[1] * sc] : null, w: iv.w ? iv.w * sc : null }; } else { const bs = box.getSize(new THREE.Vector3()); e.interior = { cx: c.x, cz: c.z, y0: box.min.y + bs.y * 0.08, y1: box.max.y - bs.y * 0.08, r: Math.min(bs.x, bs.z) * 0.3 }; } }
+          if (e.data.interior) { const iv = cfg?.interiors?.[e.id] || a?.interior; if (iv) { const ic = M([iv.center[0], 0, iv.center[1]]); e.interior = { cx: ic.x, cz: ic.z, y0: iv.y0 * sc + off.y, y1: iv.y1 * sc + off.y, r: iv.r * sc, box: iv.box ? [iv.box[0] * sc, iv.box[1] * sc] : null, w: iv.w ? iv.w * sc : null, rot }; } else { const bs = box.getSize(new THREE.Vector3()); e.interior = { cx: c.x, cz: c.z, y0: box.min.y + bs.y * 0.08, y1: box.max.y - bs.y * 0.08, r: Math.min(bs.x, bs.z) * 0.3 }; } }
         } else if (a) {
           e.group.visible = false; e.group = new THREE.Group(); e.anchor.copy(M(a.label)); e.focus.copy(M(a.focus || a.label)); e.x = e.focus.x; e.dist = (a.dist ?? 40) * sc; mapped++;
-          if (a.interior && e.data.interior) { const c = M([a.interior.center[0], 0, a.interior.center[1]]); e.interior = { cx: c.x, cz: c.z, y0: a.interior.y0 * sc + off.y, y1: a.interior.y1 * sc + off.y, r: a.interior.r * sc }; }
+          if (a.interior && e.data.interior) { const c = M([a.interior.center[0], 0, a.interior.center[1]]); e.interior = { cx: c.x, cz: c.z, y0: a.interior.y0 * sc + off.y, y1: a.interior.y1 * sc + off.y, r: a.interior.r * sc, rot }; }
           else if (e.data.interior) { // anchors에 단면 좌표가 없으면 포커스 주변 GLB 메시의 경계 상자에 맞춰 단면 모형을 배치한다
-            model.updateMatrixWorld(true); const f = e.focus, R0 = Math.max(3, e.dist * 0.28), ub = new THREE.Box3(), bb = new THREE.Box3(), bc = new THREE.Vector3(); let hit = 0;
+            pivot.updateMatrixWorld(true); const f = e.focus, R0 = Math.max(3, e.dist * 0.28), ub = new THREE.Box3(), bb = new THREE.Box3(), bc = new THREE.Vector3(); let hit = 0;
             model.traverse(o => { if (!o.isMesh || o.userData.floor) return; bb.setFromObject(o); if (bb.isEmpty()) return; bb.getCenter(bc); const bs = bb.getSize(new THREE.Vector3()); if (Math.max(bs.x, bs.z) > R0 * 3) return; if (bs.y > 1.6 * Math.max(bs.x, bs.z)) return; /* 굴뚝처럼 가늘고 긴 메시는 제외 */ if (Math.hypot(bc.x - f.x, bc.z - f.z) < R0 && bb.max.y > 0.3) { ub.union(bb); hit++; } });
             if (hit) { const c = ub.getCenter(new THREE.Vector3()), bs = ub.getSize(new THREE.Vector3()), r = Math.max(0.8, Math.min(bs.x, bs.z) * 0.3); e.interior = { cx: c.x, cz: c.z, y0: Math.max(0.1, ub.min.y + bs.y * 0.06), y1: ub.max.y - bs.y * 0.06, r }; e.focus.set(c.x, c.y, c.z); e.anchor.set(c.x, ub.max.y + 0.6, c.z); }
             else { const r = Math.max(0.8, e.dist * 0.08); e.interior = { cx: f.x, cz: f.z, y0: Math.max(0.1, f.y - r * 1.5), y1: f.y + r * 1.5, r }; } }
@@ -806,13 +813,14 @@ class SteelScene extends HTMLElement {
       z.root.children.filter(c => c.isLine).forEach(l => z.root.remove(l));
       model.traverse(o => { o.matrixAutoUpdate = false; o.updateMatrix(); }); model.matrixAutoUpdate = false; model.updateMatrix();
       // [UI 시안] 공정 바닥판은 낮·밤 모두 투명(숨김). 밤에는 바닥판 외곽만 빛나는 네온 테두리로 표시
-      model.updateMatrixWorld(true); const fb = new THREE.Box3();
+      pivot.updateMatrixWorld(true); const fb = new THREE.Box3();
       model.traverse(o => { if (!o.isMesh) return; for (let q = o; q && q !== model; q = q.parent) if (/^Floor_/.test(q.name)) { o.visible = false; o.castShadow = false; o.userData.floor = true; fb.expandByObject(o); break; } });
       if (!fb.isEmpty()) { z.floorBox = fb; this._neonAll(); }
       { const hs = []; model.traverse(o => { if (o.isMesh && !o.userData.floor) { const b = new THREE.Box3().setFromObject(o); if (!b.isEmpty()) hs.push(b.max.y); } }); hs.sort((a, b) => a - b); const c = (fb.isEmpty() ? new THREE.Box3().setFromObject(model) : fb).getCenter(new THREE.Vector3()); z.labelPos.set(c.x, (hs[Math.floor(hs.length * 0.8)] ?? 3) + 0.6, c.z); } // 굴뚝 같은 튀는 높이는 빼고 상위 20% 높이 위
-      z.root.add(model); z.glb = model; z.anchorMode = !!cfg?.anchors; this._addSmoke(z, model);
-      z.path = cfg?.flow ? cfg.flow.map(M) : [z.eqs[0].focus.clone().add(new THREE.Vector3(-6, 0, 0)), ...z.eqs.map(e => e.focus.clone()), z.eqs[z.eqs.length - 1].focus.clone().add(new THREE.Vector3(6, 0, 0))];
-      if (cfg?.home) { const t = cfg.home.target || [0, 1.5, 0]; z.home = { ...z.home, ...cfg.home, target: [t[0] + z.ox, t[1], t[2] + (z.oz || 0)] }; }
+      z.root.add(pivot); z.glb = model; z.anchorMode = !!cfg?.anchors; this._addSmoke(z, model);
+      const along = (d) => { const [rx, rz] = rotXZ(d, 0, rot); return new THREE.Vector3(rx, 0, rz); };
+      z.path = cfg?.flow ? cfg.flow.map(M) : [z.eqs[0].focus.clone().add(along(-6)), ...z.eqs.map(e => e.focus.clone()), z.eqs[z.eqs.length - 1].focus.clone().add(along(6))];
+      if (cfg?.home) { const t = cfg.home.target || [0, 1.5, 0], [tx, tz] = rotXZ(t[0], t[2], rot); z.home = { ...z.home, ...cfg.home, yaw: (cfg.home.yaw ?? -0.5) + rot, target: [tx + z.ox, t[1], tz + (z.oz || 0)] }; }
       z.ringScale = cfg?.ringScale ?? 1; z.stops = cfg?.stops || null; z.rail = !!cfg?.rail; z.matScale = cfg?.materialScale ?? 1;
       if (this.zone === z) { this.path = z.path; this.stops = z.stops; this.rail = z.rail; this.matScale = z.matScale; this.anchorMode = z.anchorMode; this.home = z.home; this.ring.scale.setScalar(z.ringScale); this.stop(); this._setMaterial(0, this.path[0]); this._applySelection(); }
       this._buildSiteLinks(); done('glb', mapped); this.dispatchEvent(new CustomEvent('steel-layout', { detail: { process: p.id }, bubbles: true, composed: true })); if (this._2d && this.zone === z) { this._fit2d(false); this._2dStyle(); }
@@ -989,7 +997,15 @@ class SteelScene extends HTMLElement {
       tl.onclick = (ev) => { ev.stopPropagation(); if (this.activeLayer === idx && this.pinnedLayer === idx) { this.pinnedLayer = null; this._focusLayer(idx); } else { this.pinnedLayer = idx; if (this.activeLayer !== idx) { this.activeLayer = null; this._focusLayer(idx); } } };
     });
     if (false) { const sh = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.08, r * 1.08, H, 32, 1, true), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.08, side: THREE.DoubleSide, depthTest: false })); sh.position.set(cx, (y0 + y1) / 2, cz); sh.renderOrder = 11; g.add(sh); }
-    this.interior = g; this.scene.add(g);
+    // 공정이 회전돼 있으면 단면 모형(공정 안쪽 좌표로 만듦)을 단면 중심을 축으로 같이 돌리고, 화면 글자 기준점도 돌린다
+    const irot = e.interior.rot || 0; this.interiorInner = g;
+    if (irot) {
+      const wrap = new THREE.Group(); wrap.position.set(cx, 0, cz); wrap.rotation.y = irot; g.position.set(-cx, 0, -cz); wrap.add(g);
+      // 기준점이 층 중심(layerItems의 mid)과 같은 객체일 수 있어 새 벡터로 바꾼다(제자리에서 돌리면 층 중심까지 돌아감)
+      const turn = (v) => { if (!v) return v; const [rx, rz] = rotXZ(v.x - cx, v.z - cz, irot); return new THREE.Vector3(cx + rx, v.y, cz + rz); };
+      this.interiorLabels.forEach(l => { l._pos = turn(l._pos); l._lead = turn(l._lead); l._posL = turn(l._posL); });
+      this.interior = wrap; this.scene.add(wrap);
+    } else { this.interior = g; this.scene.add(g); }
   }
   _focusLayer(idx, opt = {}) { this._dirty = true; if (this.pinnedLayer === undefined) this.pinnedLayer = null;
     (this._timers || []).forEach(clearTimeout); this._timers = [];
@@ -1020,11 +1036,12 @@ class SteelScene extends HTMLElement {
     });
     if (this.activeLayer !== null && e) {
       const it = this.layerItems[idx], r = e.interior.r;
-      const H = e.interior.y1 - e.interior.y0, center = (e.interior.y0 + e.interior.y1) / 2, yaw = -0.2, S = this.interiorSpan || H;
+      const H = e.interior.y1 - e.interior.y0, center = (e.interior.y0 + e.interior.y1) / 2, yaw = -0.2 + (e.interior.rot || 0), S = this.interiorSpan || H;
       const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)), horiz = S !== H;
       const dist = Math.max(S * (horiz ? 1.5 : 2.1), r * 7, 9);
-      const tx = horiz ? e.interior.cx : it.mid.x;
-      this._animateTo({ yaw, pitch: horiz ? 0.25 : 0.05, dist, target: new THREE.Vector3(tx, center + (horiz ? H * 0.4 : H * 0.06), it.mid.z).add(right.multiplyScalar(dist * 0.08)) });
+      // 층 중심은 단면 안쪽(회전 전) 좌표라 공정 회전만큼 돌려 실제 위치로 바꾼다
+      const [mx, mz] = horiz ? [0, 0] : rotXZ(it.mid.x - e.interior.cx, it.mid.z - e.interior.cz, e.interior.rot || 0);
+      this._animateTo({ yaw, pitch: horiz ? 0.25 : 0.05, dist, target: new THREE.Vector3(e.interior.cx + mx, center + (horiz ? H * 0.4 : H * 0.06), e.interior.cz + mz).add(right.multiplyScalar(dist * 0.08)) });
       this.ring.visible = false;
     } else if (e) { this.focus(e.id); this.ring.visible = true; }
   }
@@ -1484,7 +1501,7 @@ class SteelScene extends HTMLElement {
     else if (only == null) step = 1; // 개요 단계 없이 바로 첫 설비로
     if (only != null) { const e = this.eqs[only]; step = 0; this.matIdx = -1; this._setMaterial(only, this._stopPos(only));
       this._emitTour({ i: ++step, total, title: e.data.name + ' 작동 보기', text: '먼저 설비 전체 모습을 보고, 소재가 지나가는 순서대로 안쪽을 확대해요.', eq: e.id });
-      this._select(e.id); this._animateTo({ yaw: -0.55, pitch: 0.42, dist: e.dist * 1.8, target: e.focus.clone() }); this._startWork(e); await this._wait(2600 * sp); if (token !== this._tourId) return; }
+      this._select(e.id); this._animateTo({ yaw: -0.55 + this._rotOf(e), pitch: 0.42, dist: e.dist * 1.8, target: e.focus.clone() }); this._startWork(e); await this._wait(2600 * sp); if (token !== this._tourId) return; }
     const kEnd = only != null ? only + 1 : this.eqs.length;
     for (let k = only != null ? only : startAt; k < kEnd; k++) {
       const e = this.eqs[k];
@@ -1604,7 +1621,8 @@ class SteelScene extends HTMLElement {
   play(speed = 1) { this.playing = true; this.t = 0; this.playT0 = performance.now(); this.playDur = (this._nStops() - 1) * 2600 / speed; this._setMaterial(0, this.path[0]); this._emitProgress(); return true; }
   stop() { if (this.touring) return this.stopTour(); this.playing = false; this.t = 0; this.matIdx = -1; if (this.material) this.material.traverse(o => { if (o.isMesh || o.isPoints) o.visible = false; }); this._emitProgress(); }
   toggle(speed) { (this.playing || this.touring) ? this.stop() : this.tour(speed); }
-  focus(id) { const e = this.eqs.find(q => q.id === id); if (!e) return false; if (this._2d) { this._focus2d(e); return true; } const inner = !!e.interior && (this.getAttribute('view') === 'section' || this.touring); this._animateTo({ yaw: inner ? -0.25 : -0.5, pitch: inner ? 0.12 : 0.38, dist: inner ? e.dist * 0.75 : e.dist * 1.25, target: inner ? new THREE.Vector3(e.interior.cx, (e.interior.y0 + e.interior.y1) / 2, e.interior.cz) : e.focus.clone() }); return true; }
+  _rotOf(e) { return this.zones?.[e?.zone]?.rot || 0; }
+  focus(id) { const e = this.eqs.find(q => q.id === id); if (!e) return false; if (this._2d) { this._focus2d(e); return true; } const inner = !!e.interior && (this.getAttribute('view') === 'section' || this.touring); this._animateTo({ yaw: (inner ? -0.25 : -0.5) + this._rotOf(e), pitch: inner ? 0.12 : 0.38, dist: inner ? e.dist * 0.75 : e.dist * 1.25, target: inner ? new THREE.Vector3(e.interior.cx, (e.interior.y0 + e.interior.y1) / 2, e.interior.cz) : e.focus.clone() }); return true; }
   // 왼쪽 네비(~260px)를 피해 남은 화면 중앙에 target이 오도록 카메라 target을 보정
   _navShift(pose) { const nw = this.labels.dataset.navWidth; /* [UI 시안] 3D 영역이 메뉴 밖에 있어 기본은 보정 없음 */ if (nw === undefined || nw === '0') return pose; const w = this.clientWidth || 1200, navPx = (nw === undefined ? 260 : +nw) + 30; const fovH = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(42) / 2) * this.camera.aspect); const worldPerPx = (2 * pose.dist * Math.tan(fovH / 2)) / w; const right = new THREE.Vector3(Math.cos(pose.yaw), 0, -Math.sin(pose.yaw)); return { ...pose, target: pose.target.clone().sub(right.multiplyScalar(navPx / 2 * worldPerPx)) }; }
   // 전체 공정 시점: 4개 공정 구역이 모두 들어오는 거리 (위성 지도처럼 북쪽이 화면 안쪽)
