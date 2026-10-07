@@ -164,8 +164,8 @@ class SteelScene extends HTMLElement {
   // 라이트 모드: 실제 시각으로 오전(5~11시) / 오후(11~17시) / 저녁(17~5시) 하늘을 고른다. time-of-day 속성으로 고정 가능
   _period() { const f = this.getAttribute('time-of-day') || this.getAttribute('timeofday'); if (f === 'morning' || f === 'afternoon' || f === 'evening') return f; const h = new Date().getHours(); return h >= 5 && h < 11 ? 'morning' : h >= 11 && h < 17 ? 'afternoon' : 'evening'; }
   _tod() { return ({
-    morning: { sky: ['#4f80b0', '#80a9d0', '#b7cde2', '#ead9c8', '#ffd9ae'], fog: 0xd8dfe6, sunCol: 0xfff3d6, sunPos: [330, 70, -560], halo: [[70, 0.24, 0xfff0c0], [150, 0.11, 0xffd8a0], [260, 0.05, 0xffc890]], sil: 0x9aa5b3, far: 0xbdc7d3, steam: 0xffffff, steamOp: 0.26, win: false, ridges: [[0xa0bcd6, 0xcbdcea], [0x7fa0a0, 0xaac4be], [0x5c8a68, 0x86ad88]], ground: 0x8e978e, sl: [0xfff2e0, 1.7, [16, 16, -22]], hemi: [0xf0f5ff, 0x5c6470, 1.0] },
-    afternoon: { sky: ['#3d78b4', '#6a9fd0', '#a3c6e4', '#d4e4f0', '#f1eee6'], fog: 0xcfdce8, sunCol: 0xffffff, sunPos: [-80, 230, -560], halo: [[70, 0.2, 0xffffff], [150, 0.08, 0xeaf4ff], [260, 0.04, 0xdcecff]], sil: 0xa2acb8, far: 0xc5cdd7, steam: 0xffffff, steamOp: 0.3, win: false, ridges: [[0x8fb0d4, 0xbdd6ea], [0x6f9a86, 0x9dbfae], [0x4f8058, 0x78a070]], ground: 0x8c968a, sl: [0xffffff, 1.9, [6, 30, 8]], hemi: [0xf4f8ff, 0x5e646e, 1.05] },
+    morning: { sky: ['#4f80b0', '#80a9d0', '#b7cde2', '#e2d9cf', '#efdcc6'], fog: 0xe3ddd4, sunCol: 0xfff3d6, sunPos: [330, 70, -560], halo: [[70, 0.24, 0xfff0c0], [150, 0.11, 0xffd8a0], [260, 0.05, 0xffc890]], sil: 0x9aa5b3, far: 0xbdc7d3, steam: 0xffffff, steamOp: 0.26, win: false, ridges: [[0xa0bcd6, 0xcbdcea], [0x7fa0a0, 0xaac4be], [0x5c8a68, 0x86ad88]], ground: 0x8e978e, sl: [0xfff2e0, 1.7, [16, 16, -22]], hemi: [0xf0f5ff, 0x5c6470, 1.0] },
+    afternoon: { sky: ['#3d78b4', '#6a9fd0', '#a3c6e4', '#cfe0ee', '#dfe9f1'], fog: 0xd6e3ee, sunCol: 0xffffff, sunPos: [-80, 230, -560], halo: [[70, 0.2, 0xffffff], [150, 0.08, 0xeaf4ff], [260, 0.04, 0xdcecff]], sil: 0xa2acb8, far: 0xc5cdd7, steam: 0xffffff, steamOp: 0.3, win: false, ridges: [[0x8fb0d4, 0xbdd6ea], [0x6f9a86, 0x9dbfae], [0x4f8058, 0x78a070]], ground: 0x8c968a, sl: [0xffffff, 1.9, [6, 30, 8]], hemi: [0xf4f8ff, 0x5e646e, 1.05] },
     evening: { sky: ['#2f3d6e', '#6a5b94', '#b8769a', '#ea9d78', '#ffcf8f'], fog: 0xd0c6d2, sunCol: 0xffe2a8, sunPos: [-330, 46, -560], halo: [[70, 0.28, 0xffb070], [150, 0.14, 0xff8a60], [260, 0.07, 0xff7a70]], sil: 0x8d8aa0, far: 0xb0abbd, steam: 0xffe0c8, steamOp: 0.18, win: true, ridges: [[0xc2b3c8, 0xe2c6c2], [0xa597b2, 0xc8b2b8], [0x8a8299, 0xaea2ac]], ground: 0x8f939a, sl: [0xfff0e2, 1.6, [-16, 18, -22]], hemi: [0xeef0f6, 0x585e68, 0.95] },
   })[this._period()]; }
   _applyTheme() { this._dirty = true; this._todNow = this._period();
@@ -175,13 +175,13 @@ class SteelScene extends HTMLElement {
     // [UI 시안] 낮 하늘은 스튜디오 회색 쪽으로 옅게 섞어 설비가 먼저 보이게 한다 (팀원 배경은 유지)
     const hz = (c, k) => '#' + new THREE.Color(c).lerp(new THREE.Color(HAZE), k).getHexString();
     this.scene.background = this._gradientTex(dark ? ['#02040a', '#0a1324', '#1b2740'] : T.sky.map((c, i) => hz(c, 0.03 + i * 0.03)));
-    this._fog0 = dark ? [220, 520] : [420, 900]; this.scene.fog = dark ? new THREE.Fog(0x141a22, 220, 520) : new THREE.Fog(new THREE.Color(T.fog), 420, 900); // 카메라 거리에 따라 _frame 에서 밀어 줌
+    this._fog0 = null; this.scene.fog = null; // 안개 없음(요청) // 카메라 거리에 따라 _frame 에서 밀어 줌
     this.scene.environment = dark ? null : this._envTex;
     this.renderer.toneMappingExposure = dark ? 0.95 : 1.0;
     if (this.sunLight) { if (dark) { this.sunLight.color.set(0xffffff); this.sunLight.intensity = 1.4; this._sunDir = new THREE.Vector3(10, 20, 12).normalize(); } else { this.sunLight.color.set(T.sl[0]); this.sunLight.intensity = T.sl[1] * 0.95; this._sunDir = new THREE.Vector3(...T.sl[2]).normalize(); } this._placeSun(); }
     if (this.hemiLight) { if (dark) { this.hemiLight.color.set(0xdfe6ee); this.hemiLight.groundColor.set(0x3a4048); this.hemiLight.intensity = 0.9; } else { this.hemiLight.color.set(T.hemi[0]); this.hemiLight.groundColor.set(T.hemi[1]); this.hemiLight.intensity = T.hemi[2] * 0.55; } }
-    { const mp = this._siteMap(dark), gm = this.ground.material; gm.map = mp.map; gm.roughnessMap = mp.rough; gm.roughness = 1; gm.color.set(0xffffff); gm.needsUpdate = true; } // 위성 지도 기반 일러스트 바닥
-    this._buildBackdrop(dark); this._lampFade();
+    { const mp = this._siteMap(dark), gm = this.ground.material; gm.map = mp.map; gm.roughnessMap = mp.rough; gm.roughness = 1; gm.color.set(0xffffff); gm.emissiveMap = mp.emis || null; gm.emissive.set(mp.emis ? 0xffffff : 0x000000); gm.emissiveIntensity = mp.emis ? 1.6 : 0; gm.needsUpdate = true; } // 위성 지도 기반 일러스트 바닥
+    this._buildWaves(dark); this._buildBackdrop(dark); this._lampFade();
     this._gridOn = false; this.grid.visible = false; // 바닥이 지도이므로 격자는 쓰지 않음
     if (this.glow) this.glow.visible = false;
     if (this.skyline) this.skyline.visible = false;
@@ -242,14 +242,14 @@ class SteelScene extends HTMLElement {
     // 테마/시간대별로 한 번 만든 배경은 캐시해서 다시 켤 때 즉시 교체
     const key = dark ? 'dark' : this._period(); this._bdCache = this._bdCache || {};
     if (this.backdrop) this.scene.remove(this.backdrop);
-    const hit = this._bdCache[key]; if (hit) { this.backdrop = hit.g; this.embers = hit.embers; this._skyAnim = hit.sky; this.scene.add(hit.g); return; }
-    this._buildBackdropNew(dark); this._mergeStatic(this.backdrop);
-    this._bdCache[key] = { g: this.backdrop, embers: this.embers, sky: this._skyAnim };
+    const hit = this._bdCache[key]; if (hit) { this._occ = hit.occ; this.backdrop = hit.g; this.embers = hit.embers; this._skyAnim = hit.sky; this._sharks = hit.sharks; this._traffic = hit.traffic; this._fw = hit.fw; this.scene.add(hit.g); return; }
+    this._occ = []; this._sharks = []; this._traffic = null; this._fw = null; this._buildBackdropNew(dark); this._mergeStatic(this.backdrop);
+    this._bdCache[key] = { g: this.backdrop, embers: this.embers, sky: this._skyAnim, occ: this._occ, sharks: this._sharks, traffic: this._traffic, fw: this._fw };
   }
   // 같은 재질의 정적 메시를 하나로 합쳐 드로우콜을 줄인다 (애니메이션 대상·포인트·인스턴스는 제외)
   _mergeStatic(root) {
     root.updateMatrixWorld(true); const groups = new Map(), drop = [];
-    root.children.forEach(o => { if (!o.isMesh || o.isInstancedMesh || o.children.length || o.userData.keep || o.material.isShaderMaterial) return; const a = o.geometry.attributes; const sig = o.material.uuid + '|' + Object.keys(a).sort().join(',') + '|' + o.renderOrder; if (!groups.has(sig)) groups.set(sig, []); groups.get(sig).push(o); });
+    root.children.forEach(o => { if (!o.isMesh || o.isInstancedMesh || o.children.length || o.userData.keep || o.material.isShaderMaterial) return; if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); const gb = o.geometry.boundingBox; if (o.userData.occ || ((gb.max.y - gb.min.y) * o.scale.y > 1.5 && o.position.y + gb.max.y * o.scale.y > 2)) { if (this._occ && !this._occ.includes(o)) this._occ.push(o); return; } const a = o.geometry.attributes; const sig = o.material.uuid + '|' + Object.keys(a).sort().join(',') + '|' + o.renderOrder; if (!groups.has(sig)) groups.set(sig, []); groups.get(sig).push(o); });
     groups.forEach(list => { if (list.length < 2) return; const names = Object.keys(list[0].geometry.attributes), buf = {}; names.forEach(n => buf[n] = []);
       list.forEach(o => { const gg = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()); gg.applyMatrix4(o.matrixWorld); names.forEach(n => { const arr = gg.attributes[n].array; for (let i = 0; i < arr.length; i++) buf[n].push(arr[i]); }); drop.push(o); });
       const geo = new THREE.BufferGeometry(); names.forEach(n => geo.setAttribute(n, new THREE.Float32BufferAttribute(buf[n], list[0].geometry.attributes[n].itemSize)));
@@ -279,8 +279,8 @@ class SteelScene extends HTMLElement {
     const steamM = new THREE.MeshBasicMaterial({ color: N ? 0x4a5568 : T.steam, transparent: true, opacity: N ? 0.3 : T.steamOp, depthWrite: false, fog: true });
     g.children.filter(o => o.geometry.type === 'CylinderGeometry').slice(0, 10).forEach(c => { for (let k = 0; k < 4; k++) { const p = new THREE.Mesh(new THREE.SphereGeometry(2.2 + k * 1.3, 10, 8), steamM); p.position.set(c.position.x + k * 2.5, c.position.y * 2 + 2 + k * 2.4, c.position.z + k * 1.2); g.add(p); } });
     if (N) {
-      const moon = new THREE.Mesh(new THREE.CircleGeometry(11, 40), new THREE.MeshBasicMaterial({ color: 0xeef2f8, depthWrite: false, fog: false })); moon.position.set(-200, 140, -320); moon.lookAt(0, 20, 0); g.add(moon);
-      const halo = new THREE.Mesh(new THREE.CircleGeometry(34, 40), new THREE.MeshBasicMaterial({ color: 0x8fa6c8, transparent: true, opacity: 0.12, depthWrite: false, fog: false, blending: THREE.AdditiveBlending })); halo.position.copy(moon.position).multiplyScalar(1.01); halo.lookAt(0, 20, 0); g.add(halo);
+      const moon = new THREE.Mesh(new THREE.CircleGeometry(11, 40), new THREE.MeshBasicMaterial({ color: 0xeef2f8, depthWrite: false, fog: false })); moon.position.set(-200, 140, -320); moon.lookAt(0, 20, 0); moon.material.depthTest = true; moon.material.depthWrite = true; moon.renderOrder = -5; moon.userData.keep = 1; g.add(moon); // 달: 땅 아래로 비치지 않게 깊이 기록
+      const halo = new THREE.Mesh(new THREE.CircleGeometry(34, 40), new THREE.MeshBasicMaterial({ color: 0x8fa6c8, transparent: true, opacity: 0.12, depthWrite: false, fog: false, blending: THREE.AdditiveBlending })); halo.position.copy(moon.position).multiplyScalar(1.01); halo.lookAt(0, 20, 0); halo.userData.keep = 1; g.add(halo);
       g.children.filter(o => o.geometry.type === 'BoxGeometry' && o.material === silM).forEach(b => { const p = b.geometry.parameters; const k = Math.floor(rnd() * 5); const sz = b.position.z > 0 ? -1 : 1; for (let q = 0; q < k; q++) bk.push([b.position.x + (rnd() - 0.5) * p.width * 0.8, b.position.y + (rnd() - 0.3) * p.height * 0.6, b.position.z + sz * (p.depth / 2 + 0.5), rnd() < 0.8 ? 0xffc56a : 0xfff0d8, 0]); });
     } else {
       const sun = new THREE.Mesh(new THREE.CircleGeometry(30, 48), new THREE.MeshBasicMaterial({ color: T.sunCol, depthWrite: false, fog: false })); sun.position.set(...T.sunPos); sun.lookAt(0, 20, 0); sun.renderOrder = -2; g.add(sun);
@@ -309,14 +309,14 @@ class SteelScene extends HTMLElement {
     [0, 1].forEach(big => { const pts = bk.filter(b => b[4] === big); if (!pts.length) return; const pos = new Float32Array(pts.length * 3), col = new Float32Array(pts.length * 3), cc = new THREE.Color();
       pts.forEach((b, i) => { pos.set([b[0], b[1], b[2]], i * 3); cc.set(b[3]).multiplyScalar(0.7 + rnd() * 0.3); col.set([cc.r, cc.g, cc.b], i * 3); });
       const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-      const pm = new THREE.Points(geo, new THREE.PointsMaterial({ map: this._bokehTex(), size: big ? 9 : 5, sizeAttenuation: true, vertexColors: true, transparent: true, opacity: dark ? 0.85 : 0.6, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); pm.renderOrder = 3; g.add(pm); });
-    this._skyAnim = dark ? null : this._buildSkyDetail(g, T);
+      const pm = new THREE.Points(geo, new THREE.PointsMaterial({ map: this._bokehTex(), size: big ? 9 : 5, sizeAttenuation: true, vertexColors: true, transparent: true, opacity: dark ? 0.85 : 0.6, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); pm.renderOrder = 3; pm.userData.bokeh = big ? 9 : 5; (this._bokehPts || (this._bokehPts = [])).push(pm); g.add(pm); });
+    this._skyAnim = dark ? this._buildGullsOnly(g) : this._buildSkyDetail(g, T);
     this.scene.add(g);
   }
   // 부지 위 소품: 원료 하역 크레인(언로더)·벌크선·원료 더미·공장동·도시 블록·가로등. 위치는 SITE/SITE_ROADS 좌표계(위성 지도 기준)
   _buildSiteProps(g, N, T, B, bk) {
     const inst = (geo, mat, list) => { const m = new THREE.InstancedMesh(geo, mat, list.length), d = new THREE.Object3D(); list.forEach((t, k) => { d.position.set(t[0], t[1], t[2]); d.rotation.set(t[3] || 0, t[4] || 0, t[5] || 0); d.updateMatrix(); m.setMatrixAt(k, d.matrix); }); g.add(m); return m; };
-    const box = (w, h, d, m, x, y, z, ry = 0) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.rotation.y = ry; g.add(b); return b; };
+    const box = (w, h, d, m, x, y, z, ry = 0) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.rotation.y = ry; g.add(b); if (h > 2) (this._occ || (this._occ = [])).push(b); return b; }; // 높은 건물은 시야 가림 페이드 대상
     // 언로더: dir=+1 붐이 +Z(남쪽 바다), -1 북쪽
     const cM = B(N ? 0x141a22 : 0x4b555f), cM2 = B(N ? 0x1b222b : 0x5b6570);
     const crane = (cx, cz, dir, s = 1) => { const L = 14 * s;
@@ -340,9 +340,90 @@ class SteelScene extends HTMLElement {
     [60, 72, 84].forEach(x => pile(x, -57.5 + 0.1 * (x - 76), oreM, 11)); [64, 76, 88, 97].forEach(x => pile(x, -52.5 + 0.1 * (x - 76), coalM, 10));
     // 공장동·창고 + 도시 블록
     const shedM = B(N ? 0x1a2028 : 0xb1b4b9), roofM = B(N ? 0x232b34 : 0xc8cbcf), cityM = B(N ? 0x1a1f27 : 0xd2cec6);
-    const shed = (cx, cz, w, d, h, ry, m = shedM) => { box(w, h, d, m, cx, h / 2, cz, ry); box(w * 0.98, 0.3, d * 0.98, roofM, cx, h + 0.15, cz, ry); if (N && w > 10) for (let k = -1; k <= 1; k += 2) bk.push([cx + k * w * 0.3 * Math.cos(ry), h + 0.5, cz - k * w * 0.3 * Math.sin(ry), 0xffd9a0, 0]); };
+    const winM = B(0x5f7a90), doorM = B(0x7b8690), ventM = B(0x9aa1a8), stripeM = B(0x3a6ea8), pipeM = B(0x8c949c);
+    const shed = (cx, cz, w, d, h, ry, m = shedM) => { box(w, h, d, m, cx, h / 2, cz, ry).userData.occ = 1; box(w * 0.98, 0.3, d * 0.98, roofM, cx, h + 0.15, cz, ry).userData.occ = 1;
+      if (!N) { const cs = Math.cos(ry), sn = Math.sin(ry), at = (lx, lz) => [cx + lx * cs + lz * sn, cz - lx * sn + lz * cs]; // 로컬(lx,lz) → 월드
+        let p = at(0, d / 2 + 0.03); box(w * 0.82, 0.55, 0.05, winM, p[0], h * 0.66, p[1], ry).userData.occ = 1; p = at(0, -d / 2 - 0.03); box(w * 0.82, 0.55, 0.05, winM, p[0], h * 0.66, p[1], ry).userData.occ = 1; // 긴 띠창
+        p = at(0, d / 2 + 0.03); box(w * 0.9, 0.35, 0.05, stripeM, p[0], h * 0.86, p[1], ry).userData.occ = 1; // 상단 파란 띠
+        p = at(w * 0.3, d / 2 + 0.03); box(Math.min(3.5, w * 0.22), h * 0.42, 0.05, doorM, p[0], h * 0.21, p[1], ry).userData.occ = 1; // 셔터문
+        const nv = Math.max(1, Math.floor(w / 7)); for (let k = 0; k < nv; k++) { p = at((k - (nv - 1) / 2) * 7, 0); box(1.1, 0.8, 1.1, ventM, p[0], h + 0.7, p[1], ry).userData.occ = 1; } // 지붕 환기구
+        if (w > 12) { p = at(0, -d * 0.3); box(w * 0.7, 0.3, 0.3, pipeM, p[0], h + 0.45, p[1], ry).userData.occ = 1; } }
+      if (N && w > 10) for (let k = -1; k <= 1; k += 2) bk.push([cx + k * w * 0.3 * Math.cos(ry), h + 0.5, cz - k * w * 0.3 * Math.sin(ry), 0xffd9a0, 0]); };
     [[-26, -72, 24, 6, 7, -0.28], [50, -66, 6, 5, 9, -0.3], [-74, -40, 14, 5, 6, 1.45], [-72, 0, 18, 6, 7, 1.5], [-4, 34, 30, 8, 8, 0.02], [46, 25.5, 26, 4, 5, 0.12], [10, 62, 30, 7, 8, -0.88], [-14, 86, 30, 7, 9, -0.75]].forEach(q => shed(...q));
     [[-150, -20, 8, 8, 6], [-160, 8, 6, 10, 9], [-142, -48, 10, 7, 5], [-136, 66, 7, 7, 12], [-124, 104, 9, 6, 5], [-70, 150, 8, 8, 7], [-10, 150, 10, 7, 6], [60, 128, 7, 7, 5], [100, 112, 6, 6, 8], [-108, -82, 8, 6, 5], [-98, -70, 6, 6, 7], [-176, 40, 7, 9, 10]].forEach(([x, z, w, d, h], i) => shed(x, z, w, d, h, (i % 3 - 1) * 0.15, cityM));
+    if (!N) { // 낮: 가로수(도로 반대편)·녹지 나무 군락·야적장 컨테이너·트럭
+      const rnd2 = (() => { let x = 97; return () => (x = (x * 16807) % 2147483647) / 2147483647; })();
+      const trees = [];
+      const alongT = (pts, step, off) => { let acc = step * 0.5; for (let i = 0; i < pts.length - 1; i++) { const a = new THREE.Vector2(pts[i][0], pts[i][1]), b = new THREE.Vector2(pts[i + 1][0], pts[i + 1][1]), dd = b.clone().sub(a), L = dd.length(); dd.normalize(); const n = new THREE.Vector2(-dd.y, dd.x); while (acc < L) { const p = a.clone().addScaledVector(dd, acc).addScaledVector(n, off); trees.push([p.x, p.y, 0.8 + rnd2() * 0.5]); acc += step; } acc -= L; } };
+      alongT(SITE_ROADS.R2, 9, -3.2); alongT(SITE_ROADS.R7, 10, -3.2); alongT(SITE_ROADS.R1, 9, 3.2); alongT(SITE_ROADS.R5, 10, -3.0); alongT(SITE_ROADS.R31, 7, 3.4); alongT(SITE_ROADS.R31, 7, -3.4);
+      [[-70, 50, 10, 4], [-30, 74, 5, 2.5], [-150, 30, 10, 7], [-172, -30, 12, 6], [90, 112, 9, 5], [-124, 96, 8, 5], [-60, 150, 10, 5]].forEach(([u, v, rw, rd]) => { const n = Math.round(rw * rd * 0.5); for (let k = 0; k < n; k++) { const a = rnd2() * Math.PI * 2, r = Math.sqrt(rnd2()); trees.push([u + Math.cos(a) * r * rw * 0.9, v + Math.sin(a) * r * rd * 0.9, 0.9 + rnd2() * 0.7]); } });
+      const keepT = trees.filter(t => !Object.values(SITE).some(q => { const cx = q.c[0] + q.ap[0], cz = q.c[1] + q.ap[1], hw = q.ap[2] / 2 + 14, hd = q.ap[3] / 2 + 14; return Math.abs(t[0] - cx) < hw && Math.abs(t[1] - cz) < hd; })); trees.length = 0; trees.push(...keepT); // 공정 구역 안·근처 나무 제거(설비 가림 방지)
+      const trunkM = B(0x6b5443), leafM = B(0x5f8a4e), leafM2 = B(0x7aa15e);
+      inst(new THREE.CylinderGeometry(0.12, 0.18, 1.6, 5), trunkM, trees.map(t => [t[0], 0.8 * t[2], t[1]]));
+      const sph = new THREE.SphereGeometry(1, 8, 6); const T1 = trees.filter((_, i) => i % 2 === 0), T2 = trees.filter((_, i) => i % 2 === 1);
+      const mkLeaf = (list, mat) => { const m = new THREE.InstancedMesh(sph, mat, list.length), dmy = new THREE.Object3D(); list.forEach((t, k) => { dmy.position.set(t[0], 1.6 * t[2] + 0.9 * t[2], t[1]); dmy.scale.set(1.3 * t[2], 1.5 * t[2], 1.3 * t[2]); dmy.updateMatrix(); m.setMatrixAt(k, dmy.matrix); }); m.userData.tree = 1; g.add(m); };
+      mkLeaf(T1, leafM); mkLeaf(T2, leafM2);
+      // 컨테이너 (야적장 가장자리) + 트럭 (도로변 주차)
+      const cont = [], cCols = [0x3a6ea8, 0xb8503c, 0x7f8a94, 0xd9a441]; const cGeo = new THREE.BoxGeometry(6, 2.4, 2.4);
+      for (let k = 0; k < 14; k++) cont.push([58 + (k % 7) * 6.4, 1.2, -46.5 + Math.floor(k / 7) * 2.7, 0, 0.08, 0, k]);
+      for (let k = 0; k < 6; k++) cont.push([-52 + k * 6.6, 1.2, 38, 0, -0.02, 0, k + 2]);
+      cCols.forEach((col, ci) => { const L = cont.filter(c => c[6] % 4 === ci); if (L.length) inst(cGeo, B(col), L); });
+      const trucks = [[-20, 25.5, 0.02], [-36, 25.5, 0.02], [24, 44, -0.9], [-66, 60, 1.5], [12, 95, -0.75], [-98, 20, 1.5]];
+      inst(new THREE.BoxGeometry(5.2, 1.6, 2.1), B(0xe8eaec), trucks.map(t => [t[0], 1.3, t[1], 0, t[2], 0])); // 적재함
+      inst(new THREE.BoxGeometry(1.6, 1.4, 2.0), B(0x3a6ea8), trucks.map(t => [t[0] + 3.3 * Math.cos(t[2]), 1.0, t[1] - 3.3 * Math.sin(t[2]), 0, t[2], 0])); // 캡
+    }
+    { // 위성 사진에 보이는 큰 설비 실루엣: 가스홀더·저장 탱크·컨베이어 갤러리·대형 굴뚝·송전탑
+      const tankM = B(N ? 0x20262e : 0xb8bcc1), tankTop = B(N ? 0x2a313a : 0xd7d9dc), galM = B(N ? 0x1e252d : 0x9aa3ad), stackM = B(N ? 0x2a2f36 : 0x9b9ea3), bandM = B(N ? 0x5a1e1e : 0xc8463a), pylM = B(N ? 0x3a424c : 0x8d949c);
+      const cyl = (r, h, m, x, y, z) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 24), m); c.position.set(x, y, z); g.add(c); if (h > 2) (this._occ || (this._occ = [])).push(c); return c; };
+      [[-78, -62, 9, 14], [-66, -58, 6, 10]].forEach(([tx, tz, r, h]) => { cyl(r, h, tankM, tx, h / 2, tz).userData.occ = 1; cyl(r * 0.96, 0.6, tankTop, tx, h + 0.3, tz).userData.occ = 1; }); // 가스홀더
+      [[-96, 30, 3.2, 4], [-90, 34, 3.2, 4], [-84, 38, 3.2, 4], [78, 70, 4, 5], [86, 74, 4, 5], [94, 78, 4, 5]].forEach(([tx, tz, r, h]) => { cyl(r, h, tankM, tx, h / 2, tz).userData.occ = 1; }); // 저장 탱크 군
+      const gal = (a, b, h) => { const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz), ry = Math.atan2(-dz, dx); box(L, 1.4, 1.6, galM, (a[0] + b[0]) / 2, h, (a[1] + b[1]) / 2, ry).userData.occ = 1; const n = Math.max(2, Math.floor(L / 12)); for (let i = 0; i <= n; i++) { const t = i / n; box(0.5, h, 0.5, galM, a[0] + dx * t, h / 2, a[1] + dz * t, ry).userData.occ = 1; } };
+      gal([76, -52], [50, -40], 6); gal([50, -40], [30, -28], 7); gal([-56, -70], [-30, -64], 5); // 원료 야적장 → 제선, 슬래그 야적장 컨베이어 갤러리
+      [[-40, -62, 1.3, 26], [-10, -60, 1.1, 22], [60, 30, 1.2, 24]].forEach(([tx, tz, r, h]) => { cyl(r, h, stackM, tx, h / 2, tz).userData.occ = 1; cyl(r * 1.02, 1.2, bandM, tx, h - 2, tz).userData.occ = 1; cyl(r * 1.02, 1.2, bandM, tx, h - 5, tz).userData.occ = 1; }); // 대형 굴뚝(적백 띠)
+      const pylon = (px, pz) => { box(0.35, 16, 0.35, pylM, px - 1.2, 8, pz).userData.occ = 1; box(0.35, 16, 0.35, pylM, px + 1.2, 8, pz).userData.occ = 1; box(5.5, 0.3, 0.3, pylM, px, 13.5, pz).userData.occ = 1; box(4, 0.3, 0.3, pylM, px, 10.5, pz).userData.occ = 1; box(2.4, 0.3, 0.3, pylM, px, 16, pz).userData.occ = 1; };
+      [[-118, -40], [-118, -10], [-118, 20], [-118, 50], [-118, 80]].forEach(([px, pz]) => pylon(px, pz)); // 송전탑 열(부지 서쪽 경계)
+    }
+    { // 상어 3마리: 등지느러미(삼각) + 꼬리지느러미 + 수면 아래 몸통 그림자. 먼바다 타원 경로를 천천히 유영
+      const finM = new THREE.MeshStandardMaterial({ color: N ? 0x1a2430 : 0x3a4652, roughness: 0.6 }), bodyM = new THREE.MeshBasicMaterial({ color: N ? 0x060a10 : 0x1f3a4a, transparent: true, opacity: N ? 0.5 : 0.35, depthWrite: false });
+      // 상어: 수면 위로는 등지느러미(뒤로 휜 얇은 삼각)와 꼬리 끝만, 몸은 수면 아래 납작한 어두운 그림자 + 뒤로 퍼지는 물결
+      const finShape = new THREE.Shape(); finShape.moveTo(-0.9, 0); finShape.lineTo(0.9, 0); finShape.lineTo(-0.25, 1.9); finShape.lineTo(-0.75, 1.1); finShape.closePath();
+      const finGeo = new THREE.ShapeGeometry(finShape), tailShape = new THREE.Shape(); tailShape.moveTo(-0.35, 0); tailShape.lineTo(0.35, 0); tailShape.lineTo(-0.15, 1.1); tailShape.closePath(); const tailGeo = new THREE.ShapeGeometry(tailShape);
+      const finM2 = new THREE.MeshStandardMaterial({ color: N ? 0x1a2430 : 0x3a4652, roughness: 0.6, side: THREE.DoubleSide }), shadowM = new THREE.MeshBasicMaterial({ color: N ? 0x04070c : 0x163040, transparent: true, opacity: N ? 0.55 : 0.4, depthWrite: false }), wakeM = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: N ? 0.08 : 0.22, depthWrite: false });
+      const mk = (cx, cz, rx, rz, ph, sp) => { const grp = new THREE.Group();
+        const fin = new THREE.Mesh(finGeo, finM2); fin.position.set(0.3, 0.02, 0); grp.add(fin); // 등지느러미(진행 방향 +x)
+        const tail = new THREE.Mesh(tailGeo, finM2); tail.position.set(-3.4, 0.02, 0); grp.add(tail);
+        const body = new THREE.Mesh(new THREE.CircleGeometry(1, 20), shadowM); body.rotation.x = -Math.PI / 2; body.scale.set(3.2, 1.0, 1); body.position.set(-0.8, 0.04, 0); body.renderOrder = 2; grp.add(body); // 물속 몸통 그림자(타원)
+        const wake = new THREE.Mesh(new THREE.PlaneGeometry(6, 1.2), wakeM); wake.rotation.x = -Math.PI / 2; wake.position.set(-4.5, 0.05, 0); wake.renderOrder = 2; grp.add(wake); // 물결 꼬리
+        grp.userData = { cx, cz, rx, rz, ph, sp, tail, keep: 1 }; grp.traverse(o => { o.userData.keep = 1; }); g.add(grp); (this._sharks || (this._sharks = [])).push(grp); };
+      mk(-60, -175, 70, 24, 0, 0.055); mk(175, -60, 28, 55, 2.1, -0.045); mk(80, -160, 50, 20, 4.0, 0.05);
+    }
+    { // 교통: 도로를 달리는 차량 + 원료 열차. 각 경로는 폴리라인 → 누적 길이로 파라미터화
+      const mkPath = (pts) => { const P = pts.map(p => new THREE.Vector2(p[0], p[1])), L = [0]; for (let i = 1; i < P.length; i++) L.push(L[i - 1] + P[i].distanceTo(P[i - 1])); return { P, L, len: L[L.length - 1] }; };
+      const at = (path, d, out) => { const { P, L } = path; let i = 1; while (i < L.length - 1 && L[i] < d) i++; const t = (d - L[i - 1]) / Math.max(1e-6, L[i] - L[i - 1]); out.x = P[i - 1].x + (P[i].x - P[i - 1].x) * t; out.z = P[i - 1].y + (P[i].y - P[i - 1].y) * t; out.ry = Math.atan2(-(P[i].y - P[i - 1].y), P[i].x - P[i - 1].x); return out; };
+      const roads = ['R31', 'R2'].map(k => mkPath(SITE_ROADS[k])); // 국도 1대 + 부지 간선 1대
+      const carBody = new THREE.BoxGeometry(2.2, 0.7, 1.1), carTop = new THREE.BoxGeometry(1.2, 0.5, 1.0), cols = [0xe8eaec, 0x3a6ea8, 0xc8463a, 0x2b2f36, 0xd9d2c2];
+      const cars = []; roads.forEach((rp, ri) => { const n = 1; for (let i = 0; i < n; i++) { const dir = i % 2 ? -1 : 1; cars.push({ path: rp, d: (i / n) * rp.len, v: dir * (6 + (i % 3) * 1.5), off: dir * 1.1, col: cols[(ri + i) % cols.length] }); } });
+      const grpC = new THREE.Group(); grpC.userData.keep = true; const byCol = {}; cars.forEach(c => (byCol[c.col] = byCol[c.col] || []).push(c));
+      const inst2 = {}; Object.entries(byCol).forEach(([col, list]) => { const b = new THREE.InstancedMesh(carBody, B(+col), list.length), t = new THREE.InstancedMesh(carTop, B(N ? 0x1a2028 : 0x9fb3c4), list.length); b.userData.keep = t.userData.keep = true; grpC.add(b, t); inst2[col] = { b, t, list }; });
+      let lamps = null; if (N) { const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(cars.length * 2 * 3), 3)); lamps = new THREE.Points(lg, new THREE.PointsMaterial({ color: 0xfff2d0, size: 1.6, sizeAttenuation: true, map: this._bokehTex(), transparent: true, opacity: 0.9, depthWrite: false, fog: false })); lamps.userData.keep = true; lamps.renderOrder = 3; grpC.add(lamps); }
+      g.add(grpC);
+      // 열차: 기관차 + 호퍼차 6량, 철도 인입선(제선 북쪽 → 야적장)
+      const rail = mkPath([[-2, -89], [-2, -40], [60, -52], [100, -50]]); const grpT = new THREE.Group(); grpT.userData.keep = true; const locoM = B(N ? 0x3a4652 : 0x2f5a8a), hopM = B(N ? 0x262a30 : 0x6e5a4e);
+      const wagons = []; for (let i = 0; i < 7; i++) { const m = new THREE.Mesh(i ? new THREE.BoxGeometry(3.6, 1.3, 1.5) : new THREE.BoxGeometry(4, 1.7, 1.6), i ? hopM : locoM); m.userData.keep = true; grpT.add(m); wagons.push(m); if (i) { const ore = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.3, 1.2), B(N ? 0x3a2418 : 0x8a5a3c)); ore.userData.keep = true; m.add(ore); ore.position.y = 0.8; } }
+      g.add(grpT);
+      this._traffic = { cars, inst2, lamps, rail, train: { wagons, d: 0, v: 5.5, gap: 4.2 }, at, dmy: new THREE.Object3D(), tmp: { x: 0, z: 0, ry: 0 } };
+    }
+    if (N) { // 밤 불꽃놀이 (포항 불빛축제처럼 바다 위에서) — 고정 개수 파티클 풀, 상태(쏘아올림→폭발→낙하) 결정적 갱신
+      const MAXB = 6, PER = 140, n = MAXB * PER, pos = new Float32Array(n * 3), col = new Float32Array(n * 3), geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 1.1, sizeAttenuation: true, vertexColors: true, transparent: true, opacity: 1, map: this._bokehTex(), depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); pts.userData.keep = true; pts.renderOrder = 4; pts.frustumCulled = false; g.add(pts);
+      const glow = new THREE.Mesh(new THREE.CircleGeometry(1, 24), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); glow.visible = false; // 수면 반사 원판은 어색해서 끔
+      let k = 29; const rnd3 = () => (k = (k * 16807) % 2147483647) / 2147483647;
+      const palette = [0xff5a3c, 0xffb347, 0xfff1a8, 0x7fd0ff, 0xff7fd4, 0x9dff8a, 0xffffff];
+      const bursts = []; for (let b = 0; b < MAXB; b++) bursts.push({ t: -(b * 1.1 + rnd3() * 1.5), x: 0, z: 0, hy: 0, col: new THREE.Color(), dirs: new Float32Array(PER * 3), spd: new Float32Array(PER), life: 0 });
+      this._fw = { pts, glow, bursts, pos, col, rnd: rnd3, palette, PER, sites: [[-30, -118], [30, -125], [90, -120], [140, -40], [150, 10]] };
+      for (let i = 0; i < n * 3; i++) pos[i] = 0, col[i] = 0; pos.fill(0); for (let i = 1; i < n * 3; i += 3) pos[i] = -50;
+    }
     // 크레인·선박: 제선 구역 남쪽 원료 하역 안벽(E→D) + 피어 북쪽 면
     const quayZ = (x) => -48.6 + (x - 19.1) * 0.084;
     [30, 44, 58].forEach(x => crane(x, quayZ(x) - 2.6, 1)); crane(39, 7.7, -1, 0.85);
@@ -356,13 +437,35 @@ class SteelScene extends HTMLElement {
     if (N || T.win) { const gm = new THREE.Mesh(this._crossGeo(lamps.map(l => [l[0], 7, l[2]]), N ? 6 : 7), this._glowMat(0xffc27a, N ? 0.45 : 0.2)); gm.renderOrder = 6; gm.userData.lamp = 1; gm.userData.keep = true; g.add(gm); }
   }
   // 전체 공정 바닥: 포항제철소 위성 사진의 해안선·부두·방파제·도로·야적장 윤곽을 단순화한 일러스트 지도. 사진은 쓰지 않고 색만 낮/밤 팔레트로
+  // 파도: 해안 거품 띠 3겹(위상 다르게 맥동) + 먼바다 물결 능선(UV 흐름). 캔버스는 테마별 1회 생성, 프레임에선 오프셋·투명도만 갱신
+  _buildWaves(dark) {
+    if (this._waves) { this.scene.remove(this._waves.g); this._waves = null; }
+    this._waveCache = this._waveCache || {}; const key = dark ? 'd' : 'l';
+    const Wd = MAP_W, N = 2048, S = N / Wd;
+    const pathLand = (x) => { const P = (pts) => { x.beginPath(); pts.forEach((p, i) => { const u = (p[0] + Wd / 2) * S, v = (p[1] + Wd / 2) * S; i ? x.lineTo(u, v) : x.moveTo(u, v); }); x.closePath(); }; P(SITE_LAND.map(p => PX(p[0], p[1]))); P(SITE_CITY); };
+    if (!this._waveCache[key]) {
+      const foamTex = (w, alpha, dash) => { const c = document.createElement('canvas'); c.width = c.height = N; const x = c.getContext('2d'); x.lineCap = 'round'; x.lineJoin = 'round'; x.strokeStyle = 'rgba(255,255,255,' + alpha + ')'; x.lineWidth = w * S; if (dash) x.setLineDash(dash.map(d => d * S)); pathLand(x); x.stroke(); x.globalCompositeOperation = 'destination-out'; x.fillStyle = '#000'; pathLand(x); x.fill(); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
+      const wc = document.createElement('canvas'); wc.width = wc.height = 512; const wx = wc.getContext('2d'); wx.strokeStyle = dark ? 'rgba(130,170,210,.26)' : 'rgba(255,255,255,.3)'; wx.lineWidth = 1.6; wx.lineCap = 'round'; let kk = 5; const r2 = () => (kk = (kk * 16807) % 2147483647) / 2147483647;
+      for (let i = 0; i < 90; i++) { const u = r2() * 512, v = r2() * 512, L = 26 + r2() * 40; wx.beginPath(); wx.moveTo(u, v); wx.bezierCurveTo(u + L * 0.3, v - 3, u + L * 0.6, v + 3, u + L, v); wx.stroke(); }
+      const wt = new THREE.CanvasTexture(wc); wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(14, 14); wt.colorSpace = THREE.SRGBColorSpace;
+      const mask = document.createElement('canvas'); mask.width = mask.height = N; const mx = mask.getContext('2d'); mx.fillStyle = '#fff'; mx.fillRect(0, 0, N, N); mx.globalCompositeOperation = 'destination-out'; pathLand(mx); mx.fill(); const maskT = new THREE.CanvasTexture(mask); maskT.channel = 1;
+      this._waveCache[key] = { foams: [foamTex(2.2, dark ? 0.35 : 0.8, null), foamTex(4.0, dark ? 0.18 : 0.45, [14, 9]), foamTex(6.5, dark ? 0.1 : 0.25, [22, 16])], wt, maskT };
+    }
+    const T = this._waveCache[key], g = new THREE.Group(); g.name = 'WAVES';
+    T.foams.forEach((t, i) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(Wd, Wd), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, opacity: 0, fog: true })); m.rotation.x = -Math.PI / 2; m.position.y = 0.06 + i * 0.01; m.renderOrder = 1; m.raycast = () => {}; m.userData.ph = i * 2.1; g.add(m); });
+    const sg = new THREE.PlaneGeometry(Wd, Wd); sg.setAttribute('uv1', sg.attributes.uv.clone());
+    const sea = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ map: T.wt, alphaMap: T.maskT, transparent: true, depthWrite: false, fog: true })); sea.rotation.x = -Math.PI / 2; sea.position.y = 0.05; sea.renderOrder = 1; sea.raycast = () => {}; g.add(sea);
+    this.scene.add(g); this._waves = { g, foams: g.children.slice(0, 3), wt: T.wt };
+  }
+  _wavesTick(now) { const W = this._waves; if (!W || !this.ground?.visible || document.hidden) return; const t = now * 0.001;
+    W.foams.forEach(m => { m.material.opacity = 0.5 + 0.5 * Math.sin(t * 0.9 + m.userData.ph); }); W.wt.offset.set(t * 0.004, t * 0.0025); this._dirty = true; }
   _siteMap(dark) {
     this._mapCache = this._mapCache || {}; const key = dark ? 'd' : 'l'; if (this._mapCache[key]) return this._mapCache[key];
     const Wd = MAP_W, Nn = 3072, c = document.createElement('canvas'); c.width = c.height = Nn; const x = c.getContext('2d');
     const rc = document.createElement('canvas'); rc.width = rc.height = 1024; const rx = rc.getContext('2d');
     const C = dark
       ? { sea: '#0a1422', wave: 'rgba(40,70,100,.35)', rim: 'rgba(32,58,88,.55)', rim2: 'rgba(40,70,104,.7)', land: '#1a2029', city: '#161b23', road: '#2b3442', edge: '#10151c', r31: '#4a4530', r31e: '#2a2718', yard: '#17130f', pier: '#20262f', green: '#132019', pond: '#15485c', beach: '#2a2923', apron: '#222a35', coast: '#0e1a2a' }
-      : { sea: '#9cc5d2', wave: 'rgba(255,255,255,.28)', rim: 'rgba(200,228,234,.6)', rim2: 'rgba(214,236,240,.8)', land: '#c8c3ba', city: '#dad6ce', road: '#f3f2ee', edge: '#b4afa6', r31: '#f0d78a', r31e: '#c9ac4e', yard: '#6b584a', pier: '#d1ccc3', green: '#a6bd90', pond: '#78cfe5', beach: '#e9dec3', apron: '#d8d4cc', coast: '#8fb3bf' };
+      : { sea: '#4f8aa6', wave: 'rgba(255,255,255,.22)', rim: 'rgba(160,205,220,.6)', rim2: 'rgba(190,224,234,.8)', land: '#8f9499', city: '#c9c4ba', road: '#dfe1e3', edge: '#6d7378', r31: '#f0d78a', r31e: '#c9ac4e', yard: '#6b584a', pier: '#d1ccc3', green: '#a6bd90', pond: '#78cfe5', beach: '#e9dec3', apron: '#a4a9ae', coast: '#55606a' };
     const S = Nn / Wd, Sr = 1024 / Wd, RS = '#767676', RL = '#f2f2f2'; // 거칠기: 바다 매끈(반사) / 땅 거침
     const P = (ctx, s, pts) => { ctx.beginPath(); pts.forEach((p, i) => { const u = (p[0] + Wd / 2) * s, v = (p[1] + Wd / 2) * s; i ? ctx.lineTo(u, v) : ctx.moveTo(u, v); }); };
     const fillP = (ctx, s, pts, col) => { P(ctx, s, pts); ctx.closePath(); ctx.fillStyle = col; ctx.fill(); };
@@ -372,6 +475,13 @@ class SteelScene extends HTMLElement {
     const both = (fn) => { fn(x, S, true); fn(rx, Sr, false); };
     // 바다 + 잔물결
     x.fillStyle = C.sea; x.fillRect(0, 0, Nn, Nn); rx.fillStyle = RS; rx.fillRect(0, 0, 1024, 1024);
+    if (!dark) { // 낮 바다 디테일: 연안은 밝고 먼바다는 짙게, 잔물결 띠, 햇빛 반짝임
+      const gr = x.createRadialGradient(Nn * 0.55, Nn * 0.45, Nn * 0.08, Nn * 0.55, Nn * 0.45, Nn * 0.7); gr.addColorStop(0, 'rgba(90,150,175,0)'); gr.addColorStop(1, 'rgba(25,70,105,.6)');
+      x.fillStyle = gr; x.fillRect(0, 0, Nn, Nn);
+      let kk = 3; const r2 = () => (kk = (kk * 16807) % 2147483647) / 2147483647;
+      x.strokeStyle = 'rgba(255,255,255,.16)'; x.lineWidth = 1.2 * S; for (let i = 0; i < 160; i++) { const u = r2() * Nn, v = r2() * Nn, L = (6 + r2() * 14) * S; x.beginPath(); x.moveTo(u, v); x.bezierCurveTo(u + L * 0.3, v - 1.5 * S, u + L * 0.6, v + 1.5 * S, u + L, v); x.stroke(); }
+      x.fillStyle = 'rgba(255,255,255,.55)'; for (let i = 0; i < 260; i++) { const u = r2() * Nn, v = r2() * Nn, rr = (0.25 + r2() * 0.5) * S; x.beginPath(); x.arc(u, v, rr, 0, Math.PI * 2); x.fill(); }
+    }
     { let k = 3; const rnd = () => (k = (k * 16807) % 2147483647) / 2147483647; x.strokeStyle = C.wave; x.lineCap = 'round'; x.lineWidth = 0.35 * S; for (let i = 0; i < 320; i++) { const px = (rnd() - 0.5) * Wd, pz = (rnd() - 0.5) * Wd, L = 4 + rnd() * 8; x.beginPath(); x.moveTo((px + Wd / 2) * S, (pz + Wd / 2) * S); x.lineTo((px + L + Wd / 2) * S, (pz + Wd / 2 + (rnd() - 0.5) * 0.6) * S); x.stroke(); } }
     // 육지: 해안 안쪽 얕은 물 테두리 → 도시 → 제철소 매립지
     [SITE_CITY, SITE_LAND].forEach(poly => { strokeP(x, S, poly, C.rim, 7, true); strokeP(x, S, poly, C.rim2, 3, true); });
@@ -384,17 +494,35 @@ class SteelScene extends HTMLElement {
       strokeP(ctx, s, [[72, 12], [76, -24]], pc, 3.2); strokeP(ctx, s, [[7.2, -9], [21.6, -6.3]], pc, 1.4); strokeP(ctx, s, [[41.4, -16.2], [55.8, -10.8]], pc, 1.4);
       [[34.1, 14.7], [48.1, 13.1], [62.1, 11.4]].forEach(([u, v]) => rect(ctx, s, u, v, 4, 18, -0.12, sc)); });
     strokeP(x, S, SITE_LAND, C.coast, 0.5, true); strokeP(x, S, SITE_CITY, C.coast, 0.5, true);
+    if (!dark) { strokeP(x, S, SITE_LAND, 'rgba(40,52,64,.55)', 1.6, true); strokeP(x, S, SITE_LAND, 'rgba(255,255,255,.5)', 0.5, true); } // 제철소 부지 외곽 담장
     // 해변(송도·청림), 원료 야적장, 침전지, 녹지, 공정 바닥판
     strokeP(x, S, [[-124, -93], [-87, -61]], C.beach, 3); strokeP(x, S, [[47, 47], [125, 92], [210, 160]], C.beach, 3.5);
     fillP(x, S, [[54, -62], [102, -58], [102, -49.5], [54, -55]], C.yard); ell(x, S, 90, -63, 7, 3.2, 0.3, C.pond); ell(rx, Sr, 90, -63, 7, 3.2, 0.3, RS);
     [[-70, 50, 10, 4, 0.7], [-30, 74, 5, 2.5, 0.7], [-85, -5, 2.5, 12, 0.15], [-150, 30, 10, 7, 0], [-172, -30, 12, 6, 0.3], [90, 112, 9, 5, 0.5], [-124, 96, 8, 5, 0], [-60, 150, 10, 5, 0.2]].forEach(([u, v, rw, rd, an]) => ell(x, S, u, v, rw, rd, an, C.green));
+    // 위성 사진 디테일: 원료 야적장 줄무늬 더미(철광석 적갈 / 석탄 검정), 슬래그 야적장, 침전지, 매립지 구획선, 철도 인입선, 방파제 테트라포드, 주차장
+    { const oreC = dark ? '#2a1c15' : '#7d5a47', coalC = dark ? '#0c0e12' : '#2f2d31', slagC = dark ? '#1c1e22' : '#8f8a84', lotC = dark ? '#1f2630' : '#cfccc6', railC = dark ? '#3a4250' : '#8a8f96', blkC = dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.07)', tetC = dark ? '#242b35' : '#b9b5ad';
+      for (let i = 0; i < 6; i++) rect(x, S, 60 + i * 7.5, -58.5 + 0.1 * (60 + i * 7.5 - 76), 5.5, 5, 0.1, i < 3 ? oreC : coalC); // 야적 더미 줄
+      fillP(x, S, [[-62, -74], [-30, -82], [-26, -76], [-58, -68]], slagC); for (let i = 0; i < 5; i++) rect(x, S, -56 + i * 7, -75 + i * 0.6 - 1.5, 5, 4, -0.25, i % 2 ? slagC : (dark ? '#262a30' : '#a19c95')); // 슬래그 야적장
+      [[-60, 20, 9, 5, 0.1], [38, 60, 7, 4, -0.3]].forEach(([u, v, rw, rd, an]) => { ell(x, S, u, v, rw, rd, an, C.pond); ell(rx, Sr, u, v, rw, rd, an, RS); }); // 침전지 (매끈·반사)
+      x.strokeStyle = blkC; x.lineWidth = 0.5 * S; for (let i = -4; i <= 4; i++) { P(x, S, [[-100 + i * 18, -60], [-70 + i * 18, 100]]); x.stroke(); } for (let i = -3; i <= 3; i++) { P(x, S, [[-110, 10 + i * 24], [100, -8 + i * 24]]); x.stroke(); } // 매립지 구획 격자
+      x.strokeStyle = railC; x.lineWidth = 0.5 * S; [[[-2, -89], [-2, -24], [-30, 24], [-66, 60]], [[-2, -40], [60, -52], [100, -50]]].forEach(pl => { P(x, S, pl); x.stroke(); }); x.lineWidth = 0.2 * S; [[[-2, -89], [-2, -24], [-30, 24], [-66, 60]], [[-2, -40], [60, -52], [100, -50]]].forEach(pl => { P(x, S, pl.map(p => [p[0] + 0.9, p[1] + 0.9])); x.stroke(); }); // 철도 인입선(복선)
+      let tk = 17; const tr = () => (tk = (tk * 16807) % 2147483647) / 2147483647; x.fillStyle = tetC; const bw = [[72, 12], [76, -24]]; for (let i = 0; i < 40; i++) { const t = tr(), u = bw[0][0] + (bw[1][0] - bw[0][0]) * t + 1.8 + tr() * 0.6, v = bw[0][1] + (bw[1][1] - bw[0][1]) * t; x.beginPath(); x.arc((u + Wd / 2) * S, (v + Wd / 2) * S, (0.45 + tr() * 0.35) * S, 0, Math.PI * 2); x.fill(); } // 방파제 바깥 테트라포드
+      [[-14, 30, 10, 6, 0], [30, 38, 8, 5, 0.12], [-50, 70, 9, 6, 0.7]].forEach(([u, v, w, d, an]) => { rect(x, S, u, v, w, d, an, lotC); x.save(); x.translate((u + Wd / 2) * S, (v + Wd / 2) * S); x.rotate(an); x.strokeStyle = dark ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.7)'; x.lineWidth = 0.12 * S; for (let i = -Math.floor(w / 2) + 1; i < Math.floor(w / 2); i++) { x.beginPath(); x.moveTo(i * S, -d / 2 * S); x.lineTo(i * S, d / 2 * S); x.stroke(); } x.restore(); }); // 주차장 줄선
+    }
     Object.values(SITE).forEach(q => rect(x, S, q.c[0] + q.ap[0], q.c[1] + q.ap[1], q.ap[2], q.ap[3], 0, C.apron));
     // 도로(테두리 + 노면). 31번 국도는 노란색
     const road = (pts, w, f, e) => { strokeP(x, S, pts, e, w + 0.9); strokeP(x, S, pts, f, w); };
     ['R7', 'RJ', 'R1', 'R2', 'R4', 'R5', 'R6'].forEach(k => road(SITE_ROADS[k], k === 'R2' ? 2.6 : 2.2, C.road, C.edge)); road(SITE_ROADS.R31, 3.2, C.r31, C.r31e);
+    // 밤: 도로 양쪽 가장자리를 따라 점선 LED 라인 (emissiveMap으로 스스로 빛남). 부지 도로 = 차가운 흰빛, 31번 국도 = 호박색
+    let emis = null;
+    if (dark) { const ec = document.createElement('canvas'); ec.width = ec.height = Nn; const ex = ec.getContext('2d'); ex.fillStyle = '#000'; ex.fillRect(0, 0, Nn, Nn);
+      const led = (pts, w, col) => { const off = w / 2 + 0.35, side = (sg) => { const out = []; for (let i = 0; i < pts.length; i++) { const p = pts[Math.max(0, i - 1)], q = pts[Math.min(pts.length - 1, i + 1)]; const dx = q[0] - p[0], dz = q[1] - p[1], L = Math.hypot(dx, dz) || 1; out.push([pts[i][0] - dz / L * off * sg, pts[i][1] + dx / L * off * sg]); } return out; };
+        [1, -1].forEach(sg => { const pl = side(sg); ex.save(); ex.setLineDash([0.9 * S, 1.6 * S]); ex.shadowColor = col; ex.shadowBlur = 1.6 * S; strokeP(ex, S, pl, col, 0.28); ex.restore(); ex.save(); ex.globalAlpha = 0.35; strokeP(ex, S, pl, col, 0.9); ex.restore(); }); };
+      ['R7', 'RJ', 'R1', 'R2', 'R4', 'R5', 'R6'].forEach(k => led(SITE_ROADS[k], k === 'R2' ? 2.6 : 2.2, '#cfe6ff')); led(SITE_ROADS.R31, 3.2, '#ffb452');
+      emis = new THREE.CanvasTexture(ec); emis.colorSpace = THREE.SRGBColorSpace; emis.wrapS = emis.wrapT = THREE.ClampToEdgeWrapping; emis.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy()); }
     const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = Math.min(8, this.renderer.capabilities.getMaxAnisotropy()); tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
     const rough = new THREE.CanvasTexture(rc); rough.wrapS = rough.wrapT = THREE.ClampToEdgeWrapping;
-    return (this._mapCache[key] = { map: tex, rough });
+    return (this._mapCache[key] = { map: tex, rough, emis });
   }
   // 공정 사이 소재 이동 레일: 위성 지도의 동선처럼 꺾어서 잇는다 (각 공정 모델의 흐름 끝점 → 다음 공정 시작점). 공정 화살표도 레일 중간으로
   _buildSiteLinks() {
@@ -439,12 +567,21 @@ class SteelScene extends HTMLElement {
     for (let f = 0; f < cfg.birds; f++) { const flock = new THREE.Group(); const n = 5 + Math.floor(rnd() * 3);
       for (let i = 0; i < n; i++) { const b = new THREE.LineSegments(bgeo, bm); const side = i % 2 ? 1 : -1, row = Math.ceil(i / 2); b.position.set(side * row * 4.5 + (rnd() - 0.5) * 2, -row * 1.2 + (rnd() - 0.5), -row * 3); b.userData.ph = rnd() * 6.28; b.scale.setScalar(1.3); flock.add(b); }
       g.add(flock); birds.push({ g: flock, a: rnd() * Math.PI * 2, r: 220 + f * 90 + rnd() * 40, y: 55 + rnd() * 35, v: 0.035 + rnd() * 0.02 }); }
+    this._addGulls(g, birds, bgeo, rnd, p === 'evening' ? 0x4a4050 : 0xf4f6f8, 0x5a6672);
     const st = { clouds, birds, t: 0, last: 0 }; this._skyStep(st, 0); return st;
   }
+  // 갈매기: 안벽·바다 가까이 낮게 선회하는 작은 무리 (낮·밤 공용)
+  _addGulls(g, birds, bgeo, rnd, c1, c2) {
+    const gm = new THREE.LineBasicMaterial({ color: c1, fog: false }), gm2 = new THREE.LineBasicMaterial({ color: c2, fog: false });
+    [[55, -70, 26, 14], [-10, -100, 30, 12], [120, 20, 22, 18], [-40, -50, 18, 10]].forEach(([cx, cz, rx, rz], f) => { const flock = new THREE.Group(); const n = 3 + Math.floor(rnd() * 3);
+      for (let i = 0; i < n; i++) { const b = new THREE.LineSegments(bgeo, i % 3 ? gm : gm2); b.position.set((rnd() - 0.5) * 9, (rnd() - 0.5) * 2.5, (rnd() - 0.5) * 7); b.scale.setScalar(0.65); b.userData.ph = rnd() * Math.PI * 2; flock.add(b); }
+      flock.userData.keep = true; g.add(flock); birds.push({ g: flock, a: rnd() * Math.PI * 2, r: rx, rz, cx, cz, y: 9 + rnd() * 7, v: (f % 2 ? -1 : 1) * (0.12 + rnd() * 0.06), gull: true }); });
+  }
+  _buildGullsOnly(g) { let k = 11; const rnd = () => (k = (k * 16807) % 2147483647) / 2147483647; const bgeo = new THREE.BufferGeometry(); bgeo.setAttribute('position', new THREE.Float32BufferAttribute([-1.6, 0.6, 0, 0, 0, 0, 0, 0, 0, 1.6, 0.6, 0], 3)); const birds = []; this._addGulls(g, birds, bgeo, rnd, 0xdfe6ee, 0x9aa6b4); const st = { clouds: [], birds, t: 0, last: 0 }; this._skyStep(st, 0); return st; }
   _skyStep(st, dt) {
     st.t += dt;
     st.clouds.forEach(c => { c.a += c.v * dt; c.s.position.set(Math.cos(c.a) * c.r, c.y, Math.sin(c.a) * c.r); });
-    st.birds.forEach(b => { b.a += b.v * dt; const x = Math.cos(b.a) * b.r, z = Math.sin(b.a) * b.r; b.g.position.set(x, b.y + Math.sin(st.t * 0.6 + b.r) * 3, z); b.g.lookAt(x - Math.sin(b.a) * 10, b.g.position.y, z + Math.cos(b.a) * 10); b.g.rotateY(Math.PI);
+    st.birds.forEach(b => { b.a += b.v * dt; const x = (b.cx || 0) + Math.cos(b.a) * b.r, z = (b.cz || 0) + Math.sin(b.a) * (b.rz || b.r); b.g.position.set(x, b.y + Math.sin(st.t * 0.6 + b.r) * 3, z); b.g.lookAt(x - Math.sin(b.a) * 10, b.g.position.y, z + Math.cos(b.a) * 10); b.g.rotateY(Math.PI);
       b.g.children.forEach(m => { m.scale.y = 1.3 * (0.35 + 0.65 * Math.abs(Math.sin(st.t * 7 + m.userData.ph))); }); });
   }
   // 렌즈형 글로우 텍스처: 밝은 코어 + 길게 퍼지는 감쇠 (공용 캐시)
@@ -487,6 +624,9 @@ class SteelScene extends HTMLElement {
     const pose = this._overviewPose(); this.orbit.yaw = pose.yaw; this.orbit.pitch = pose.pitch; this.orbit.dist = pose.dist; this.orbit.target.copy(pose.target);
     const cur0 = this.getAttribute('process'); if (cur0 && cur0 !== 'site' && findProcess(cur0)) setTimeout(() => this.reset(), 0); // [UI 시안] 처음부터 공정이 정해져 있으면 그 공정으로 이동
   }
+  // 설정 메뉴: 4개 공정 3D 모델(+이름표) 숨기기/표시 (기본 표시). 배경·지도는 그대로
+  setZoneLabelsVisible(v) { this._zoneLabelsHidden = !v; (this.zoneLabels || []).forEach(z => { if (z.label) z.label.style.display = v && z.root?.visible ? '' : 'none'; }); this._dirty = true; }
+  setModelsVisible(v) { this._modelsHidden = !v; Object.values(this.zones || {}).forEach(z => { if (z.root) z.root.visible = v; if (z.label) z.label.style.display = v ? '' : 'none'; }); if (this._links) this._links.g.visible = v; this._dirty = true; }
   _buildZone(p, pos, zi) {
     const [ox, oz] = pos;
     const z = { id: p.id, ox, oz, root: new THREE.Group(), eqs: [], anchorMode: false, home: { yaw: -0.5, pitch: 0.36, dist: 48, target: [ox, 1.5, oz] }, ringScale: 1 };
@@ -525,7 +665,7 @@ class SteelScene extends HTMLElement {
     zl.onpointerdown = go; zl.onpointerup = (ev) => ev.stopPropagation();
     zl.onclick = (ev) => ev.stopPropagation();
     this.labels.appendChild(zl); z.label = zl; const lb = SITE[p.id]?.lab || [0, 13]; z.labelPos = new THREE.Vector3(ox + lb[0], 0, oz + lb[1]);
-    this.zones[p.id] = z; this.zoneLabels.push(z);
+    this.zones[p.id] = z; this.zoneLabels.push(z); if (this._modelsHidden) { z.root.visible = false; zl.style.display = 'none'; } if (this._zoneLabelsHidden) zl.style.display = 'none';
     // 지금 보는 공정 먼저, 나머지는 순서대로 조금씩 늦게 불러온다
     const cur = this.getAttribute('process'), first = !cur || cur === 'site' ? zi === 0 : cur === p.id;
     if (first) this._loadGLB(p, z); else setTimeout(() => this._loadGLB(p, z), 400 + zi * 500);
@@ -909,7 +1049,7 @@ class SteelScene extends HTMLElement {
     // [UI 시안] 투광등은 유지하되 카메라 쪽(앞) 두 기둥은 반투명·작은 빛으로 약하게 → 설비를 가리지 않음
     L.poles.clear(); const ph = Math.max(6, sz.y * 0.9);
     [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz2]) => { const front = sz2 > 0, pm = new THREE.MeshBasicMaterial({ color: 0x2a3038, transparent: front, opacity: front ? 0.18 : 1, depthWrite: !front }), hm = new THREE.MeshBasicMaterial({ color: 0xfff0d0, fog: false, transparent: front, opacity: front ? 0.3 : 1 });
-      const x = c.x + sx * sz.x * 0.56, zz = c.z + sz2 * sz.z * 0.62; const p = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, ph, 6), pm); p.position.set(x, ph / 2, zz); L.poles.add(p); const hd = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.35, 0.45), hm); hd.position.set(x - sx * 0.4, ph, zz - sz2 * 0.4); hd.lookAt(c.x, 0, c.z); L.poles.add(hd); L.poles.add(new THREE.Mesh(this._crossGeo([[hd.position.x, hd.position.y, hd.position.z]], front ? 3.5 : 6), this._glowMat(0xe6efff, front ? 0.18 : 0.45))); });
+      const x = c.x + sx * sz.x * 0.56, zz = c.z + sz2 * sz.z * 0.62; const p = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, ph, 6), pm); p.position.set(x, ph / 2, zz); L.poles.add(p); const hd = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.35, 0.45), hm); hd.position.set(x - sx * 0.4, ph, zz - sz2 * 0.4); hd.lookAt(c.x, 0, c.z); L.poles.add(hd); if (!front) L.poles.add(new THREE.Mesh(this._crossGeo([[hd.position.x, hd.position.y, hd.position.z]], 6), this._glowMat(0xe6efff, 0.45))); }); // 앞쪽 기둥은 빛 번짐 없음 (화면 가림 방지)
   }
   _noTint() { return this.touring || this.getAttribute('view') === 'section'; } // 작동/단면 보기: 하늘색 칠 없이 투명도로만 구분
   _dimOthers(sel) { this._dirty = true;
@@ -1153,10 +1293,51 @@ class SteelScene extends HTMLElement {
     pts.geometry.attributes.position.needsUpdate = true; pts.material.opacity = this.dark ? 0.42 : 0.55; this._dirty = true;
   }
   _fx() { return this._stepFx || (this._stepFx = new StepFx(this)); }
-  _frame(now) { this._workTick(now); this._torpTick(now); if (this._stepFx?.tick(now)) this._dirty = true; this._matSinkTick(now); if (this.material && this.material.visible && this.material.userData.tick && (this.touring || this.playing || this.move)) { this.material.updateMatrixWorld(); this.material.userData.tick(now); this._dirty = true; } if (this._vehicle && !this._vehicle.done) this._vehicleTick(now); if (this.zones) for (const id in this.zones) { const z = this.zones[id]; if (z.smoke && z.root.visible) { z.smoke.visible = !this._2d; if (z.smoke.visible) this._smokeTick(z.smoke, now); } else if (z.smoke) z.smoke.visible = false; }
+  // 공정 화면에서 카메라와 설비 사이를 가리는 부지 건물을 반투명하게 (자기 재질 복제 1회, 부드럽게 페이드)
+  _occTick(now) {
+    const L = this._occ; if (!L || !L.length) return;
+    if (now - (this._occT || 0) > 140) { this._occT = now; const z = this.zone, on = !!z && !this._isOverview && !this._2d, hit = this._occHit || (this._occHit = new Set()); hit.clear();
+      if (on && z.eqs?.length) { let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const e of z.eqs) { x0 = Math.min(x0, e.focus.x); x1 = Math.max(x1, e.focus.x); z0 = Math.min(z0, e.focus.z); z1 = Math.max(z1, e.focus.z); } const pad = 16, bb = this._occBB || (this._occBB = new THREE.Box3());
+        for (const o of L) { if (!o.userData.occBox) o.userData.occBox = new THREE.Box3().setFromObject(o); bb.copy(o.userData.occBox); if (bb.max.x > x0 - pad && bb.min.x < x1 + pad && bb.max.z > z0 - pad && bb.min.z < z1 + pad) hit.add(o); } }
+      if (on) { const R = this._occRay || (this._occRay = new THREE.Raycaster()), cam = this.camera.position, d = this._occV || (this._occV = new THREE.Vector3());
+        for (const e of z.eqs || []) { d.copy(e.focus).sub(cam); const len = d.length(); R.set(cam, d.normalize()); R.far = Math.max(0, len - 2); for (const h of R.intersectObjects(L, false)) hit.add(h.object); } } }
+    let moving = false;
+    for (const o of L) { const want = this._occHit?.has(o) ? 0 : 1, ud = o.userData, cur = ud.occA ?? 1; if (Math.abs(cur - want) < 0.02) { if (cur !== want) { ud.occA = want; o.visible = want > 0; if (want === 1 && ud.occMat) o.material = ud.occBase; moving = true; } continue; } o.visible = true;
+      if (!ud.occMat) { ud.occBase = o.material; ud.occMat = o.material.clone(); ud.occMat.transparent = true; }
+      o.material = ud.occMat; const a = cur + (want - cur) * 0.22; ud.occA = a; ud.occMat.opacity = a; ud.occMat.depthWrite = a > 0.95; moving = true; }
+    if (moving) this._dirty = true;
+  }
+  // 보케(가로등 빛점)는 카메라가 가까우면 거대한 원판으로 보이므로 공정 확대 시 크기를 줄인다
+  _bokehTick() { const P = this._bokehPts; if (!P) return; const near = !!this.zone && !this._isOverview; for (const pm of P) { const want = near ? pm.userData.bokeh * 0.25 : pm.userData.bokeh; if (pm.material.size !== want) { pm.material.size = want; this._dirty = true; } } }
+  _sharkTick(now) { const S = this._sharks; if (!S || !this.backdrop?.visible) return; const t = now * 0.001; for (const g of S) { const u = g.userData, a = u.ph + t * u.sp; g.position.set(u.cx + Math.cos(a) * u.rx, 0.15 + Math.sin(t * 1.3 + u.ph) * 0.12, u.cz + Math.sin(a) * u.rz); const dx = -Math.sin(a) * u.rx * Math.sign(u.sp), dz = Math.cos(a) * u.rz * Math.sign(u.sp); g.rotation.y = Math.atan2(-dz, dx); u.tail.rotation.y = Math.sin(t * 4 + u.ph) * 0.5; } this._dirty = true; }
+  _trafficTick(now) { const T = this._traffic; if (!T || !this.backdrop?.visible || document.hidden) return; const dt = Math.min(0.1, (now - (T.last || now)) / 1000); T.last = now; if (!dt) return;
+    const { dmy, tmp, at } = T;
+    for (const c of T.cars) { c.d += c.v * dt; if (c.d > c.path.len) c.d -= c.path.len; if (c.d < 0) c.d += c.path.len; }
+    const inZone = (x, z) => Object.values(SITE).some(q => Math.abs(x - (q.c[0] + q.ap[0])) < q.ap[2] / 2 + 2 && Math.abs(z - (q.c[1] + q.ap[1])) < q.ap[3] / 2 + 2);
+    Object.values(T.inst2).forEach(({ b, t, list }) => { list.forEach((c, i) => { at(c.path, c.d, tmp); const nx = Math.sin(tmp.ry), nz = Math.cos(tmp.ry); const hid = inZone(tmp.x + nx * c.off, tmp.z + nz * c.off); c.hid = hid; dmy.position.set(tmp.x + nx * c.off, hid ? -5 : 0.45, tmp.z + nz * c.off); dmy.rotation.set(0, tmp.ry + (c.v < 0 ? Math.PI : 0), 0); dmy.updateMatrix(); b.setMatrixAt(i, dmy.matrix); dmy.position.y = hid ? -5 : 1.0; dmy.updateMatrix(); t.setMatrixAt(i, dmy.matrix); }); b.instanceMatrix.needsUpdate = t.instanceMatrix.needsUpdate = true; });
+    if (T.lamps) { const a = T.lamps.geometry.attributes.position.array; T.cars.forEach((c, i) => { at(c.path, c.d, tmp); const dir = c.v < 0 ? -1 : 1, fx = Math.cos(tmp.ry) * dir, fz = -Math.sin(tmp.ry) * dir, nx = Math.sin(tmp.ry), nz = Math.cos(tmp.ry); a[i * 6] = tmp.x + nx * c.off + fx * 1.2; a[i * 6 + 1] = c.hid ? -5 : 0.6; a[i * 6 + 2] = tmp.z + nz * c.off + fz * 1.2; a[i * 6 + 3] = tmp.x + nx * c.off - fx * 1.2; a[i * 6 + 4] = c.hid ? -5 : 0.6; a[i * 6 + 5] = tmp.z + nz * c.off - fz * 1.2; }); T.lamps.geometry.attributes.position.needsUpdate = true; }
+    const tr = T.train; tr.d += tr.v * dt; const total = T.rail.len + tr.gap * tr.wagons.length + 10; if (tr.d > total) tr.d = -tr.gap * tr.wagons.length;
+    tr.wagons.forEach((w, i) => { const d = tr.d - i * tr.gap; const vis = d > 0 && d < T.rail.len; w.visible = vis; if (!vis) return; at(T.rail, d, tmp); w.position.set(tmp.x, i ? 0.95 : 1.15, tmp.z); w.rotation.y = tmp.ry; });
+    this._dirty = true; }
+  _fwTick(now) { const F = this._fw; if (!F || !this.dark || !this.backdrop?.visible || document.hidden) return; const dt = Math.min(0.1, (now - (F.last || now)) / 1000); F.last = now; if (!dt) return;
+    const { pos, col, PER, rnd, palette, bursts } = F; const c = new THREE.Color(); let glowSum = 0, gx = 0, gz = 0;
+    bursts.forEach((b, bi) => { b.t += dt;
+      if (b.t < 0) { for (let i = 0; i < PER; i++) pos[(bi * PER + i) * 3 + 1] = -50; return; }
+      if (b.life === 0) { b.t = 0; // 새 발사: 위치·색·방향 1회 결정
+        const site = F.sites[Math.floor(rnd() * F.sites.length)]; b.x = site[0] + (rnd() - 0.5) * 30; b.z = site[1] + (rnd() - 0.5) * 20; b.hy = 38 + rnd() * 18; b.col.setHex(palette[Math.floor(rnd() * palette.length)]); b.life = 1;
+        const ring = rnd() < 0.3; for (let i = 0; i < PER; i++) { let th = rnd() * Math.PI * 2, ph = Math.acos(2 * rnd() - 1); if (ring) ph = Math.PI / 2 + (rnd() - 0.5) * 0.25; b.dirs[i * 3] = Math.sin(ph) * Math.cos(th); b.dirs[i * 3 + 1] = Math.cos(ph); b.dirs[i * 3 + 2] = Math.sin(ph) * Math.sin(th); b.spd[i] = (ring ? 13 : 8 + rnd() * 7); } }
+      const RISE = 1.4, BOOM = 2.6, t = b.t;
+      if (t < RISE) { const y = b.hy * (1 - Math.pow(1 - t / RISE, 2)); for (let i = 0; i < PER; i++) { const o = (bi * PER + i) * 3; if (i < 6) { pos[o] = b.x + (rnd() - 0.5) * 0.4; pos[o + 1] = y - i * 1.2; pos[o + 2] = b.z; c.set(0xffe6b0).multiplyScalar(1 - i / 6); col[o] = c.r; col[o + 1] = c.g; col[o + 2] = c.b; } else pos[o + 1] = -50; } }
+      else if (t < RISE + BOOM) { const u = (t - RISE) / BOOM, e = 1 - Math.pow(1 - u, 3), fade = u < 0.15 ? 1 : Math.max(0, 1 - (u - 0.15) / 0.85), fl = 0.75 + 0.25 * Math.sin(t * 25 + bi); glowSum += fade * (1 - u * 0.5); gx += b.x; gz += b.z;
+        for (let i = 0; i < PER; i++) { const o = (bi * PER + i) * 3, sp = b.spd[i] * e; pos[o] = b.x + b.dirs[i * 3] * sp; pos[o + 1] = b.hy + b.dirs[i * 3 + 1] * sp - 10 * u * u; pos[o + 2] = b.z + b.dirs[i * 3 + 2] * sp; c.copy(b.col).lerp(new THREE.Color(0xffffff), u < 0.1 ? 1 - u * 10 : 0).multiplyScalar(fade * fl); col[o] = c.r; col[o + 1] = c.g; col[o + 2] = c.b; } }
+      else { b.t = -(1.5 + rnd() * 4); b.life = 0; for (let i = 0; i < PER; i++) pos[(bi * PER + i) * 3 + 1] = -50; } });
+    F.pts.geometry.attributes.position.needsUpdate = true; F.pts.geometry.attributes.color.needsUpdate = true;
+    const nb = bursts.filter(b => b.t > 1.4 && b.life).length; void nb;
+    this._dirty = true; }
+  _frame(now) { this._bokehTick(); this._sharkTick(now); this._trafficTick(now); this._fwTick(now); this._wavesTick(now); this._occTick(now); this._workTick(now); this._torpTick(now); if (this._stepFx?.tick(now)) this._dirty = true; this._matSinkTick(now); if (this.material && this.material.visible && this.material.userData.tick && (this.touring || this.playing || this.move)) { this.material.updateMatrixWorld(); this.material.userData.tick(now); this._dirty = true; } if (this._vehicle && !this._vehicle.done) this._vehicleTick(now); if (this.zones) for (const id in this.zones) { const z = this.zones[id]; if (z.smoke && z.root.visible) { z.smoke.visible = !this._2d; if (z.smoke.visible) this._smokeTick(z.smoke, now); } else if (z.smoke) z.smoke.visible = false; }
     if (this._navG) { const vis = !!this.zone && !this._2d && this.orbit.dist <= 120 && !this.getAttribute('selected') && !this.touring && !this.playing; if (this._navG.visible !== vis) { this._navG.visible = vis; this._dirty = true; }
       if (vis && now - (this._navT || 0) > 50) { this._navT = now; this._placeNav(); const k = (now / 1000) % 1.4 / 1.4; this._navG.children.forEach(a => { const d = a.userData.dir, [m1, m2] = a.userData.m; m1.position.x = d * k * 0.9; m2.position.x = d * (k * 0.9 - 1.8); m2.material.opacity = 0.2 + 0.4 * (1 - k); }); this._dirty = true; } }
-    if (this._skyAnim && !this.dark && !document.hidden && this.orbit.dist > 70) { const st = this._skyAnim; if (!st.last) st.last = now; if (now - st.last > 50) { this._skyStep(st, Math.min(0.2, (now - st.last) / 1000)); st.last = now; this._dirty = true; } }
+    if (this._skyAnim && !document.hidden && this.orbit.dist > 40) { const st = this._skyAnim; if (!st.last) st.last = now; if (now - st.last > 50) { this._skyStep(st, Math.min(0.2, (now - st.last) / 1000)); st.last = now; this._dirty = true; } }
     this._focusVeil();
     if (this.grid) { const g = this._gridOn !== false && this.orbit.dist > 120; if (this.grid.visible !== g) { this.grid.visible = g; this._dirty = true; } } const ov = this.orbit.dist > 120; if (ov !== this._isOverview) { this._isOverview = ov; this._zoneLight(); this._placeSun(); this._lampFade(); this._zoneVis(); if (ov) { this._showInterior(null); this.dispatchEvent(new CustomEvent('steel-overview', { bubbles: true, composed: true })); } }
     if (this.anim) { const k = Math.min(1, (now - this.anim.t0) / this.anim.dur), s = k * k * (3 - 2 * k);
@@ -1195,7 +1376,7 @@ class SteelScene extends HTMLElement {
       if (now - (this.lastEmit || 0) > 120 || !this.playing) { this.lastEmit = now; this._emitProgress(); }
     }
     const w = this.clientWidth, h = this.clientHeight, v = new THREE.Vector3();
-    (this.zoneLabels || []).forEach(z => { v.copy(z.labelPos).project(this.camera); const py = (1 - v.y) / 2 * h; const vis = v.z < 1 && py > 10 && py < h - 30; const lx = Math.round((v.x + 1) / 2 * w), ly = Math.round((1 - v.y) / 2 * h); if (z._lx !== lx || z._ly !== ly || z._vis !== vis) { z._lx = lx; z._ly = ly; z._vis = vis; z.label.style.display = vis ? 'flex' : 'none'; if (vis) z.label.style.transform = `translate(${lx}px, ${ly}px) translate(-50%,0)`; } });
+    (this.zoneLabels || []).forEach(z => { v.copy(z.labelPos).project(this.camera); const py = (1 - v.y) / 2 * h; const vis = v.z < 1 && py > 10 && py < h - 30 && !this._zoneLabelsHidden && !this._modelsHidden; const lx = Math.round((v.x + 1) / 2 * w), ly = Math.round((1 - v.y) / 2 * h); if (z._lx !== lx || z._ly !== ly || z._vis !== vis) { z._lx = lx; z._ly = ly; z._vis = vis; z.label.style.display = vis ? 'flex' : 'none'; if (vis) z.label.style.transform = `translate(${lx}px, ${ly}px) translate(-50%,0)`; } });
     (this.zoneArrows || []).forEach(a => { v.copy(a.pos).project(this.camera); const lx = Math.round((v.x + 1) / 2 * w), ly = Math.round((1 - v.y) / 2 * h); const q0 = a.p0.clone().project(this.camera), q1 = a.p1.clone().project(this.camera), ang = Math.round(Math.atan2(-(q1.y - q0.y) * h, (q1.x - q0.x) * w) * 180 / Math.PI); if (a._lx !== lx || a._ly !== ly || a._ang !== ang) { a._lx = lx; a._ly = ly; a._ang = ang; a.el.style.transform = `translate(${lx}px, ${ly}px) translate(-50%,-50%) rotate(${ang}deg)`; } });
     if (this._zoomKey !== (this.orbit.dist > 120)) { this._zoomKey = this.orbit.dist > 120; this._styleZoneLabels(); }
     const far = this.orbit.dist > 120;
@@ -1342,7 +1523,7 @@ class SteelScene extends HTMLElement {
     }
     if (!this._bpGrid) { const gr = new THREE.Group(); [[400, 200, 0x24507e, 0.55], [400, 40, 0x3d6c9c, 0.9]].forEach(([size, div, col, op]) => { const h = new THREE.GridHelper(size, div, col, col); h.material.transparent = true; h.material.opacity = op; h.material.fog = false; gr.add(h); }); this._bpGrid = gr; this.scene.add(gr); }
     this._bpGrid.visible = bp; if (bp) { const p = this._2dCenter || new THREE.Vector3(z?.ox || 0, 0, z?.oz || 0); if (this._drawMode === 'front') { this._bpGrid.rotation.set(Math.PI / 2, 0, 0); this._bpGrid.position.set(p.x, 0, new THREE.Box3().setFromObject(m).min.z - 2); } else { this._bpGrid.rotation.set(0, 0, 0); this._bpGrid.position.set(p.x, -0.05, 0); } }
-    [this.backdrop, this.ground, this._links?.g].forEach(o => { if (o) o.visible = !bp; }); if (this.nightSky) this.nightSky.visible = !bp && !!this.dark; if (this.zl) this.zl.g.visible = !bp && !!this.dark && !this._isOverview;
+    [this.backdrop, this.ground, this._links?.g, this._waves?.g].forEach(o => { if (o) o.visible = !bp; }); if (this.nightSky) this.nightSky.visible = !bp && !!this.dark; if (this.zl) this.zl.g.visible = !bp && !!this.dark && !this._isOverview;
     if (this.material) this.material.visible = !bp && !!this.zone?.root.visible;
     if (bp) { this.scene.background = new THREE.Color(0x0f2c4c); this.scene.fog = null; this.ring.visible = false; }
     this._dirty = true;
