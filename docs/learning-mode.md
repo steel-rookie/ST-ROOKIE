@@ -57,7 +57,7 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
 - `LearningAgent.reply(input)` → `{ answer, status, source_ids, follow_up, detected_misconception, scene_actions }`. 구현은 `GeminiLearningAgent`, 프롬프트는 `llm/prompts/learning-system.md`.
 - 입력: 섹션, 질문, 화면(공정·설비), `retrieve()` 조각, 같은 세션 최근 대화, 미해결 오개념(학습자 메모), 루브릭 개념 목록·용어집.
 - `responseSchema`의 enum으로 `source_ids`는 이번 조각 id, `concept_id`는 루브릭 개념만 고르게 하고, 서버에서 한 번 더 걸러 낸다. grounded인데 남는 근거가 없으면 unverified 고정 답변으로 바꾼다.
-- 형식 오류는 1회 다시 부르고(`LearningFormatError`), 연결 오류는 다시 부르지 않는다(`LlmUnavailableError`). 단, Gemini 과부하(HTTP 503 "high demand")는 몇 초 사이에도 풀려서 1초·2초 뒤 최대 2번 다시 부른다(`OVERLOAD_RETRY_DELAYS_MS`). 다시 부를 때마다 하루 호출 수에 들어간다. 체크포인트 쪽 호출에는 적용하지 않았다.
+- 형식 오류는 1회 다시 부르고(`LearningFormatError`), 연결 오류는 다시 부르지 않는다(`LlmUnavailableError`). 단, Gemini 과부하(HTTP 503 "high demand")와 순간적인 연결 끊김(fetch failed)은 몇 초 사이에도 풀려서 1초·2초 뒤 최대 2번 다시 부른다(시간 초과는 다시 부르지 않음)(`OVERLOAD_RETRY_DELAYS_MS`). 다시 부를 때마다 하루 호출 수에 들어간다. 체크포인트 쪽 호출에는 적용하지 않았다.
 - `source_ids`는 조각 id(`자료id#번호`)다. 화면의 출처 링크는 라우트가 조각의 `source_ids`(자료 id)로 `ironmaking-sources.json`에서 찾는다.
 
 ### 화면 조작 (`scene_actions`)
