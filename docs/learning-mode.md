@@ -44,12 +44,13 @@ POST /api/chat { question, session_id?, screen?: { process_id, equipment_id } }
 - `createLearningRouter({ repo, retriever, agent, rubrics, scene })`를 `createApp({ learning })`에 넘긴다. `POST /api/chat`은 학습 모드가 답한다(예전 제선 Q&A 핸들러는 지웠다).
 - 요청 `{ question, session_id?, screen?: { process_id, equipment_id } }`, 응답 `{ answer, status, sources, follow_up, scene_actions, session_id }`. `process_id`가 없으면 답은 제선 기준이고, 화면 조작은 전체 공정 화면 기준이다.
 - 세션은 DB(`learning_turns`)로 이어진다. 없는 세션·다른 사람의 세션은 404, 같은 세션에서 답변 중 다시 질문하면 409.
+- `GET /api/chat/sessions/:sessionId`: 저장된 대화를 오래된 것부터 최근 50개(`RESTORE_TURNS`) `{ session_id, turns: [{ question, answer, status, section, equipment_id, sources }] }`로 돌려준다. 출처는 저장된 조각 id를 `Retriever.sourceIdsOf()`로 자료 id로 바꿔 POST와 같은 모양으로 만든다. `follow_up`·`scene_actions`는 저장하지 않아 돌려주지 않는다. 없는 세션·다른 사람의 세션·잘못된 id는 404. 오류로 끝난 질문은 저장하지 않으므로 다시 보이지 않는다.
 - 안전 질문(`safety.ts`)은 튜터를 부르지 않고 `safety_redirect`로 저장한다. 조작 방법·허락("밸브를 열어도 돼요?", "정지시키는 방법")과 비상 대응("비상 정지 버튼")만 막고, "고로가 정지하면 어떻게 되나요?" 같은 교육 질문은 통과시킨다(단어 하나로 막지 않음).
 - 프롬프트의 학습자 메모는 `latestPerConcept`로 개념당 최근 1개, 최대 5개만 넣는다(`buildLearnerNotes`와 같은 기준).
 - 같은 사용자·섹션·개념에 미해결 learning 오개념이 이미 있으면 새로 넣지 않고 summary·답변 원문만 갱신한다. 해결된 뒤 다시 나오면 새로 넣는다.
 - 질문만으로 근거를 못 찾고 직전 대화가 있으면, 직전 질문·답변을 붙여 한 번 더 검색한다("그럼 그건요?" 같은 후속 질문).
 - 오류: 하루 한도 429, Gemini 키 없음 503, 연결·형식 오류 502. 오류 때는 대화를 저장하지 않는다.
-- 화면: `frontend/3d-demo/learning-chat.js`의 `ask()`가 `/api/chat`을 부른다. 같은 페이지에서는 `session_id`를 이어 쓰고, 서버에 없는 세션(404)이면 새 대화로 한 번 다시 묻는다. 전체 보기(`site`)에서는 `process_id`를 보내지 않는다(서버 기본: 제선). 사용자 구분은 체크포인트 테스트 페이지와 같이 `?user=`와 저장된 접속 비밀번호를 쓴다. `tutor_v2.js`(가짜 튜터)는 더 이상 부르지 않는다.
+- 화면: `frontend/3d-demo/learning-chat.js`의 `ask()`가 `/api/chat`을 부른다. `session_id`는 탭의 sessionStorage(`st-rookie:learning-session`)에 두고 이어 쓰며, 서버에 없는 세션(404)이면 새 대화로 한 번 다시 묻는다. 페이지를 열 때 `restore()`가 저장된 대화를 불러와 메시지 앞에 붙인다(페이지 로딩을 기다리게 하지 않고, 화면 조작은 다시 하지 않는다). 404면(로그인 사용자가 바뀜 등) id를 지우고 새 대화로 시작한다. 요청은 `request(method, path, body)` 하나로 보내는데, `api-client.js`의 `request`와 같은 모양이라 그쪽으로 바꿀 때 이 함수만 바꾸면 된다. 전체 보기(`site`)에서는 `process_id`를 보내지 않는다(서버 기본: 제선). 사용자 구분은 체크포인트 테스트 페이지와 같이 `?user=`와 저장된 접속 비밀번호를 쓴다. `tutor_v2.js`(가짜 튜터)는 더 이상 부르지 않는다.
 
 ### 튜터 구현 (`llm/src/learning-agent.ts`)
 

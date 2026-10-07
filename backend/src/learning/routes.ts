@@ -1,6 +1,7 @@
 // 학습 모드 API: POST /api/chat. 흐름은 docs/learning-mode.md '흐름'.
 // 안전 질문 차단 → retrieve() → 최근 대화·미해결 오개념 → 튜터 1회 → 오개념 기록(source=learning) → 대화 저장.
 // 예전 /api/chat(제선 Q&A, 지금은 삭제)의 요청·응답 필드는 유지하고 screen, follow_up, scene_actions를 더했다.
+// GET /api/chat/sessions/:sessionId: 저장된 대화(페이지를 새로고침해도 채팅을 이어 보이게).
 import express from "express";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -16,6 +17,15 @@ import { isSafetyQuestion, SAFETY_ANSWER } from "./safety.js";
 
 /** 모델에 넘기는 같은 세션의 최근 대화 수. */
 export const HISTORY_TURNS = 6;
+/** 새로고침 때 다시 보여 주는 최근 대화 수. */
+export const RESTORE_TURNS = 50;
+
+const NOT_FOUND = { error: "대화를 찾을 수 없습니다. 새로 질문해 주세요." };
+
+/** 자료 id → 화면에 보여 줄 출처. */
+function toSources(sourceIds: string[]) {
+  return getPublicSources(sourceIds).map(({ id, title, date, date_type, url, publisher }) => ({ id, title, date, date_type, url, publisher }));
+}
 
 const ChatRequest = z.object({
   question: z.string().trim().min(1).max(1000),
@@ -58,7 +68,7 @@ export function createLearningRouter({ repo, retriever, agent, rubrics, scene, n
     if (body.data.session_id) {
       // 없는 세션이나 다른 사람의 세션은 구분하지 않고 같은 답을 준다.
       if (repo.sessionOwner(sessionId) !== userId) {
-        res.status(404).json({ error: "대화를 찾을 수 없습니다. 새로 질문해 주세요." });
+        res.status(404).json(NOT_FOUND);
         return;
       }
     }
@@ -106,7 +116,7 @@ export function createLearningRouter({ repo, retriever, agent, rubrics, scene, n
 
       // 조각 id(자료id#번호) → 자료 id → 화면에 보여 줄 출처.
       const cited = chunks.filter((c) => reply.source_ids.includes(c.id)).flatMap((c) => c.source_ids);
-      const sources = getPublicSources(cited).map(({ id, title, date, date_type, url, publisher }) => ({ id, title, date, date_type, url, publisher }));
+      const sources = toSources(cited);
       res.json({ answer: reply.answer, status: reply.status, sources, follow_up: reply.follow_up, scene_actions: reply.scene_actions, session_id: sessionId });
     } catch (error) {
       if (error instanceof UsageLimitError) {
@@ -128,6 +138,25 @@ export function createLearningRouter({ repo, retriever, agent, rubrics, scene, n
     } finally {
       busy.delete(sessionId);
     }
+  });
+
+  // 저장된 대화(오래된 것부터 최근 RESTORE_TURNS개). 없는 세션·다른 사람의 세션은 POST와 같이 구분하지 않고 404.
+  // follow_up·scene_actions는 저장하지 않으므로 돌려주지 않는다(다시 보여 줄 때 화면을 움직이지 않는다).
+  router.get("/api/chat/sessions/:sessionId", (req, res) => {
+    const sessionId = req.params.sessionId;
+    if (!z.string().uuid().safeParse(sessionId).success || repo.sessionOwner(sessionId) !== currentUserId()) {
+      res.status(404).json(NOT_FOUND);
+      return;
+    }
+    const turns = repo.recentTurns(sessionId, RESTORE_TURNS).map((t) => ({
+      question: t.question,
+      answer: t.answer,
+      status: t.status,
+      section: t.section,
+      equipment_id: t.equipment_id,
+      sources: toSources(retriever.sourceIdsOf(t.section ?? "ironmaking", t.source_ids)),
+    }));
+    res.json({ session_id: sessionId, turns });
   });
 
   return router;

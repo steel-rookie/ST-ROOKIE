@@ -27,9 +27,12 @@ function unauthorizedMessage(data) {
   return data.error || '로그인이 필요해요. /login 에서 로그인해 주세요.';
 }
 
-/** POST /api/chat. 실패하면 서버가 준 문장(없으면 기본 문장)을 담은 Error, 404면 err.status = 404. */
-async function postChat(body) {
-  const headers = { 'Content-Type': 'application/json' };
+/**
+ * JSON 요청. 성공하면 응답 본문, 실패하면 서버가 준 문장(없으면 기본 문장)을 담은 Error(err.status, err.data).
+ * api-client.js의 request(method, path, body)와 같은 모양이라, 그쪽으로 바꿀 때 이 함수만 바꾸면 된다.
+ */
+async function request(method, path, body) {
+  const headers = body === undefined ? {} : { 'Content-Type': 'application/json' };
   const token = tokenStore.get();
   if (token) headers['Authorization'] = 'Bearer ' + token;
   const user = (new URLSearchParams(location.search).get('user') || '').trim();
@@ -39,7 +42,7 @@ async function postChat(body) {
   if (passcode) headers['X-Test-Passcode'] = encodeURIComponent(passcode);
   let res;
   try {
-    res = await fetch('/api/chat', { method: 'POST', headers, body: JSON.stringify(body) });
+    res = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   } catch (e) {
     throw new Error('서버에 연결하지 못했어요. npm start로 서버를 켠 뒤 http://localhost:3000 에서 열어 주세요.');
   }
@@ -50,6 +53,16 @@ async function postChat(body) {
   }
   return data;
 }
+
+/** POST /api/chat. 404면 err.status = 404(서버에 없는 대화). */
+const postChat = (body) => request('POST', '/api/chat', body);
+
+// 새로고침해도 같은 대화를 이어 보이도록 대화 id를 탭(sessionStorage)에 둔다. 대화 내용은 서버 DB에 있다.
+const SESSION_KEY = 'st-rookie:learning-session';
+const sessionStore = {
+  get() { try { return sessionStorage.getItem(SESSION_KEY) || null; } catch (e) { return null; } },
+  set(id) { try { if (id) sessionStorage.setItem(SESSION_KEY, id); else sessionStorage.removeItem(SESSION_KEY); } catch (e) {} },
+};
 
 /** 서버 응답 → 템플릿 메시지. 출처는 자료 제목과 id로 보여 준다. */
 function toMessage(res) {
@@ -65,8 +78,9 @@ function toMessage(res) {
 /** 페이지 컴포넌트에 붙일 학습 채팅을 만든다. componentDidMount에서 한 번 부른다. */
 export async function createLearningChat(c) {
   const wait = (ms) => new Promise(r => setTimeout(r, ms));
-  // 같은 페이지에서 이어지는 대화. 서버가 대화를 DB에 저장하고 이 id로 이어 준다.
-  let sessionId = null;
+  // 이어지는 대화. 서버가 대화를 DB에 저장하고 이 id로 이어 준다. 새로고침해도 탭에 남은 id로 이어 간다.
+  let sessionId = sessionStore.get();
+  const useSession = (id) => { sessionId = id || null; sessionStore.set(sessionId); };
 
   const chat = {
     // 현재 공정·설비를 튜터 요청용으로 만든다.
@@ -102,10 +116,10 @@ export async function createLearningChat(c) {
         } catch (e) {
           // 서버에 없는 대화(예: DB를 지움)면 새 대화로 한 번 다시 묻는다.
           if (e.status !== 404 || !sessionId) throw e;
-          sessionId = null;
+          useSession(null);
           res = await postChat({ ...req, session_id: undefined });
         }
-        sessionId = res.session_id;
+        useSession(res.session_id);
         message = toMessage(res);
       } catch (e) {
         res = { error: e.message, status: e.status ?? null };
@@ -114,6 +128,21 @@ export async function createLearningChat(c) {
       // 학습 모드 API는 아직 화면 조작(scene_actions)을 보내지 않는다(다음 단계).
       const results = await chat.runActions(res.scene_actions);
       c.setState(s => ({ pending: false, lastRes: res, lastResults: results, messages: [...s.messages, message] })); c.scrollChat();
+    },
+
+    // 새로고침 전 대화를 서버에서 다시 불러와 메시지 앞에 붙인다. 화면 조작은 다시 하지 않는다.
+    // 서버에 없거나 다른 사람의 대화(로그인 사용자가 바뀜 등)면 id를 지우고 새 대화로 시작한다.
+    async restore() {
+      if (!sessionId) return;
+      const id = sessionId;
+      try {
+        const { turns } = await request('GET', `/api/chat/sessions/${encodeURIComponent(id)}`);
+        if (sessionId !== id || !turns?.length) return;
+        const restored = turns.flatMap(t => [{ role: 'user', text: t.question }, toMessage(t)]);
+        c.setState(s => ({ messages: [...restored, ...s.messages] })); c.scrollChat();
+      } catch (e) {
+        if (e.status === 404 && sessionId === id) useSession(null);
+      }
     },
 
     // 튜터 패널 템플릿 값: 메시지, 추천 질문(chips), 입력창.
@@ -126,5 +155,7 @@ export async function createLearningChat(c) {
       };
     },
   };
+  // 페이지가 뜨는 것을 막지 않도록 기다리지 않는다.
+  chat.restore();
   return chat;
 }
