@@ -36,7 +36,7 @@ export function createApp({ engine, usage, webRoot = join(process.cwd(), "fronte
     res.json({ connected: Boolean(process.env.GEMINI_API_KEY), provider: "Gemini", model: process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL });
   });
 
-  // 첫 화면은 최종 페이지(v2).
-  app.get("/", (_req, res) => res.sendFile(join(webRoot, "Steel Academy v2.dc.html")));
+  // 첫 화면은 최종 페이지(v3).
+  app.get("/", (_req, res) => res.sendFile(join(webRoot, "Steel Academy v3.dc.html")));
   return app;
 }
