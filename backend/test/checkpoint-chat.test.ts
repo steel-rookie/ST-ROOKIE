@@ -54,13 +54,13 @@ function fakePage(processId: string) {
   return c;
 }
 
-function setup(routes: Record<string, Reply | Reply[]>, { processId = "ironmaking", token = "tok", passcode = "" } = {}) {
+function setup(routes: Record<string, Reply | Reply[]>, { processId = "ironmaking", token = "tok", passcode = "", tabs = true } = {}) {
   const local = memoryStorage({ ...(token ? { "st-rookie-token": token } : {}), ...(passcode ? { "st-rookie:passcode": passcode } : {}) });
   const session = memoryStorage();
   const net = fakeFetch(routes);
   const api = createApiClient({ fetch: net.fetch, local, session });
   const page = fakePage(processId);
-  const chat = createCheckpointChat(page, { api });
+  const chat = createCheckpointChat(page, { api, tabs });
   return { chat, page, net, local, vals: () => chat.vals() };
 }
 
@@ -798,4 +798,105 @@ test("오버레이: [멈추고 질문하기]는 멈추고 오버레이를 닫은
   assert.equal(v.cpShowOverlay, false);
   assert.equal(hooks.tutorOpened, 1);
   assert.deepEqual(sent, ["고로가 뭐예요?"]);
+});
+
+test("v3 오버레이: 잠긴 공정은 비활성 버튼과 '이전 공정 통과 필요', 준비·결과는 마지막 말풍선을 본 뒤에 보인다", async () => {
+  let s = setup({
+    "GET /api/sections/ironmaking/progress": progress("ironmaking"),
+    "GET /api/sections/steelmaking/progress": progress("steelmaking", { open: false }),
+    "GET /api/sections/continuous_casting/progress": notFound,
+    "GET /api/sections/rolling/progress": notFound,
+  });
+  await s.chat.refreshAll();
+  const locked = s.chat.sectionBadge("steelmaking");
+  assert.equal(locked.cpSectionLocked, true);
+  assert.equal(locked.cpSectionStatus, TEXT.sectionLocked);
+  assert.equal(locked.cpSectionShowStart, true, "잠긴 공정도 버튼은 보인다");
+  assert.equal(locked.cpSectionCanStart, false);
+  assert.equal(locked.cpSectionCursor, "not-allowed");
+  assert.equal(locked.cpSectionStatusColor, "var(--warn, #e8590c)");
+  const open = s.chat.sectionBadge("ironmaking");
+  assert.equal(open.cpSectionLocked, false);
+  assert.equal(open.cpSectionCursor, "pointer");
+  assert.equal(s.chat.sectionBadge("rolling").cpSectionLocked, false, "준비 중(404)은 잠김이 아니다");
+
+  s = setup({
+    "GET /api/sections/ironmaking/progress": [progress("ironmaking"), progress("ironmaking", { unlocked: true, understanding: 1 })],
+    ...otherSections,
+    "POST /api/checkpoints": { status: 201, body: view("awaiting_ready", { tutor: [{ type: "intro", text: "이어서 할게요." }, { type: "intro", text: "제선 질문 시작할게요, 준비됐나요?" }] }) },
+    "POST /api/checkpoints/a1/messages": { body: view("completed", {
+      progress: progressList(["done", "done", "done"]),
+      tutor: [{ type: "feedback", text: "맞아요." }, { type: "result", text: "결과" }],
+      result: { understanding: 1, unlocked: true, threshold: 0.8, retry_concept_ids: [], concepts: [] },
+    }) },
+  });
+  await s.chat.refreshAll();
+  await s.chat.sectionBadge("ironmaking").onCpSectionStart();
+  let v = s.vals();
+  assert.equal(v.cpOverlayShowReady, false, "인사를 다 보기 전에는 '준비됐어요'를 숨긴다");
+  assert.equal(v.cpOverlayPlaceholder, TEXT.placeholder.readNext);
+  assert.equal(v.cpOverlayInputOpacity, ".5");
+  v.onCpBubbleNext();
+  v = s.vals();
+  assert.equal(v.cpOverlayShowReady, true);
+  assert.equal(v.cpOverlayPlaceholder, TEXT.placeholder.ready);
+  assert.equal(v.cpOverlayInputOpacity, "1");
+
+  await s.chat.ready();
+  v = s.vals();
+  assert.equal(v.cpShowResult, true);
+  assert.equal(v.cpOverlayShowResult, false, "결과 발화 전(feedback)에는 결과를 숨긴다");
+  assert.equal(v.cpCharacterMotion, "praise");
+  v.onCpBubbleNext();
+  v = s.vals();
+  assert.equal(v.cpOverlayShowResult, true);
+  assert.equal(v.cpCharacterMotion, "celebrate");
+});
+
+test("tabs: false(v3): 모드 탭을 숨기고, [이어 풀기]·탭 전환으로 모드가 바뀌지 않으며, 학습 질문은 그대로 보낸다", async () => {
+  const s = setup({
+    "GET /api/sections/ironmaking/progress": progress("ironmaking", { in_progress_attempt_id: "a1" }),
+    ...otherSections,
+    "GET /api/checkpoints/a1": { body: answering({ history: [{ role: "tutor", type: "question", text: "Q2" }] }) },
+    "POST /api/checkpoints/a1/pause": { body: pausedView({ tutor: [{ type: "intro", text: "여기서 멈출게요." }] }) },
+  }, { tabs: false });
+  await s.chat.refreshAll();
+  let v = s.vals();
+  assert.equal(v.cpShowTabs, false);
+  assert.equal(v.cpTabs.length, 2, "탭 값은 그대로 낸다(PR 4에서 정리)");
+  assert.equal(v.cpIsLearningTab, true);
+
+  await s.chat.sectionBadge("ironmaking").onCpSectionStart(); // 이어 풀기(멈추지 않은 시도 → 열기만)
+  v = s.vals();
+  assert.equal(v.cpShowOverlay, true);
+  assert.equal(s.page.state.tutorMode, undefined, "[이어 풀기]가 튜터 패널 모드를 바꾸지 않는다");
+  assert.equal(v.cpIsLearningTab, true);
+  assert.equal(v.cpIsCheckpointTab, false);
+  s.chat.setMode("checkpoint");
+  assert.equal(s.vals().cpIsLearningTab, true, "setMode도 무시한다");
+
+  // 답하는 중 학습 질문은 막히고 [멈추고 질문하기] 안내가 학습 패널에 보인다(모드가 늘 학습이라).
+  const sent: string[] = [];
+  s.chat.runLearning(() => sent.push("q"));
+  assert.deepEqual(sent, []);
+  assert.equal(s.vals().cpShowPauseOffer, true);
+  await s.vals().onCpPauseForLearning();
+  assert.deepEqual(sent, ["q"], "멈춘 뒤에는 학습 질문을 보낸다");
+  assert.equal(s.chat.runLearning(() => "보냄"), "보냄", "멈춘 동안 학습 채팅은 그대로");
+});
+
+test("오버레이 잠금 값: 오버레이가 떠 있는 동안만 공정 메뉴·하단 바를 흐리게 하고 누를 수 없게 한다", async () => {
+  const s = setup({
+    "GET /api/sections/ironmaking/progress": progress("ironmaking"),
+    ...otherSections,
+    "POST /api/checkpoints": { status: 201, body: view("awaiting_ready", { tutor: [{ type: "intro", text: "시작" }] }) },
+  }, { tabs: false });
+  await s.chat.refreshAll();
+  let v = s.vals();
+  assert.deepEqual([v.cpOverlayLockPointer, v.cpOverlayLockOpacity, v.cpOverlayLockFilter], ["auto", "1", "none"]);
+  await s.chat.sectionBadge("ironmaking").onCpSectionStart();
+  v = s.vals();
+  assert.deepEqual([v.cpOverlayLockPointer, v.cpOverlayLockOpacity, v.cpOverlayLockFilter], ["none", ".4", "grayscale(1)"]);
+  assert.equal(v.cpOverlayLockNotice, TEXT.overlayLocked);
+  assert.equal(v.cpShowResumeBanner, false, "오버레이에서 풀고 있으면 튜터 패널의 [이어 풀기] 배너를 숨긴다");
 });
