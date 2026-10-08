@@ -19,6 +19,8 @@
 
 ## 프론트 구조 (`frontend/3d-demo`)
 
+화면 작업 전에 [docs/frontend-rules.md](docs/frontend-rules.md)를 읽는다(화면을 복사해서 새로 만들지 않기, 튜터 패널은 모양만 바꾸기, 바꾼 뒤 확인 3가지).
+
 **최종 페이지는 `Steel Academy v3.dc.html`(v3)이고, 서버 `/`가 이 페이지를 연다.** v3는 v2를 개편해 따로 만든 페이지다(3D는 `scene_v3.js`). v2(`Steel Academy v2.dc.html`, `scene_v2.js`)는 이전 페이지로 남아 있고 같은 `learning-chat.js`·`checkpoint-chat.js`를 쓴다. v1 페이지(`Steel Academy.dc.html`)는 지웠고, 남은 `data.js`·`tutor.js`·`scene.js`는 옛 버전이라 고치지 않는다.
 
 - `Steel Academy v3.dc.html`: 화면 템플릿과 로직. 로직은 `<script type="text/x-dc">` 안의 `class Component extends DCLogic`에 있고, `support.js`가 읽어서 실행한다(에디터에서 문법 강조가 안 됨). 주소는 `/Steel%20Academy%20v3.dc.html`.
