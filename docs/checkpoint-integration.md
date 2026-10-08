@@ -76,6 +76,10 @@ send: e => { e.preventDefault(); if (!aiDown) this.ask(S.input); },  // #50의 s
 | `cpProgress` | 섹션 → `SectionProgressView` 또는 `{ unavailable: true, status }`(404면 루브릭 없음) |
 | `cpConfirmPause` | [나중에 이어 풀기] 확인창이 열려 있음 |
 | `cpPauseOffer` | 답하는 중 학습 질문을 하려 해서 [멈추고 질문하기] 안내를 띄움 |
+| `cpOverlayOpen` | 이해도 확인 오버레이 표시. 로그인·새로고침 복원 때는 열지 않는다 |
+| `cpTurn` | 이번 응답의 튜터 발화(`cpMessages`와 같은 형식). 복원 때는 마지막 사용자 메시지 뒤 발화 |
+| `cpBubbleIndex` | 말풍선이 보여 주는 `cpTurn` 번호 |
+| `cpShowHistory` | 오버레이 대화 기록 펼침 |
 
 ## 메서드
 
@@ -83,21 +87,27 @@ send: e => { e.preventDefault(); if (!aiDown) this.ask(S.input); },  // #50의 s
 |---|---|
 | `refreshAll()` | 페이지를 열 때. 네 섹션의 진입 상태를 읽고, 끝나지 않은 시도가 있으면 불러 둔다(새로고침 복원, 탭은 바꾸지 않음) |
 | `refresh(section = processId)` | 공정을 옮길 때. 그 섹션만 다시 읽는다 |
-| `start()` | 현재 공정의 이해도 확인 시작. 진행 중인 시도가 있으면 서버가 이어서 준다 |
+| `start(section = processId)` | 이해도 확인 시작. 오버레이를 요청 전에 열고 실패하면 닫는다. 다른 공정이면 페이지 `goProcess(section)`(있으면)를 부른다. 진행 중인 시도가 있으면 서버가 이어서 준다 |
+| `openSection(section)` | 공정 목록 섹션 버튼. 그 섹션의 풀던 시도가 열려 있으면 `resume()`, 끝난 시도(결과)가 열려 있으면 닫고 `start(section)`. 시작해서 멈춘 시도를 받으면 `resume()` |
+| `exit()` | 오버레이 [나가기]. 답하는 중이면 멈춤 확인창(`askPause`), 끝난 시도는 `close()`, 그 밖에는 오버레이만 닫는다 |
+| `nextBubble()` · `toggleHistory()` | 말풍선 [다음] · 대화 기록 펼치기·접기 |
 | `send(text)` | 답변 보내기. 준비·답변·재확인 단계에서만 보낸다. 실패하면 입력이 그대로 남는다 |
 | `ready()` | '준비됐어요' 버튼 |
 | `retry()` | 채점 오류(`state = error`) 뒤 같은 답변 다시 채점 |
-| `close()` | 결과 화면 닫기. 끝난 시도만 닫을 수 있다 |
+| `close()` | 결과 화면 닫기(오버레이도 닫는다). 끝난 시도만 닫을 수 있다 |
 | `isActive()` | 답하는 중인 시도가 있는지(= 학습 입력을 막을지). `paused`·`completed`는 `false` |
 | `askPause()` · `cancelPause()` | [나중에 이어 풀기] 확인창 열기·닫기 |
-| `pause()` | `POST /pause`. 답하는 중에만 |
-| `resume()` | [이어 풀기]. 이해도 확인 탭으로 옮기고, `paused`면 `POST /resume`(멈추지 않은 시도는 탭만 옮김) |
-| `pauseForLearning()` | [멈추고 질문하기]. 멈춘 뒤 학습 탭으로 옮기고 막혀 있던 학습 질문을 보낸다. 멈추기에 실패하면 보내지 않는다 |
+| `pause()` | `POST /pause`. 답하는 중에만. 멈추면 오버레이를 닫는다 |
+| `resume()` | [이어 풀기]. 오버레이를 열고 이해도 확인 탭으로 옮긴 뒤, `paused`면 `POST /resume`(멈추지 않은 시도는 요청 없이 열기만) |
+| `pauseForLearning()` | [멈추고 질문하기]. 멈춘 뒤(오버레이가 닫힌다) 학습 탭으로 옮기고, 페이지 `openTutor()`(있으면)로 튜터 패널을 연 다음 막혀 있던 학습 질문을 보낸다. 멈추기에 실패하면 보내지 않는다 |
 | `tabLocked(section)` | `LOCK_PROCESS_TABS`가 켜져 있고 열리지 않은 공정인지 |
 | `setMode(mode)` | 모드 탭 바꾸기(`learning` · `checkpoint`). 이해도 확인 탭을 열면 현재 공정의 진입 상태를 다시 읽는다 |
 | `runLearning(send)` | 페이지 `ask()`를 감싼다. 학습 탭으로 바꾼 뒤 `send()`. 답하는 중이면 보내지 않고 질문을 들고 있다가 [멈추고 질문하기]를 띄운다 |
 | `lockLearning(learningVals)` | 학습 모드 값에 잠금을 씌운다. 답하는 중이면 `chips: []`, `send`는 [멈추고 질문하기]만 띄움, 메시지의 '생각해 보기'(`hasFollowUp`) 숨김 |
-| `sectionBadge(section)` | 공정 탭 항목에 펼칠 배지 값: `cpHasBadge`, `cpBadge`, `cpBadgeColor`, `cpTabLocked` |
+| `sectionBadge(section)` | 공정 탭 항목에 펼칠 값: 배지(`cpHasBadge`, `cpBadge`, `cpBadgeColor`, `cpTabLocked`)와 섹션 버튼(`cpSection*`, 아래 '공정 목록 섹션 버튼') |
+| `motionFor(type, { unlocked })` (모듈 함수) | 튜터 발화 type → 캐릭터 동작 이름표(아래 '오버레이') |
+
+페이지 훅(선택): `goProcess(id)`(다른 공정의 섹션 버튼을 누르면 그 공정으로 옮김), `openTutor()`(멈추고 질문하기에서 튜터 패널 열기). 없으면 부르지 않는다.
 
 로그인·새로고침으로 끝나지 않은 시도를 다시 열어도 모드는 바꾸지 않는다. 학습 탭에 "풀던 이해도 확인이 있어요 [이어 풀기]"(`cpShowResumeBanner`)가 뜬다.
 
@@ -196,6 +206,34 @@ send: e => { e.preventDefault(); if (!aiDown) this.ask(S.input); },  // #50의 s
 | `cpShowResumeBanner`, `cpResumeBannerText`, `cpResumeBannerLabel` | 불리언·문자열 | 학습 탭 안내 "풀던 이해도 확인이 있어요 · 제선 1/3 완료" [이어 풀기](핸들러는 `onCpResume`) |
 | `cpShowPauseOffer`, `cpPauseOfferText`, `cpPauseOfferLabel`, `onCpPauseForLearning` | 불리언·문자열·핸들러 | 학습 탭 안내 "풀던 이해도 확인이 있어요. 잠깐 멈추고 질문할까요?" [멈추고 질문하기] |
 
+### 공정 목록 섹션 버튼 (`sectionBadge(section)`)
+
+공정 목록 각 섹션 끝의 상태 문구와 버튼. 설계는 [checkpoint-overlay.md](checkpoint-overlay.md). 이 섹션의 풀던 시도가 열려 있으면 진입 상태(`cpProgress`)보다 그 시도를 따른다(시작한 뒤에는 진입 상태를 다시 읽지 않는다).
+
+| 키 | 형식 | 설명 |
+|---|---|---|
+| `cpSectionStatus` | 문자열 | 진입 상태 문장(`cpEntryStatus`와 같은 문장, 섹션 기준). 풀던 시도가 열려 있으면 '진행 중' · '멈춤 · 1/3 완료' |
+| `cpSectionPassed` | 불리언 | 통과한 섹션 |
+| `cpSectionShowStart` | 불리언 | 버튼을 보여 줄지. 통과·로그인 전·잠김·준비 중·확인 중이면 숨기고 상태 문구만 |
+| `cpSectionCanStart`, `cpSectionStartOpacity` | 불리언·문자열 | 누를 수 있는지(다른 섹션의 풀던 시도가 열려 있거나 요청 중이면 `false`, 투명도 `.45`) |
+| `cpSectionStartLabel`, `onCpSectionStart` | 문자열·핸들러 | '담금질 시작하기' · '이어 풀기' · '재도전'. 핸들러는 `openSection(section)` |
+| `cpSectionHasResume`, `cpSectionResumeText` | 불리언·문자열 | 이어 풀기 안내 "풀던 이해도 확인이 있어요 · 제선 1/3 완료". 오버레이가 열려 있으면 숨긴다 |
+
+### 오버레이
+
+3D 화면 위 이해도 확인. 말풍선은 이번 응답의 튜터 발화(`cpTurn`)를 [다음]으로 차례로 보여 주고, 캐릭터 동작은 지금 보이는 발화의 type으로 정한다. 입력 줄·준비·재채점·멈춤 확인창·결과는 위 진행·결과 화면 키를 그대로 쓴다.
+
+| 키 | 형식 | 설명 |
+|---|---|---|
+| `cpShowOverlay` | 불리언 | 오버레이 표시(`cpOverlayOpen`이고 시도가 있거나 시작 요청 중) |
+| `cpCharacterMotion` | 문자열 | 캐릭터 동작 이름표. 요청 중 `thinking`, 멈춘 시도·발화 없음 `idle`, 그 밖에는 `motionFor(말풍선 type)`: `intro` → `greet`, `question` → `ask`, `recheck_question` → `ask_again`, `feedback` → `praise`, `explanation` → `explain`, `key_points` → `encourage`, `error` → `sorry`, `result` → 통과면 `celebrate` 아니면 `cheer_retry` |
+| `cpBubbleText`, `cpBubbleType`, `cpBubbleLabel`, `cpBubbleColor` | 문자열 | 말풍선 발화·type·머리말(`TEXT.messageLabels`)·색(재확인 주황, 채점 오류 빨강) |
+| `cpBubbleHasNext`, `cpBubbleNextLabel`, `onCpBubbleNext` | 불리언·문자열·핸들러 | 이번 응답에 다음 발화가 있음 · [다음] |
+| `cpCanAnswer` | 불리언 | 답할 수 있음: 답하는 중, 요청 중 아님, 마지막 발화(질문)를 보고 있음 |
+| `cpOverlayInputDisabled` | 불리언 | 오버레이 입력 막기(`cpCanAnswer`의 반대) |
+| `cpShowHistory`, `cpHistoryLabel`, `onCpToggleHistory` | 불리언·문자열·핸들러 | 대화 기록(`cpMessages`) 펼침 · '대화 기록' / '기록 닫기' |
+| `cpExitLabel`, `onCpExit` | 문자열·핸들러 | [나가기](`exit()`) |
+
 ## 오류 문장 (api-client.js)
 
 | 응답 | 문장(`TEXT.errors`) |
@@ -220,6 +258,9 @@ send: e => { e.preventDefault(); if (!aiDown) this.ask(S.input); },  // #50의 s
 - 진입 상태(404 준비 중, 잠김, 재도전, 409)
 - api-client 헤더와 오류 문장
 - 모드 탭, 학습 잠금(`lockLearning`·`runLearning`), 공정 배지(`sectionBadge`), site의 비활성 시작 버튼
+- 오버레이: 동작 이름표(`motionFor`), 섹션 버튼으로 시작 → 말풍선 차례 보기·동작 전환 → 결과 → 나가기, 복원은 열지 않음, [나가기] → 멈춤 → 섹션 버튼으로 이어 풀기, 시작 실패·멈춘 시도 받기·다른 섹션 막기, [멈추고 질문하기]의 `openTutor`
+
+캐릭터 동작이 기대는 엔진의 발화 약속(`feedback`은 맞혔을 때만 등)은 `backend/test/checkpoint.test.ts`의 '발화 type 약속' 테스트로 고정한다.
 
 ③에서는 브라우저로도 확인했다(#50 화면 기준): 가짜 평가자·튜터·학습 튜터를 넣은 서버에 headless Chrome으로 붙어 탭 전환, 시작 → 재확인 → 채점 오류 → 다시 채점 → 결과, 새로고침 복원, 체크포인트 중 학습 잠금과 3D 공정 이동, site에서 시작 불가, 학습 모드 질문·답변을 확인했다. 스크린샷은 `docs/screenshots/checkpoint-v2/`.
 
