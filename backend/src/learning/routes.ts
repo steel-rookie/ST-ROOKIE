@@ -1,5 +1,6 @@
 // 학습 모드 API: POST /api/chat. 흐름은 docs/learning-mode.md '흐름'.
-// 안전 질문 차단 → retrieve() → 최근 대화·미해결 오개념 → 튜터 1회 → 오개념 기록(source=learning) → 대화 저장.
+// 안전 질문 차단 → retrieve() → 최근 대화·미해결 오개념·체크포인트 재도전 개념 → 튜터 1회 → 오개념 기록(source=learning) → 대화 저장.
+// 튜터가 고른 키워드 카드는 루브릭에서 내용을 꺼내 붙인다(keywords.ts). 체크포인트 진행 중에는 붙이지 않는다.
 // 예전 /api/chat(제선 Q&A, 지금은 삭제)의 요청·응답 필드는 유지하고 screen, follow_up, scene_actions를 더했다.
 // GET /api/chat/sessions/:sessionId: 저장된 대화(페이지를 새로고침해도 채팅을 이어 보이게).
 import express from "express";
@@ -12,6 +13,7 @@ import { LlmUnavailableError, SECTION_ORDER, type Section } from "../checkpoint/
 import { currentUserId } from "../request-user.js";
 import type { Rubric } from "../rubrics.js";
 import { UsageLimitError } from "../usage.js";
+import { keywordCard, keywordCardConcepts } from "./keywords.js";
 import { latestPerConcept, type LearningRepository } from "./repository.js";
 import { isSafetyQuestion, SAFETY_ANSWER } from "./safety.js";
 
@@ -45,10 +47,15 @@ export interface LearningDeps {
   rubrics: Rubric[];
   /** 화면 조작에 쓸 공정·설비 목록(scene-catalog.ts). 없으면 scene_actions는 항상 빈 배열이다. */
   scene?: SceneCatalog;
+  /**
+   * 학습자의 체크포인트 상태(체크포인트 엔진의 sectionProgress, 실제 기록만). 루브릭이 없는 섹션이면 null.
+   * 아직 만점이 아닌 개념은 튜터에 넘기고, 진행 중인 시도가 있으면 키워드 카드를 붙이지 않는다(정답 용어가 모여 있어서).
+   */
+  checkpointProgress?: (userId: string, section: Section) => { retry_concept_ids: string[]; in_progress: boolean } | null;
   now?: () => string;
 }
 
-export function createLearningRouter({ repo, retriever, agent, rubrics, scene, now = () => new Date().toISOString() }: LearningDeps): express.Router {
+export function createLearningRouter({ repo, retriever, agent, rubrics, scene, checkpointProgress, now = () => new Date().toISOString() }: LearningDeps): express.Router {
   const router = express.Router();
   // 같은 세션에서 답변 중에 또 질문하면 막는다(대화 순서가 꼬이지 않게).
   const busy = new Set<string>();
@@ -82,11 +89,12 @@ export function createLearningRouter({ repo, retriever, agent, rubrics, scene, n
 
       if (isSafetyQuestion(question)) {
         repo.saveTurn({ ...base, answer: SAFETY_ANSWER, status: "safety_redirect", source_ids: [] }, now());
-        res.json({ answer: SAFETY_ANSWER, status: "safety_redirect", sources: [], follow_up: null, scene_actions: [], session_id: sessionId });
+        res.json({ answer: SAFETY_ANSWER, status: "safety_redirect", sources: [], follow_up: null, scene_actions: [], keyword_card: null, session_id: sessionId });
         return;
       }
 
       const rubric = rubrics.find((r) => r.section === section);
+      const progress = checkpointProgress?.(userId, section) ?? null;
       const screen = { process_id: section, equipment_id: equipmentId };
       const equipmentName = scene?.processes.flatMap((p) => p.equipment).find((e) => e.id === equipmentId)?.name ?? null;
       const history = repo.recentTurns(sessionId, HISTORY_TURNS).map((t) => ({ question: t.question, answer: t.answer }));
@@ -106,6 +114,9 @@ export function createLearningRouter({ repo, retriever, agent, rubrics, scene, n
         concepts: rubric?.concepts.map((c) => ({ concept_id: c.concept_id, name: c.name })) ?? [],
         glossary: rubric?.glossary ?? [],
         scene,
+        // 체크포인트 진행 중에는 카드를 고를 수 없게 목록을 비운다.
+        keywordConcepts: progress?.in_progress ? [] : keywordCardConcepts(rubric),
+        retryConcepts: progress?.retry_concept_ids ?? [],
       });
 
       const at = now();
@@ -117,7 +128,9 @@ export function createLearningRouter({ repo, retriever, agent, rubrics, scene, n
       // 조각 id(자료id#번호) → 자료 id → 화면에 보여 줄 출처.
       const cited = chunks.filter((c) => reply.source_ids.includes(c.id)).flatMap((c) => c.source_ids);
       const sources = toSources(cited);
-      res.json({ answer: reply.answer, status: reply.status, sources, follow_up: reply.follow_up, scene_actions: reply.scene_actions, session_id: sessionId });
+      const card = reply.keyword_card && !progress?.in_progress ? keywordCard(rubric, reply.keyword_card.concept_id) : null;
+      const keyword_card = card && { concept_id: card.concept_id, name: card.name, keywords: card.keywords, source: card.source_id ? toSources([card.source_id])[0] ?? null : null };
+      res.json({ answer: reply.answer, status: reply.status, sources, follow_up: reply.follow_up, scene_actions: reply.scene_actions, keyword_card, session_id: sessionId });
     } catch (error) {
       if (error instanceof UsageLimitError) {
         res.status(429).json({ error: `오늘 쓸 수 있는 튜터 호출(${error.limit}회)을 다 썼어요.`, code: "USAGE_LIMIT" });
@@ -141,7 +154,7 @@ export function createLearningRouter({ repo, retriever, agent, rubrics, scene, n
   });
 
   // 저장된 대화(오래된 것부터 최근 RESTORE_TURNS개). 없는 세션·다른 사람의 세션은 POST와 같이 구분하지 않고 404.
-  // follow_up·scene_actions는 저장하지 않으므로 돌려주지 않는다(다시 보여 줄 때 화면을 움직이지 않는다).
+  // follow_up·scene_actions·keyword_card는 저장하지 않으므로 돌려주지 않는다(다시 보여 줄 때 화면을 움직이지 않는다).
   router.get("/api/chat/sessions/:sessionId", (req, res) => {
     const sessionId = req.params.sessionId;
     if (!z.string().uuid().safeParse(sessionId).success || repo.sessionOwner(sessionId) !== currentUserId()) {
