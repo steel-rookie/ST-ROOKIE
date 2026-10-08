@@ -110,7 +110,7 @@ class ImageRenderer {
 class GltfRenderer {
   constructor(root, modelUrl, { reducedMotion }) {
     this.root = root; this.modelUrl = modelUrl; this.reducedMotion = reducedMotion; this.kind = 'gltf';
-    this.clips = []; this.visible = true; this.raf = 0; this.disposed = false;
+    this.clips = []; this.visible = true; this.raf = 0; this.disposed = false; this.ready = false;
     this.motion = { kind: 'procedural', name: 'idle' }; this.started = 0; this.from = { ...REST }; this.last = { ...REST };
   }
 
@@ -164,6 +164,8 @@ class GltfRenderer {
     this.clock = new THREE.Clock();
     this.root.append(canvas);
     this.canvas = canvas;
+    // 여기까지 와야 그릴 수 있다. 불러오는 중에 motion·크기가 바뀌어도(play·resize) 그리지 않고 기다린다.
+    this.ready = true;
     this.resize();
     this.tick();
   }
@@ -186,7 +188,7 @@ class GltfRenderer {
 
   tick = () => {
     cancelAnimationFrame(this.raf);
-    if (this.disposed || !this.renderer || !this.visible) return;
+    if (this.disposed || !this.ready || !this.visible) return;
     // getElapsedTime()은 내부에서 getDelta()를 불러 dt를 0으로 만들므로 getDelta()만 부르고 elapsedTime을 읽는다.
     const dt = this.clock.getDelta();
     const now = this.clock.elapsedTime;
@@ -206,11 +208,11 @@ class GltfRenderer {
 
   setVisible(visible) {
     this.visible = visible;
-    if (visible) { this.clock?.getDelta(); this.tick(); } else cancelAnimationFrame(this.raf);
+    if (visible && this.ready) { this.clock.getDelta(); this.tick(); } else cancelAnimationFrame(this.raf);
   }
 
   resize() {
-    if (!this.renderer) return;
+    if (!this.ready) return;
     const w = this.root.clientWidth || 220, h = this.root.clientHeight || 260;
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
