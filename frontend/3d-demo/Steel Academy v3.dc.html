@@ -11,6 +11,9 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet">
   <script type="module" src="./scene_v3.js"></script>
   <script type="module">import { attachSiteBackdrop } from './site-backdrop.js'; attachSiteBackdrop();</script>
+  <script type="module">import { attachSiteDetails } from './site-details.js'; attachSiteDetails();</script>
+  <script type="module">import { attachSiteDetails2 } from './site-details-2.js'; attachSiteDetails2();</script>
+  <script type="module">import { attachSiteDetails3 } from './site-details-3.js'; attachSiteDetails3();</script>
   <style>
     /* [UI 시안] 화면 틀(상단바·좌측 메뉴·우측 패널·하단 바)은 항상 어두운 남색, 3D 영역만 밝은 스튜디오 톤 */
     html, body { margin: 0; height: 100%; overflow: hidden; font-family: "IBM Plex Sans KR", sans-serif; }
@@ -137,11 +140,20 @@
       <button onClick="{{ toggleSettings }}" style="height:42px;padding:0 16px;display:flex;align-items:center;gap:9px;border-radius:9px;border:1px solid {{ topBtn.set.border }};background:{{ topBtn.set.bg }};color:var(--text);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;" style-hover="border-color:var(--accent);"><img src="{{ ic.user }}" width="19" height="19" alt=""><span style="display:{{ L.topLbl }};">마이페이지</span></button>
       <sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
         <div style="position:absolute;right:0;top:50px;width:240px;padding:8px;border-radius:12px;background:var(--chrome2);border:1px solid var(--line2);box-shadow:0 16px 36px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:2px;animation:fadeIn .15s ease-out;">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px 10px;">
+            <span style="font-size:14px;font-weight:700;color:var(--text);">{{ userName }}</span>
+            <span style="font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',ui-monospace,monospace;">{{ userId }}</span>
+          </div>
+          <div style="height:1px;background:var(--line);margin:0 2px 4px;"></div>
           <a href="/login" style="display:flex;align-items:center;height:38px;padding:0 10px;border-radius:8px;color:var(--text);font-size:13px;font-weight:600;text-decoration:none;" style-hover="background:var(--chrome3);">내 학습 기록</a>
+          <sc-if value="{{ devMode }}" hint-placeholder-val="{{ false }}">
+            <div style="height:1px;background:var(--line);margin:4px 2px;"></div>
+            <sc-for list="{{ settingsItems }}" as="it" hint-placeholder-count="2">
+              <button onClick="{{ it.onClick }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:38px;padding:0 10px;border:none;border-radius:8px;background:transparent;color:var(--text);font-size:13px;cursor:pointer;text-align:left;white-space:nowrap;" style-hover="background:var(--chrome3);"><span>{{ it.label }}</span><span style="font-size:12px;color:{{ it.valColor }};">{{ it.value }}</span></button>
+            </sc-for>
+          </sc-if>
           <div style="height:1px;background:var(--line);margin:4px 2px;"></div>
-          <sc-for list="{{ settingsItems }}" as="it" hint-placeholder-count="2">
-            <button onClick="{{ it.onClick }}" style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:38px;padding:0 10px;border:none;border-radius:8px;background:transparent;color:var(--text);font-size:13px;cursor:pointer;text-align:left;white-space:nowrap;" style-hover="background:var(--chrome3);"><span>{{ it.label }}</span><span style="font-size:12px;color:{{ it.valColor }};">{{ it.value }}</span></button>
-          </sc-for>
+          <button onClick="{{ logout }}" style="display:flex;align-items:center;height:38px;padding:0 10px;border:none;border-radius:8px;background:transparent;color:#ff8a8a;font-size:13px;font-weight:600;cursor:pointer;text-align:left;" style-hover="background:var(--chrome3);">로그아웃</button>
         </div>
       </sc-if>
     </div>
@@ -501,8 +513,8 @@
 
   <sc-if value="{{ hero.show }}" hint-placeholder-val="{{ true }}">
     <div style="position:absolute;left:{{ L.vpLeft }};top:64px;margin:28px 0 0 32px;z-index:4;pointer-events:none;display:flex;flex-direction:column;gap:10px;max-width:520px;">
-      <h1 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:clamp(24px, 3vw, 40px);font-weight:900;letter-spacing:-0.03em;line-height:1.15;white-space:nowrap;color:{{ hero.title }};text-shadow:{{ hero.shadow }};">철이 만들어지는 과정</h1>
-      <p style="margin:0;font-size:17px;line-height:1.6;color:{{ hero.sub }};text-shadow:{{ hero.shadow }};text-wrap:pretty;">공정을 선택해 설비와 내부 구조를 살펴보세요.</p>
+      <h1 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:clamp(24px, 3vw, 40px);font-weight:900;letter-spacing:-0.03em;line-height:1.15;white-space:nowrap;color:{{ hero.title }};text-shadow:0 2px 4px rgba(10,14,24,.5);">철이 만들어지는 과정</h1>
+      <p style="margin:0;font-size:17px;line-height:1.6;color:{{ hero.sub }};text-shadow:0 1px 3px rgba(10,14,24,.55);text-wrap:pretty;">공정을 선택해 설비와 내부 구조를 살펴보세요.</p>
     </div>
   </sc-if>
   <!-- 하단 공정 애니메이션 바 -->
@@ -632,7 +644,7 @@ class Component extends DCLogic {
     document.addEventListener('steel-tour-end', () => this.setState({ touring: false, tourStep: null }));
     document.addEventListener('keydown', e => { if (e.key === 'Escape') this.setState({ settingsOpen: false }); });
     if (this.qs('still') === '1') { const st = document.createElement('style'); st.textContent = '*{animation-iteration-count:1 !important}'; document.head.appendChild(st); } // 캡처용: 반복 애니메이션 끔
-    this.pingAI();
+    this.pingAI(); this.loadMe();
     // 주소로 바로 열기(시연·캡처용): ?p=ironmaking&eq=sinter_plant&view=section&layer=2&tutor=1
     const p = this.qs('p'); if (p && this.data.findProcess(p)) { this._deep = { eq: this.qs('eq'), view: this.qs('view'), layer: this.qs('layer'), tutor: this.qs('tutor'), walk: this.qs('walk'), tour: this.qs('tour') }; if (['zone', 'top', 'plan', 'front'].includes(this.qs('draw'))) this.setState({ drawMode: this.qs('draw') }); this.goProcess(p); }
     if (this.qs('rail') === '1') this.setState({ navRail: true }); if (this.qs('panel') === '0') this.setState({ panelHidden: true }); // ?rail=1 메뉴 아이콘만, ?panel=0 정보 패널 접기
@@ -646,6 +658,13 @@ class Component extends DCLogic {
       if (d.walk && d.eq) setTimeout(() => this.scene()?.walk(d.eq, this.state.speed), 1200); // ?walk=1: 설비 작동 보기 바로 시작
       if (d.tour) setTimeout(() => this.scene()?.tour(this.state.speed), 1200); }, 300); } // ?tour=1: 공정 자동 시연 바로 시작
   // 튜터 서버 연결 확인. 정적 서버로 열면 /api가 없어 '연결 안됨'이 된다
+  // 로그인한 사용자. 토큰은 로그인 화면이 localStorage/sessionStorage에 둔다(api-client.js 참고)
+  async loadMe() {
+    let t = ''; try { t = localStorage.getItem('st-rookie-token') || sessionStorage.getItem('st-rookie-token') || ''; } catch (e) {}
+    if (!t) return;
+    try { const r = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + t } }); if (!r.ok) return; const { user } = await r.json(); if (user) this.setState({ me: { name: user.name || user.username, id: user.username } }); } catch (e) {}
+  }
+  logout() { try { localStorage.removeItem('st-rookie-token'); sessionStorage.removeItem('st-rookie-token'); } catch (e) {} location.href = '/login'; }
   async pingAI() {
     try { let pass = ''; try { pass = localStorage.getItem('st-rookie:passcode') || ''; } catch (e) {}
       const r = await fetch('/api/status', { headers: pass ? { 'X-Test-Passcode': encodeURIComponent(pass) } : {} });
@@ -789,11 +808,12 @@ class Component extends DCLogic {
       topBtn: { siteLabel: '전체 공정', site: { bg: site ? 'rgba(34,199,240,.12)' : 'var(--chrome3)', border: site ? 'rgba(34,199,240,.6)' : 'var(--line2)' }, tutor: { bg: S.tutorOpen ? 'rgba(34,199,240,.12)' : 'var(--chrome3)', border: S.tutorOpen ? AC : aiDown ? 'rgba(34,199,240,.45)' : 'var(--line2)' }, set: { bg: S.settingsOpen ? 'rgba(34,199,240,.12)' : 'var(--chrome3)', border: S.settingsOpen ? AC : 'var(--line2)' } },
       goSite: () => this.goSite(), toggleNav: () => this.setState({ navOpen: !S.navOpen }),
       toggleTheme: () => this.setState({ theme: dark ? 'light' : 'dark' }),
-      hero: { show: S.processId === 'site' && !this.state.touring, title: dark ? '#f2f5f8' : '#141b24', sub: dark ? '#b9c3cf' : '#4a5563', shadow: dark ? '0 2px 14px rgba(0,0,0,.55)' : '0 1px 10px rgba(255,255,255,.7)' },
+      hero: { show: S.processId === 'site' && !this.state.touring, title: '#f4f6f9', sub: dark ? '#c3ccd7' : '#e8ecf1', shadow: dark ? '0 2px 14px rgba(0,0,0,.55)' : '0 1px 10px rgba(255,255,255,.7)' },
       dn: { icon: icon(dark ? 'sun' : 'moon', '#e6ebf1'), tip: dark ? '라이트 모드로' : '다크 모드로' },
       toggleSettings: () => this.setState({ settingsOpen: !S.settingsOpen }), settingsOpen: !!S.settingsOpen,
       toggleModels: () => { const v = !S.zoneLabelsHidden; this.setState({ zoneLabelsHidden: v }); this.scene()?.setZoneLabelsVisible?.(!v); },
       modelsBtnLabel: S.zoneLabelsHidden ? '공정 이름표 표시' : '공정 이름표 숨김', modelsBtnTitle: S.zoneLabelsHidden ? '01 제선 · 02 제강 … 선택 이름표 다시 표시' : '01 제선 · 02 제강 … 선택 이름표 숨기기 (3D 모델은 유지)', modelsDot: S.zoneLabelsHidden ? '#93a0b0' : AC,
+      userName: S.me?.name || '임지호', userId: S.me?.id || 'trainee10', devMode: this.qs('dev') === '1', logout: () => this.logout(),
       settingsItems: [
         { label: '공정 3D 모델', value: S.modelsHidden ? '숨김' : '표시', valColor: S.modelsHidden ? '#93a0b0' : AC, onClick: () => { const v = !S.modelsHidden; this.setState({ modelsHidden: v }); this.scene()?.setModelsVisible?.(!v); } },
         { label: '개발자 패널', value: S.devOpen ? '켜짐' : '꺼짐', valColor: S.devOpen ? AC : '#93a0b0', onClick: () => this.setState({ devOpen: !S.devOpen, tutorOpen: false, settingsOpen: false }) },
