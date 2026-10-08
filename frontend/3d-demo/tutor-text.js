@@ -52,6 +52,10 @@ export const TEXT = {
     retry: (count) => `재도전 · 개념 ${count}개`,
     notStarted: '시작 전',
   },
+  // 공정 목록 섹션 버튼: 앞 공정을 통과하지 못해 잠긴 섹션.
+  sectionLocked: '이전 공정 통과 필요',
+  // 이해도 확인 오버레이가 떠 있는 동안 공정 메뉴에 보이는 안내.
+  overlayLocked: '담금질 중에는 공정 이동과 재생을 쓸 수 없어요',
   // 진행 중 화면.
   title: (sectionName, isRetry) => `이해도 확인 · ${sectionName}${isRetry ? ' (재도전)' : ''}`,
   stage: {
@@ -73,6 +77,7 @@ export const TEXT = {
     answer: '답변을 입력하세요',
     error: '다시 채점하기를 눌러 주세요',
     paused: '이어 풀기를 누르면 계속할 수 있어요',
+    readNext: '[다음]으로 질문까지 본 뒤 답할 수 있어요',
   },
   // 튜터 메시지 종류별 머리말(서버 Utterance.type).
   messageLabels: {
