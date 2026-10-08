@@ -77,7 +77,7 @@
 | `pauseForLearning()` | 학습 탭으로 전환 | 오버레이를 닫고 페이지 훅 `c.openTutor?.()` |
 | `runLearning`·`lockLearning` | 잠금 규칙 | 그대로. `tutorMode` 관련 줄만 정리 |
 
-- v2 페이지도 탭 값(`cpTabs` 등)을 쓰므로 탭 값은 마지막 정리 PR에서 지운다.
+- 탭 값(`cpTabs` 등)과 `tutorMode`는 PR 4에서 지웠다. v2 페이지는 이때 함께 지웠다(미정 사항 4).
 - `tutor-text.js`(수민)에 `담금질 시작하기`, `나가기`, 말풍선 [다음] 문구를 추가한다.
 
 ## 캐릭터 모듈 (`frontend/3d-demo/cp-character.js`)
@@ -183,7 +183,7 @@
 | 모델 | 수민 | `models/character/tutor.glb`와 README(출처·라이선스, 수정 내역). 라이선스 칸을 채운 뒤 연다 | 없음 |
 | 2 | 담당 확인 필요 | `cp-character.js`: `GltfRenderer`(클립 우선, 없으면 몸 전체 움직임) + `ImageRenderer`(대체 이미지·실루엣). `checkpoint-test.html`에 동작 미리보기 | 없음 |
 | 3 | viiin2 | v3 HTML: 오버레이, 공정 목록 버튼, 탭 제거, 잠금 검사 | v3 개편 |
-| 4 | 수민 | 탭 값·`tutorMode` 제거, `checkpoint-integration.md` 갱신(v2 처리 결정 뒤). CLAUDE.md는 별도 작은 PR | v2 탭 |
+| 4 | 수민 | 탭 값·`tutorMode`와 튜터 패널 전용 값 제거, v3의 숨긴 이해도 확인 탭 블록 제거, v2 페이지·`scene_v2.js` 삭제, `checkpoint-integration.md` 갱신. CLAUDE.md는 별도 작은 PR | v2 페이지 삭제 |
 | 5 | 나중에 | 뼈대·클립이 있는 모델로 교체. 클립 이름 = 이름표면 코드 변경 없음 | 없음 |
 
 1·모델·2는 동시에 진행할 수 있고, 3은 1·2(와 모델)가 병합된 뒤 시작한다.
@@ -194,7 +194,7 @@
 1. 오버레이 중 상단 바의 홈·전체 공정·경로 표시(지금은 눌러서 전체 공정으로 옮길 수 있다). 3D 화면 조작·공정 메뉴·하단 재생 바는 막기로 확정
 2. 좁은 화면(rail)에서 [담금질 시작하기] 위치
 3. 말풍선 넘김: [다음] 버튼 / 자동 넘김 + 클릭으로 건너뛰기
-4. v2 페이지의 이해도 확인 탭을 남길지 지울지(PR 4 범위)
+4. ~~v2 페이지의 이해도 확인 탭을 남길지 지울지~~ → v2 페이지 자체를 지우기로 결정(PR 4)
 5. 오버레이가 열려 있을 때 튜터 패널을 함께 열 수 있게 할지
 6. 이름표 대체 매핑(`greet`, `ask`, `encourage`, `cheer_retry`, `sorry`)
 7. `cp-character.js`·`models/character/` 담당
