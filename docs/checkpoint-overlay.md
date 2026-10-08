@@ -122,12 +122,14 @@
 
 ### 모델 교체
 
-- 모델 파일과 규칙은 [models/character/README.md](../frontend/3d-demo/models/character/README.md).
+- 모델 파일 규칙: `frontend/3d-demo/models/character/tutor.glb`, glTF 2.0 binary(Draco 압축 없음, 텍스처 포함). 발 중앙이 원점·바닥이 Y=0·얼굴이 +Z. 재질은 Metallic 0. 애니메이션 클립을 넣으면 클립 이름을 동작 이름표와 같게 한다.
 - 뼈대·클립이 있는 모델로 바꿔도 `checkpoint-chat.js`와 이름표는 그대로다. 클립 이름만 이름표에 맞춘다.
 
 ## 캐릭터 모델 현황 (2026-10-08)
 
-파일: `frontend/3d-demo/models/character/tutor.glb`(모델 PR로 따로 들어간다. 출처·라이선스를 채운 뒤 연다). Tripo에서 텍스처 포함으로 받은 원본(저장소에 넣지 않음)을 줄인 것이다. 뷰어로 모양과 텍스처를 확인했다. 처리 순서와 도구 버전은 [models/character/README.md](../frontend/3d-demo/models/character/README.md) '수정 내역'.
+파일: `frontend/3d-demo/models/character/tutor.glb`(#84). Tripo에서 텍스처 포함으로 받은 원본(저장소에 넣지 않음)을 줄인 것이다. 뷰어로 모양과 텍스처를 확인했다. 처리: `@gltf-transform/cli` 4.5.1로 `weld` → `simplify --ratio 0.06 --error 0.001` → `quantize`.
+
+모델 출처: Tripo AI로 생성(무료 플랜, 2026-10-08), 라이선스 CC BY 4.0
 
 | 항목 | 원본 | `tutor.glb` |
 |---|---|---|
