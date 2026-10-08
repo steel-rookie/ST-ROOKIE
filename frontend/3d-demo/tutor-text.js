@@ -31,6 +31,12 @@ export const TEXT = {
     resumeShort: '이어 풀기',
     resumeProgress: (done, total) => `이어 풀기 (${done}/${total} 완료)`,
     pauseForLearning: '멈추고 질문하기',
+    // 이해도 확인 오버레이(공정 목록 섹션 버튼, 말풍선, 나가기)
+    startQuench: '담금질 시작하기',
+    next: '다음',
+    history: '대화 기록',
+    hideHistory: '기록 닫기',
+    exit: '나가기',
   },
   // 체크포인트 진입 상태(섹션별).
   entry: {

@@ -97,6 +97,37 @@ test("partial → 부가 설명과 다른 각도 재확인 → 재확인 판정�
   assert.deepEqual(evaluator.calls.map((c) => c.phase), ["initial", "recheck", "initial", "recheck", "initial"]);
 });
 
+test("발화 type 약속: feedback은 맞혔을 때만, explanation은 첫 판정이 correct가 아닐 때만, key_points는 재확인에서 못 맞혔을 때만 나온다", async () => {
+  // 화면의 캐릭터 동작(frontend/3d-demo/checkpoint-chat.js의 motionFor)이 판정 없이 이 약속으로 칭찬·설명을 고른다.
+  const runs = [
+    ["correct", "partial", "correct", "wrong", "partial"], // a 맞음, b 부분→재확인 맞음, c 틀림→재확인 부분(마지막)
+    ["assisted", "wrong", "wrong", "wrong", "correct"],    // a 도움→재확인 틀림, b 틀림→재확인 틀림, c 맞음(마지막)
+    ["correct", "correct", "wrong", "correct"],            // c 틀림→재확인 맞음(마지막)
+  ];
+  const seen = new Set<string>();
+  for (const answers of runs) {
+    const { engine, evaluator } = setup();
+    const { view } = await engine.start(USER, "ironmaking");
+    await engine.respond(USER, view.attempt_id, "네");
+    for (const answer of answers) {
+      const out = await engine.respond(USER, view.attempt_id, answer);
+      const phase = evaluator.calls.at(-1)!.phase;
+      const correct = answer === "correct";
+      const types = out.tutor.map((u) => u.type);
+      const label = `${phase}:${answer} → ${types.join(",")}`;
+      seen.add(`${phase}:${answer}`);
+      assert.equal(types.includes("feedback"), correct, label);
+      assert.equal(types.includes("explanation"), phase === "initial" && !correct, label);
+      assert.equal(types.includes("key_points"), phase === "recheck" && !correct, label);
+      if (correct || phase === "recheck") assert.ok(["question", "result"].includes(types.at(-1)!), label);
+      else assert.equal(types.at(-1), "recheck_question", label);
+    }
+  }
+  assert.deepEqual([...seen].sort(), [
+    "initial:assisted", "initial:correct", "initial:partial", "initial:wrong", "recheck:correct", "recheck:partial", "recheck:wrong",
+  ]);
+});
+
 test("핵심 요소를 모두 맞혔지만 사실 오류로 partial이면 explain_from null로 오개념만 교정한 뒤 재확인한다", async () => {
   const { engine, tutor } = setup();
   const { view } = await engine.start(USER, "ironmaking");
