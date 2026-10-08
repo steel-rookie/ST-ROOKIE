@@ -8,7 +8,12 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/+esm';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js/+esm';
 
-export async function attachSiteBackdrop(target = 'steel-scene', { base = 'models/site/' } = {}) {
+// 페이지 틀(support.js)이 <helmet> 안 script를 두 번 실행할 수 있어서, 한 페이지에 한 번만 붙인다(두 번 붙으면 배경·조명이 2벌이 되어 느려짐)
+export function attachSiteBackdrop(target = 'steel-scene', opts = {}) {
+  return (window.__siteBackdrop ||= attach(target, opts));
+}
+
+async function attach(target, { base = 'models/site/' } = {}) {
   let el = typeof target === 'string' ? null : target;
   while (!el) { el = document.querySelector(target); if (!el) await new Promise(r => setTimeout(r, 100)); }
   while (!el.scene || !el.backdrop || !el.ground) await new Promise(r => setTimeout(r, 100));
