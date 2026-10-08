@@ -107,6 +107,8 @@ send: e => { e.preventDefault(); if (!aiDown) this.ask(S.input); },  // #50의 s
 | `sectionBadge(section)` | 공정 탭 항목에 펼칠 값: 배지(`cpHasBadge`, `cpBadge`, `cpBadgeColor`, `cpTabLocked`)와 섹션 버튼(`cpSection*`, 아래 '공정 목록 섹션 버튼') |
 | `motionFor(type, { unlocked })` (모듈 함수) | 튜터 발화 type → 캐릭터 동작 이름표(아래 '오버레이') |
 
+옵션 `createCheckpointChat(c, { tabs })`: `tabs: false`(v3)면 튜터 패널 모드 탭을 쓰지 않는다. 모드는 늘 학습이고 `resume()`·`setMode()`가 `tutorMode`를 바꾸지 않는다. 탭 값(`cpTabs` 등)은 그대로 내고 `cpShowTabs`만 `false`다(탭 값과 `tutorMode` 코드는 PR 4에서 정리). v2는 기본값(`true`).
+
 페이지 훅(선택): `goProcess(id)`(다른 공정의 섹션 버튼을 누르면 그 공정으로 옮김), `openTutor()`(멈추고 질문하기에서 튜터 패널 열기). 없으면 부르지 않는다.
 
 로그인·새로고침으로 끝나지 않은 시도를 다시 열어도 모드는 바꾸지 않는다. 학습 탭에 "풀던 이해도 확인이 있어요 [이어 풀기]"(`cpShowResumeBanner`)가 뜬다.
@@ -123,6 +125,7 @@ send: e => { e.preventDefault(); if (!aiDown) this.ask(S.input); },  // #50의 s
 | `cpTabCheckpointLabel` | 문자열 | 모드 탭 이름 '이해도 확인' |
 | `cpTabs` | 배열 | 모드 탭. 항목: `id`, `label`, `active`, `onClick`, `bg`, `color`, `weight` |
 | `cpIsLearningTab`, `cpIsCheckpointTab` | 불리언 | 지금 모드 |
+| `cpShowTabs` | 불리언 | 모드 탭 줄을 보일지(`tabs` 옵션). v3는 `false` |
 | `cpHeaderMode` | 문자열 | 머리글 모드 이름 '학습 모드' · '이해도 확인 모드'(`TEXT.header`) |
 | `cpSections` | 배열 | 공정 탭 배지. 항목: `id`, `name`, `badge`('단련 완료' · '미통과' · `null`), `passed`, `tabLocked`. 루브릭이 없거나(404) 아직 못 읽은 공정은 `badge: null`(배지 없음) |
 
@@ -203,7 +206,7 @@ send: e => { e.preventDefault(); if (!aiDown) this.ask(S.input); },  // #50의 s
 | `cpConfirmPauseYes`, `onCpConfirmPause` / `cpConfirmPauseNo`, `onCpCancelPause` | 문자열·핸들러 | 확인창 [멈추기] / [계속 풀기] |
 | `cpIsPaused` | 불리언 | 멈춘 시도(`state = paused`). 진행 화면의 단계 표시는 '멈춤 · 1/3 완료', 입력창(`cpShowComposer`)은 숨김 |
 | `cpShowResumeButton`, `cpResumeLabel`, `onCpResume` | 불리언·문자열·핸들러 | 이해도 확인 탭의 [이어 풀기 (1/3 완료)] |
-| `cpShowResumeBanner`, `cpResumeBannerText`, `cpResumeBannerLabel` | 불리언·문자열 | 학습 탭 안내 "풀던 이해도 확인이 있어요 · 제선 1/3 완료" [이어 풀기](핸들러는 `onCpResume`) |
+| `cpShowResumeBanner`, `cpResumeBannerText`, `cpResumeBannerLabel` | 불리언·문자열 | 학습 탭 안내 "풀던 이해도 확인이 있어요 · 제선 1/3 완료" [이어 풀기](핸들러는 `onCpResume`). 오버레이에서 풀고 있는 동안은 숨긴다 |
 | `cpShowPauseOffer`, `cpPauseOfferText`, `cpPauseOfferLabel`, `onCpPauseForLearning` | 불리언·문자열·핸들러 | 학습 탭 안내 "풀던 이해도 확인이 있어요. 잠깐 멈추고 질문할까요?" [멈추고 질문하기] |
 
 ### 공정 목록 섹션 버튼 (`sectionBadge(section)`)
@@ -212,10 +215,11 @@ send: e => { e.preventDefault(); if (!aiDown) this.ask(S.input); },  // #50의 s
 
 | 키 | 형식 | 설명 |
 |---|---|---|
-| `cpSectionStatus` | 문자열 | 진입 상태 문장(`cpEntryStatus`와 같은 문장, 섹션 기준). 풀던 시도가 열려 있으면 '진행 중' · '멈춤 · 1/3 완료' |
+| `cpSectionStatus` | 문자열 | 진입 상태 문장(`cpEntryStatus`와 같은 문장, 섹션 기준). 풀던 시도가 열려 있으면 '진행 중' · '멈춤 · 1/3 완료', 잠긴 섹션은 '이전 공정 통과 필요'(`TEXT.sectionLocked`) |
+| `cpSectionLocked`, `cpSectionStatusColor` | 불리언·문자열 | 앞 공정을 통과하지 못해 열리지 않은 섹션(로그인 상태, 진행 상태 `open: false`). 상태 문구 색: 통과 초록, 잠김 주황, 그 밖 `var(--muted)` |
 | `cpSectionPassed` | 불리언 | 통과한 섹션 |
-| `cpSectionShowStart` | 불리언 | 버튼을 보여 줄지. 통과·로그인 전·잠김·준비 중·확인 중이면 숨기고 상태 문구만 |
-| `cpSectionCanStart`, `cpSectionStartOpacity` | 불리언·문자열 | 누를 수 있는지(다른 섹션의 풀던 시도가 열려 있거나 요청 중이면 `false`, 투명도 `.45`) |
+| `cpSectionShowStart` | 불리언 | 버튼을 보여 줄지. 통과·로그인 전·준비 중·확인 중이면 숨기고 상태 문구만. 잠긴 섹션은 비활성 버튼으로 보인다 |
+| `cpSectionCanStart`, `cpSectionStartOpacity`, `cpSectionCursor` | 불리언·문자열 | 누를 수 있는지(잠긴 섹션, 다른 섹션의 풀던 시도가 열려 있거나 요청 중이면 `false`, 투명도 `.45`, 커서 `not-allowed`) |
 | `cpSectionStartLabel`, `onCpSectionStart` | 문자열·핸들러 | '담금질 시작하기' · '이어 풀기' · '재도전'. 핸들러는 `openSection(section)` |
 | `cpSectionHasResume`, `cpSectionResumeText` | 불리언·문자열 | 이어 풀기 안내 "풀던 이해도 확인이 있어요 · 제선 1/3 완료". 오버레이가 열려 있으면 숨긴다 |
 
@@ -230,7 +234,12 @@ send: e => { e.preventDefault(); if (!aiDown) this.ask(S.input); },  // #50의 s
 | `cpBubbleText`, `cpBubbleType`, `cpBubbleLabel`, `cpBubbleColor` | 문자열 | 말풍선 발화·type·머리말(`TEXT.messageLabels`)·색(재확인 주황, 채점 오류 빨강) |
 | `cpBubbleHasNext`, `cpBubbleNextLabel`, `onCpBubbleNext` | 불리언·문자열·핸들러 | 이번 응답에 다음 발화가 있음 · [다음] |
 | `cpCanAnswer` | 불리언 | 답할 수 있음: 답하는 중, 요청 중 아님, 마지막 발화(질문)를 보고 있음 |
-| `cpOverlayInputDisabled` | 불리언 | 오버레이 입력 막기(`cpCanAnswer`의 반대) |
+| `cpOverlayInputDisabled`, `cpOverlayInputOpacity` | 불리언·문자열 | 오버레이 입력 막기(`cpCanAnswer`의 반대)와 입력 줄 투명도(막혔으면 `.5`) |
+| `cpOverlayPlaceholder` | 문자열 | 오버레이 입력 안내. 다음 발화가 남았으면 '[다음]으로 질문까지 본 뒤 답할 수 있어요', 그 밖에는 단계별 안내 |
+| `cpOverlayShowReady` | 불리언 | '준비됐어요' 버튼: 준비 단계에서 시작 인사를 끝까지 본 뒤 |
+| `cpOverlayLockPointer`, `cpOverlayLockOpacity`, `cpOverlayLockFilter` | 문자열 | 오버레이가 떠 있는 동안 페이지의 공정 메뉴(공정 이동·설비·섹션 버튼)와 하단 재생 바를 막는 CSS 값: `none`·`.4`·`grayscale(1)`, 아니면 `auto`·`1`·`none` |
+| `cpOverlayLockNotice` | 문자열 | 공정 메뉴 맨 위 안내 '담금질 중에는 공정 이동과 재생을 쓸 수 없어요'(`TEXT.overlayLocked`) |
+| `cpOverlayShowResult` | 불리언 | 결과(게이지·막대): 결과 발화까지 본 뒤. 그때 캐릭터 동작이 `celebrate`·`cheer_retry`다 |
 | `cpShowHistory`, `cpHistoryLabel`, `onCpToggleHistory` | 불리언·문자열·핸들러 | 대화 기록(`cpMessages`) 펼침 · '대화 기록' / '기록 닫기' |
 | `cpExitLabel`, `onCpExit` | 문자열·핸들러 | [나가기](`exit()`) |
 
