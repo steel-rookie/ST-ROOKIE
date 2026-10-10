@@ -15,7 +15,7 @@
 | 2 | 재학습 3D 하이라이트용 응답 | 수민 | 없음 |
 | 2 | `JWT_SECRET` 운영값 | 공용 | 비어 있음 |
 | 3 | 임시 장치 제거(`X-User-Id` 헤더, 접속 비밀번호, 터널) | 수민 | 임시 유지 중 |
-| 3 | 메인 페이지 라우트(`/`) 결정 | 공용(`app.ts`) | 지금 v3 |
+| 3 | 메인 페이지 라우트(`/`) | 공용(`app.ts`) | v4로 바꿈(팀 공유 필요) |
 | 3 | 학습 진도 저장 | 공용(마이그레이션) | 없음 |
 | 4 | 알려진 문제 #14(가끔 실패하는 테스트) | 수민 | 열림 |
 
@@ -75,8 +75,8 @@ CLAUDE.md '원격 팀원 테스트'에 "로그인이 생기면 지운다"로 적
 - [ ] 헤더 이름으로 쌓인 기록은 지우지 않음(eval 원천). 필요 시 `eval:export-human` 백업 후
 
 ### 3-2. 메인 페이지 라우트
-- **현재**: `backend/src/app.ts`의 `/`가 `Steel Academy v3.dc.html`. sleek 디자인(`Steel Academy sleek.dc.html`, `login_ui/home-sleek.html`)은 주소로 직접 들어가야 한다.
-- [ ] sleek를 메인으로 쓸지 팀 결정 → `/`와 로그인 후 이동 주소(`NEXT_URL`) 변경(공용 파일, 작은 PR)
+- **현재**: `backend/src/app.ts`의 `/`가 `Steel Academy v4.dc.html`(sleek 디자인)을 연다. v3는 `/Steel%20Academy%20v3.dc.html`로 남아 있다.
+- [ ] 공용 파일 변경이라 팀에 공유. 관리자·신입사원 대시보드(`frontend/login_ui/`, viiin2)의 3D 화면 링크는 아직 v3
 
 ### 3-3. 학습 진도 저장
 - CLAUDE.md '데이터 저장'에 "진도"가 사용자별 데이터로 적혀 있으나, 지금은 체크포인트 진입 상태만 있다.

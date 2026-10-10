@@ -4,15 +4,15 @@
 
 ## 0. 지금 상태
 - 작업 위치: worktree `../ST-ROOKIE-dev`, 브랜치 `design/sleek-ui`(원격 `origin/design/sleek-ui` 기준). **커밋 전.**
-- 바뀐 파일: `frontend/3d-demo/sleek-overview.js`, `frontend/3d-demo/Steel Academy sleek.dc.html`, 문서 3개(`docs/`)
+- 바뀐 파일: `frontend/3d-demo/sleek-overview.js`, `frontend/3d-demo/Steel Academy v4.dc.html`, 문서 3개(`docs/`)
 - 원래 폴더 `ST-ROOKIE`(`feature/ui-redesign`)는 건드리지 않음. 그쪽에 `.claude/launch.json`(미추적)만 추가됨(`st-rookie-dev` 설정이 이 worktree를 띄움).
-- 서버: `npm run start --prefix ../ST-ROOKIE-dev` → `http://localhost:3000/Steel%20Academy%20sleek.dc.html`, 홈 `http://localhost:3000/login_ui/home-sleek.html`
+- 서버: `npm run start --prefix ../ST-ROOKIE-dev` → `http://localhost:3000/Steel%20Academy%20v4.dc.html`, 홈 `http://localhost:3000/login_ui/home-sleek.html`
 - worktree DB에는 확인용 기록이 있음(`trainee01`의 제선 이해도 확인 '멈춤' 1건).
 
 ## 1. 먼저 할 일(정리·공유)
 - [ ] 변경 확인 후 `design/sleek-ui`에 커밋(agent.md 커밋 규칙), 푸시
-- [ ] `Steel Academy sleek.dc.html`, `scene_v3.js` 계열은 프론트 담당(viiin2) 영역 → 변경 내용 공유 후 PR
-- [ ] 메인 라우트(`/`)를 sleek로 바꿀지 팀 결정(`backend/src/app.ts`, 공용)
+- [ ] `Steel Academy v4.dc.html`, `scene_v3.js` 계열은 프론트 담당(viiin2) 영역 → 변경 내용 공유 후 PR
+- [x] 메인 라우트(`/`)를 v4로 바꿈(`backend/src/app.ts`, 공용 → 팀 공유). 대시보드의 3D 링크(v3)는 담당자와 정리
 - [ ] CLAUDE.md 프론트 구조 절에 sleek 페이지·`sleek-overview.js` 역할 추가
 
 ## 2. 3D 장면

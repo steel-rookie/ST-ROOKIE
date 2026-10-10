@@ -23,7 +23,7 @@
 ### 남은 일
 
 - `docs/next-steps-sleek.md`(3D 이름표 색, 체크포인트 오버레이 통일, 고폴리 에셋 반영 등), 백엔드는 `docs/backend-todo.md`.
-- `Steel Academy sleek.dc.html`과 `scene_v3.js` 계열은 프론트 담당(viiin2)과 공유한다. `/` 라우트를 sleek로 바꿀지 정한다.
+- `Steel Academy v4.dc.html`(sleek 페이지를 v4로 이름 변경)과 `scene_v3.js` 계열은 프론트 담당(viiin2)과 공유한다. `/`는 v4로 바꿨으니 대시보드의 3D 링크(v3)를 정리한다.
 
 ## 2026-10-07 학습 모드 키워드 카드
 
