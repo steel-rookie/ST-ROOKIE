@@ -33,7 +33,7 @@
   <style>
     /* [UI 시안] 화면 틀(상단바·좌측 메뉴·우측 패널·하단 바)은 항상 어두운 남색, 3D 영역만 밝은 스튜디오 톤 */
     html, body { margin: 0; height: 100%; overflow: hidden; font-family: "IBM Plex Sans KR", sans-serif; }
-    body { --chrome: #141b24; --chrome2: #1a222d; --chrome3: #232d3a; --chrome4: #2c3846; --line: rgba(255,255,255,.08); --line2: rgba(255,255,255,.14); --text: #eef2f6; --muted: #93a0b0; --dim: #5f6b7a; --accent: #22c7f0; --accent-ink: #04202b; --hot: #ff9a2e; --warn: #f5b13d; --danger: #ff5a5a; background: var(--chrome); color: var(--text); }
+    body { --chrome: #161618; --chrome2: #1c1c1f; --chrome3: #242427; --chrome4: #2e2e32; --line: rgba(255,255,255,.08); --line2: rgba(255,255,255,.14); --text: #f2f2f2; --muted: #a1a1a6; --dim: #6b6b70; --accent: #f2f2f2; --accent-ink: #111111; --hot: #ff9a2e; --warn: #f5b13d; --danger: #ff5a5a; background: var(--chrome); color: var(--text); }
     a { color: var(--accent); }
     button, input { font-family: inherit; }
     button { transition: background-color .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease, opacity .16s ease; }
@@ -43,9 +43,9 @@
     ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 3px; }
     @keyframes blink { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34,199,240,.55); } 100% { box-shadow: 0 0 0 10px rgba(34,199,240,0); } }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(242,242,242,.55); } 100% { box-shadow: 0 0 0 10px rgba(242,242,242,0); } }
     /* [UI 시안] 노선도: 현재 역 맥동·깜박임, 현재 역으로 들어오는 구간은 점선이 아래로 흐름 */
-    @keyframes stationPulse { 0% { box-shadow: 0 0 0 0 rgba(34,199,240,.75); } 70% { box-shadow: 0 0 0 10px rgba(34,199,240,0); } 100% { box-shadow: 0 0 0 0 rgba(34,199,240,0); } }
+    @keyframes stationPulse { 0% { box-shadow: 0 0 0 0 rgba(242,242,242,.75); } 70% { box-shadow: 0 0 0 10px rgba(242,242,242,0); } 100% { box-shadow: 0 0 0 0 rgba(242,242,242,0); } }
     @keyframes blinkSoft { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
     @keyframes trainDown { from { background-position: 0 -12px; } to { background-position: 0 0; } }
     /* 단면 목록: 고른 줄의 배경 상자가 살짝 커졌다 돌아옴 */
@@ -58,7 +58,60 @@
     @keyframes chipR { from { opacity: 0; transform: translateX(26px) scale(.9); } to { opacity: 1; transform: none; } }
     @keyframes fuse { 0% { opacity: 0; transform: scale(.55); } 60% { opacity: 1; transform: scale(1.14); } 100% { opacity: 1; transform: scale(1); } }
     @keyframes opIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes saToast { 0% { opacity: 0; transform: translate(-50%, -6px); } 12% { opacity: 1; transform: translate(-50%, 0); } 82% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -6px); } }
+    @keyframes stationPulseW { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,.6); } 70% { box-shadow: 0 0 0 9px rgba(255,255,255,0); } 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); } }
+    @keyframes pillIn { from { opacity: 0; transform: scaleX(.86); } to { opacity: 1; transform: none; } }
     @keyframes panelSlide { from { opacity: 0; transform: translateX(32px); } to { opacity: 1; transform: none; } }
+  </style>
+  <style>
+    /* [세련안] 라이트 모드 캡슐: 푸른 기가 도는 우윳빛. 위쪽 절반은 불투명, 아래로 갈수록 투명(뒤는 흐리게 비침).
+       글씨는 짙은 남색, 선택된 칩은 짙은 남색 바탕 + 밝은 글씨, 흰 선 아이콘은 반전해 어둡게 */
+    /* 모든 UI 캡슐과 안쪽 버튼·입력창의 외곽선을 없앤다(다크·라이트 공통) */
+    [data-sa-cap] { border: none !important; }
+    [data-sa-cap] button, [data-sa-cap] input, [data-sa-cap] a, [data-sa-cap] code { border-color: transparent !important; outline: none; }
+    [data-sa-theme="light"] [data-sa-cap] {
+      --line: rgba(27,37,50,.10) !important; --line2: rgba(27,37,50,.16) !important; --text: #1b2532 !important; --muted: #5d6878 !important;
+      --chrome: rgba(255,255,255,.65) !important; --chrome3: rgba(27,37,50,.06) !important; --chrome4: rgba(27,37,50,.10) !important;
+      --accent: #1d2a3a !important; --accent-ink: #f3f7fb !important;
+      background: linear-gradient(180deg, rgba(233,240,247,.97) 0%, rgba(233,240,247,.94) 50%, rgba(233,240,247,.5) 100%) !important;
+      -webkit-backdrop-filter: blur(16px) saturate(1.2) !important; backdrop-filter: blur(16px) saturate(1.2) !important;
+      color: #1b2532 !important;
+      box-shadow: 0 12px 32px rgba(40,62,92,.16) !important;
+    }
+    [data-sa-theme="light"] [data-sa-cap] img { filter: invert(1) brightness(.4) sepia(.3) hue-rotate(180deg); }
+    /* 안쪽 칩·동그라미(검정 계열) → 옅은 남색 칩 */
+    [data-sa-theme="light"] [data-sa-cap] [style*="background: rgb(28, 28, 31)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="background: rgb(36, 36, 39)"] { background: rgba(27,37,50,.07) !important; }
+    [data-sa-theme="light"] [data-sa-cap] [style*="background: rgba(255, 255, 255, 0.12)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="background: rgba(255, 255, 255, 0.08)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="background: rgba(255, 255, 255, 0.06)"] { background: rgba(27,37,50,.10) !important; }
+    [data-sa-theme="light"] [data-sa-cap] [style*="background: rgb(0, 0, 0)"] { background: rgba(27,37,50,.85) !important; }
+    /* 선 */
+    [data-sa-theme="light"] [data-sa-cap] [style*="rgba(255, 255, 255, 0.16)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="rgba(255, 255, 255, 0.18)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="rgba(255, 255, 255, 0.22)"] { background: rgba(27,37,50,.16) !important; }
+    /* 글씨 */
+    [data-sa-theme="light"] [data-sa-cap] [style*="color: rgb(242, 242, 242)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="color: rgb(255, 255, 255)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="color: rgb(228, 228, 230)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="color: rgb(214, 221, 230)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="color: rgb(238, 242, 246)"] { color: #1b2532 !important; }
+    [data-sa-theme="light"] [data-sa-cap] [style*="color: rgb(154, 154, 160)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="color: rgb(181, 181, 184)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="color: rgb(195, 195, 199)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="color: rgb(195, 204, 215)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="color: rgb(107, 107, 112)"] { color: #5d6878 !important; }
+    /* 선택된 칩·주요 버튼·홈 아이콘(흰색)과 눌린 버튼(활성) → 밝은 청록(바다보다 채도 조금 짙게) + 흰 글씨·흰 아이콘 */
+    [data-sa-theme="light"] [data-sa-cap] [style*="background: rgb(242, 242, 242)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="background: rgb(58, 58, 63)"],
+    [data-sa-theme="light"] [data-sa-cap] [style*="background: rgb(44, 44, 48)"] { background: #3f9db4 !important; color: #ffffff !important; }
+    [data-sa-theme="light"] [data-sa-cap] [style*="background: rgb(242, 242, 242)"] img,
+    [data-sa-theme="light"] [data-sa-cap] [style*="background: rgb(58, 58, 63)"] img,
+    [data-sa-theme="light"] [data-sa-cap] [style*="background: rgb(44, 44, 48)"] img { filter: brightness(0) invert(1); }
+    [data-sa-theme="light"] [data-sa-cap] [style*="background: rgb(242, 242, 242)"] [style*="background: rgb(17, 17, 17)"] { background: #ffffff !important; }
+    [data-sa-theme="light"] [data-sa-cap] [style*="background: rgb(242, 242, 242)"] [style*="background: rgb(17, 17, 17)"] > span { background: #3f9db4 !important; }
+    /* 진행 표시 노선의 점(검정) */
+    [data-sa-theme="light"] [data-sa-nav] [style*="background: rgb(17, 17, 17)"] { background: #ffffff !important; }
   </style>
 <style>
 @keyframes saLogoZoom { 0% { opacity: 0; transform: scale(.82); filter: blur(8px); } 16% { opacity: 1; transform: scale(1); filter: blur(0); } 70% { opacity: 1; transform: scale(1.06); filter: blur(0); } 100% { opacity: 0; transform: scale(2.6); filter: blur(12px); } }
@@ -70,11 +123,11 @@
 @keyframes saSweep { 0% { transform: translateX(-120%) skewX(-18deg); } 100% { transform: translateX(220%) skewX(-18deg); } }
 </style>
 </helmet>
-<div style="position:fixed;inset:0;background:var(--chrome);color:var(--text);overflow:hidden;">
+<div data-sa-theme="{{ theme }}" style="position:fixed;inset:0;background:var(--chrome);color:var(--text);overflow:hidden;">
   {{ introEl }}
 
   <!-- 3D 영역: 메뉴·패널·하단 바를 뺀 가운데 -->
-  <div style="position:absolute;left:{{ L.vpLeft }};top:0;bottom:0;right:{{ L.vpRight }};overflow:hidden;background:#d9dfe6;transition:right .2s ease, left .2s ease;">
+  <div style="position:absolute;left:{{ L.vpLeft }};top:0;bottom:0;right:{{ L.vpRight }};overflow:hidden;background:{{ vpBg }};transition:right .2s ease, left .2s ease;">
     <x-import component-from-global-scope="steel-scene" process="{{ processId }}" selected="{{ selectedAttr }}" theme="{{ theme }}" time-of-day="{{ timeOfDay }}" view="{{ view }}" external-cards="1" hint-size="100%,100%" style="position:absolute;inset:0;"></x-import>
 
     <sc-if value="{{ zd.on }}" hint-placeholder-val="{{ false }}">
@@ -83,7 +136,7 @@
           <span style="position:absolute;right:-1px;top:-24px;font-size:12px;letter-spacing:.06em;color:#9fc6e8;">{{ zd.caption }}</span>
           <img src="{{ zd.arrows }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;">
           <sc-for list="{{ zd.cells }}" as="c" hint-placeholder-count="6">
-            <button onClick="{{ c.onClick }}" title="{{ c.role }}" style="position:absolute;left:{{ c.x }};top:{{ c.y }};width:{{ c.w }};height:{{ c.h }};border:{{ c.border }};border-radius:4px;background:{{ c.bg }};box-shadow:{{ c.shadow }};color:#e6f2ff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:{{ c.gap }};padding:8px;overflow:hidden;" style-hover="border-color:#22c7f0;background:rgba(34,199,240,.1);">
+            <button onClick="{{ c.onClick }}" title="{{ c.role }}" style="position:absolute;left:{{ c.x }};top:{{ c.y }};width:{{ c.w }};height:{{ c.h }};border:{{ c.border }};border-radius:4px;background:{{ c.bg }};box-shadow:{{ c.shadow }};color:#e6f2ff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:{{ c.gap }};padding:8px;overflow:hidden;" style-hover="border-color:#f2f2f2;background:rgba(242,242,242,.1);">
               <span style="position:absolute;left:8px;top:8px;width:24px;height:24px;border-radius:12px;display:flex;align-items:center;justify-content:center;border:1.5px solid #7fd3f7;background:{{ c.numBg }};color:{{ c.numColor }};font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;">{{ c.n }}</span>
               <sc-if value="{{ c.now }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;right:8px;top:8px;padding:2px 7px;border-radius:10px;background:rgba(255,154,46,.18);border:1px solid #ff9a2e;color:#ffb866;font-size:10px;font-weight:700;">현재</span></sc-if>
               <img src="{{ c.icon }}" width="{{ c.iconSz }}" height="{{ c.iconSz }}" alt="">
@@ -100,27 +153,20 @@
     </sc-if>
     <!-- [세련안] 공정 소개: 3D가 몇 초마다 01→04 순서로 다가가 강조하고(sleek-overview.js), 여기 카드에서 그 공정으로 들어간다 -->
     <sc-if value="{{ show.on }}" hint-placeholder-val="{{ false }}">
-      <div style="position:absolute;left:32px;bottom:32px;z-index:3;width:min(380px, calc(100% - 64px));display:flex;flex-direction:column;gap:6px;color:#f4f6f9;text-shadow:0 2px 12px rgba(0,0,0,.75);animation:fadeIn .6s ease-out;">
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.24em;color:#c3ccd7;">{{ show.num }} · {{ show.en }}</span>
+      <div style="position:absolute;left:32px;bottom:32px;z-index:3;width:min(380px, calc(100% - 64px));display:flex;flex-direction:column;gap:6px;color:{{ show.ink.title }};text-shadow:{{ show.ink.shadow }};animation:fadeIn .6s ease-out;">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.24em;color:{{ show.ink.num }};">{{ show.num }} · {{ show.en }}</span>
         <span style="font-family:'Noto Sans KR',sans-serif;font-size:clamp(30px,3.4vw,46px);font-weight:900;letter-spacing:-0.03em;line-height:1.1;">{{ show.name }}</span>
-        <span style="font-size:16px;font-weight:300;color:#dfe5ec;">{{ show.sub }}</span>
-        <span style="margin-top:4px;padding-top:12px;border-top:1px solid rgba(255,255,255,.22);font-size:13px;line-height:1.6;color:#c3ccd7;">{{ show.summary }}</span>
+        <span style="font-size:16px;font-weight:300;color:{{ show.ink.sub }};">{{ show.sub }}</span>
+        <span style="margin-top:4px;padding-top:12px;border-top:1px solid {{ show.ink.line }};font-size:13px;line-height:1.6;color:{{ show.ink.body }};">{{ show.summary }}</span>
         <div style="display:flex;align-items:center;gap:14px;margin-top:12px;">
-          <button onClick="{{ show.enter }}" style="height:46px;padding:0 22px;border:none;border-radius:6px;background:#f2f2f2;color:#111;font-size:15px;font-weight:700;cursor:pointer;text-shadow:none;" style-hover="background:#fff;">이 공정 보기 →</button>
-          <button onClick="{{ show.next }}" style="height:46px;padding:0 4px;border:none;background:transparent;color:#c3ccd7;font-size:13px;cursor:pointer;" style-hover="color:#fff;">다음 공정</button>
+          <button onClick="{{ show.enter }}" style="height:46px;padding:0 22px;border:none;border-radius:6px;background:{{ show.ink.btnBg }};color:{{ show.ink.btnFg }};font-size:15px;font-weight:700;cursor:pointer;text-shadow:none;" style-hover="background:{{ show.ink.btnHover }};">이 공정 보기 →</button>
+          <button onClick="{{ show.next }}" style="height:46px;padding:0 4px;border:none;background:transparent;color:{{ show.ink.next }};font-size:13px;cursor:pointer;" style-hover="color:{{ show.ink.nextHover }};">다음 공정</button>
         </div>
       </div>
     </sc-if>
 
-    <sc-if value="{{ inProcess }}" hint-placeholder-val="{{ false }}">
-      <div style="position:absolute;left:{{ L.ovL }};top:16px;display:flex;padding:4px;gap:2px;border-radius:10px;transition:left .2s ease;background:rgba(18,24,32,.88);border:1px solid var(--line2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 6px 18px rgba(0,0,0,.18);">
-        <sc-for list="{{ viewTabs }}" as="t" hint-placeholder-count="3">
-          <button onClick="{{ t.onClick }}" title="{{ t.tip }}" style="min-width:{{ L.tabW }};height:36px;padding:0 {{ L.tabPad }};white-space:nowrap;flex-shrink:0;border:none;border-radius:7px;background:{{ t.bg }};color:{{ t.color }};font-size:{{ L.tabFs }};font-weight:{{ t.weight }};cursor:{{ t.cursor }};opacity:{{ t.opacity }};" style-hover="filter:brightness(1.12);">{{ t.label }}</button>
-        </sc-for>
-      </div>
-    </sc-if>
     <sc-if value="{{ is2d }}" hint-placeholder-val="{{ false }}">
-      <div style="position:absolute;left:{{ L.ovL }};top:66px;display:flex;padding:3px;transition:left .2s ease;gap:2px;border-radius:9px;background:rgba(18,24,32,.88);border:1px solid var(--line2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:fadeIn .18s ease-out;">
+      <div style="position:absolute;left:{{ L.ovL }};top:72px;display:flex;padding:3px;transition:left .2s ease;gap:2px;border-radius:9px;background:rgba(18,24,32,.88);border:1px solid var(--line2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:fadeIn .18s ease-out;">
         <sc-for list="{{ drawTabs }}" as="t" hint-placeholder-count="3">
           <button onClick="{{ t.onClick }}" title="{{ t.tip }}" style="height:30px;padding:0 14px;border:none;border-radius:6px;background:{{ t.bg }};color:{{ t.color }};font-size:13px;font-weight:{{ t.weight }};cursor:pointer;white-space:nowrap;" style-hover="filter:brightness(1.12);">{{ t.label }}</button>
         </sc-for>
@@ -134,13 +180,9 @@
     </sc-if>
 
     <!-- 공정 3D 모델 숨김/표시 (우측 하단, 기본 표시) -->
-    <button onClick="{{ toggleModels }}" title="{{ modelsBtnTitle }}" style="position:absolute;right:16px;bottom:16px;display:{{ L.modelsBtnDisp }};align-items:center;gap:8px;height:36px;padding:0 14px 0 12px;white-space:nowrap;border-radius:9px;border:1px solid {{ glass.border }};background:{{ glass.bg }};color:{{ glass.color }};font-size:13px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 14px rgba(0,0,0,.12);z-index:4;" style-hover="border-color:var(--accent);"><span style="width:8px;height:8px;border-radius:50%;background:{{ modelsDot }};"></span>{{ modelsBtnLabel }}</button>
-    <div style="position:absolute;right:16px;top:76px;display:flex;flex-direction:column;align-items:flex-end;gap:10px;">
-      <div style="display:{{ L.fitDisp }};gap:8px;">
-        <button onClick="{{ fitView }}" title="지금 공정(또는 전체) 한눈에 보기" style="height:40px;padding:0 14px;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:8px;border-radius:9px;border:1px solid {{ glass.border }};background:{{ glass.bg }};color:{{ glass.color }};font-size:14px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 14px rgba(0,0,0,.12);" style-hover="border-color:var(--accent);"><img src="{{ ic.frame }}" width="18" height="18" alt=""><span style="display:{{ L.lbl }};">전체 보기</span></button>
-      </div>
-      <div style="display:{{ L.hintDisp }};align-items:center;gap:6px;padding:4px 8px;border-radius:6px;font-size:12px;color:{{ glass.hint }};"><img src="{{ ic.mouse }}" width="16" height="16" alt="">{{ hintText }}</div>
-    </div>
+    <button data-sa-cap onClick="{{ toggleModels }}" title="{{ modelsBtnTitle }}" style="position:absolute;right:16px;bottom:16px;display:{{ L.modelsBtnDisp }};align-items:center;gap:8px;height:38px;padding:0 16px 0 14px;white-space:nowrap;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.82);color:{{ glass.color }};font-size:13px;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 14px rgba(0,0,0,.12);z-index:4;" style-hover="border-color:var(--accent);"><span style="width:8px;height:8px;border-radius:50%;background:{{ modelsDot }};"></span>{{ modelsBtnLabel }}</button>
+    <!-- [세련안] 조작 안내: 구석의 작은 모노 라벨(레퍼런스: Colonia Zacamil의 [EN / ES]) -->
+    <span style="position:absolute;right:20px;top:22px;display:{{ L.hintDisp }};font-family:'IBM Plex Sans KR',sans-serif;font-size:11px;letter-spacing:.02em;color:{{ glass.hint }};pointer-events:none;">[ {{ hintText }} ]</span>
 
     <!-- 이해도 확인(담금질) 오버레이: 3D 화면 위 반투명 배경이 3D 클릭·카메라 조작을 막는다. 공정 메뉴(z 8)·우측 패널(z 7)보다는 아래, 아래쪽은 하단 바 높이만큼 비운다. 값은 checkpoint-chat.js vals()의 오버레이 키 -->
     <sc-if value="{{ cpShowOverlay }}" hint-placeholder-val="{{ false }}">
@@ -174,12 +216,12 @@
             <sc-if value="{{ cpHasNotice }}" hint-placeholder-val="{{ false }}"><div style="padding:10px 14px;border-radius:9px;background:rgba(255,90,90,.12);border:1px solid rgba(255,90,90,.4);color:#ffc9c9;font-size:13px;">{{ cpNotice }}</div></sc-if>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <sc-if value="{{ cpBubbleHasNext }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpBubbleNext }}" style="height:38px;padding:0 16px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:var(--accent);color:var(--accent-ink);" style-hover="filter:brightness(1.1);">{{ cpBubbleNextLabel }}</button></sc-if>
-              <sc-if value="{{ cpOverlayShowReady }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpReady }}" style="height:38px;padding:0 16px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--accent);background:transparent;color:var(--text);" style-hover="background:rgba(34,199,240,.12);">{{ cpReadyLabel }}</button></sc-if>
+              <sc-if value="{{ cpOverlayShowReady }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpReady }}" style="height:38px;padding:0 16px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--accent);background:transparent;color:var(--text);" style-hover="background:rgba(242,242,242,.12);">{{ cpReadyLabel }}</button></sc-if>
               <sc-if value="{{ cpShowRetryButton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpRetry }}" style="height:38px;padding:0 16px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--line2);background:transparent;color:var(--text);" style-hover="border-color:var(--accent);">{{ cpRetryLabel }}</button></sc-if>
             </div>
             <sc-if value="{{ cpShowComposer }}" hint-placeholder-val="{{ true }}">
               <form onSubmit="{{ onCpSend }}" style="display:flex;gap:8px;opacity:{{ cpOverlayInputOpacity }};">
-                <input value="{{ cpInput }}" onChange="{{ onCpInput }}" disabled="{{ cpOverlayInputDisabled }}" placeholder="{{ cpOverlayPlaceholder }}" style="flex:1;min-width:0;height:46px;background:var(--chrome);color:var(--text);border:1px solid var(--line2);border-radius:9px;padding:0 14px;font-size:14px;outline:none;" style-focus="border-color:var(--accent);box-shadow:0 0 0 3px rgba(34,199,240,.2);">
+                <input value="{{ cpInput }}" onChange="{{ onCpInput }}" disabled="{{ cpOverlayInputDisabled }}" placeholder="{{ cpOverlayPlaceholder }}" style="flex:1;min-width:0;height:46px;background:var(--chrome);color:var(--text);border:1px solid var(--line2);border-radius:9px;padding:0 14px;font-size:14px;outline:none;" style-focus="border-color:var(--accent);box-shadow:0 0 0 3px rgba(242,242,242,.2);">
                 <button type="submit" disabled="{{ cpOverlayInputDisabled }}" style="height:46px;padding:0 18px;border-radius:9px;border:none;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;cursor:pointer;flex:none;" style-hover="filter:brightness(1.1);">{{ cpSendLabel }}</button>
               </form>
             </sc-if>
@@ -191,7 +233,7 @@
             <sc-if value="{{ cpShowHistory }}" hint-placeholder-val="{{ false }}">
               <div style="display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto;padding-top:4px;">
                 <sc-for list="{{ cpMessages }}" as="m" hint-placeholder-count="0">
-                  <sc-if value="{{ m.isUser }}" hint-placeholder-val="{{ false }}"><div style="align-self:flex-end;max-width:85%;background:rgba(34,199,240,.14);padding:8px 12px;border-radius:12px 12px 4px 12px;font-size:13px;line-height:1.6;">{{ m.text }}</div></sc-if>
+                  <sc-if value="{{ m.isUser }}" hint-placeholder-val="{{ false }}"><div style="align-self:flex-end;max-width:85%;background:rgba(242,242,242,.14);padding:8px 12px;border-radius:12px 12px 4px 12px;font-size:13px;line-height:1.6;">{{ m.text }}</div></sc-if>
                   <sc-if value="{{ m.isTutor }}" hint-placeholder-val="{{ false }}"><div style="align-self:flex-start;max-width:94%;display:flex;flex-direction:column;gap:2px;background:var(--chrome3);padding:8px 12px;border-left:3px solid {{ m.color }};border-radius:4px 12px 12px 4px;font-size:13px;line-height:1.6;white-space:pre-line;"><span style="font-size:11px;font-weight:700;color:{{ m.color }};">{{ m.label }}</span><span>{{ m.text }}</span></div></sc-if>
                 </sc-for>
               </div>
@@ -205,18 +247,41 @@
 
   <!-- 상단 바 -->
   <!-- [세련안] 상단 바 없음: 배경·선 없이 아이콘만 떠 있다 -->
-  <header style="position:absolute;left:0;right:0;top:0;height:64px;display:flex;align-items:center;gap:18px;padding:0 16px 0 22px;background:transparent;z-index:10;pointer-events:none;">
+  <header style="position:absolute;left:0;right:0;top:0;height:64px;display:flex;align-items:center;justify-content:center;padding:0 16px 0 22px;background:transparent;z-index:10;pointer-events:none;">
     <sc-if value="{{ L.narrow }}" hint-placeholder-val="{{ false }}">
-      <button onClick="{{ toggleNav }}" title="공정 메뉴" style="pointer-events:auto;width:38px;height:38px;border-radius:8px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:16px;cursor:pointer;">☰</button>
+      <button onClick="{{ toggleNav }}" title="공정 메뉴" style="position:absolute;left:16px;top:13px;pointer-events:auto;width:38px;height:38px;border-radius:8px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:16px;cursor:pointer;">☰</button>
     </sc-if>
-    <div style="flex:1;"></div>
-    <div style="display:flex;gap:8px;align-items:center;position:relative;pointer-events:auto;">
-      <button onClick="{{ goSite }}" title="전체 공정" aria-label="전체 공정" style="width:42px;height:42px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1px solid var(--line2);background:var(--chrome3);cursor:pointer;position:relative;border-color:{{ topBtn.site.border }};background:{{ topBtn.site.bg }};" style-hover="border-color:var(--accent);"><img src="{{ ic.home }}" width="19" height="19" alt=""></button>
-      <button onClick="{{ toggleTutor }}" title="AI 튜터" aria-label="AI 튜터" style="width:42px;height:42px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1px solid var(--line2);background:var(--chrome3);cursor:pointer;position:relative;border-color:{{ topBtn.tutor.border }};background:{{ topBtn.tutor.bg }};" style-hover="border-color:var(--accent);"><img src="{{ ic.bot }}" width="20" height="20" alt=""><sc-if value="{{ aiDown }}" hint-placeholder-val="{{ false }}"><span title="AI 튜터 연결 안 됨" style="position:absolute;right:5px;top:5px;width:7px;height:7px;border-radius:4px;background:#e5484d;"></span></sc-if><sc-if value="{{ aiUp }}" hint-placeholder-val="{{ true }}"><span title="AI 튜터 연결됨" style="position:absolute;right:5px;top:5px;width:7px;height:7px;border-radius:4px;background:#30c46b;"></span></sc-if></button>
-      <button onClick="{{ toggleTheme }}" title="{{ dn.tip }}" aria-label="{{ dn.tip }}" style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1px solid var(--line2);background:var(--chrome3);cursor:pointer;" style-hover="border-color:var(--accent);"><img src="{{ dn.icon }}" width="19" height="19" alt=""></button>
-      <button onClick="{{ toggleSettings }}" title="마이페이지" aria-label="마이페이지" style="width:42px;height:42px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:9px;border:1px solid var(--line2);background:var(--chrome3);cursor:pointer;position:relative;border-color:{{ topBtn.set.border }};background:{{ topBtn.set.bg }};" style-hover="border-color:var(--accent);"><img src="{{ ic.user }}" width="19" height="19" alt=""></button>
+    <!-- [세련안] 상단 알약 메뉴(레퍼런스: Colonia Zacamil). 검정 알약 하나에 전체 공정·공정 고르기·튜터·테마·마이페이지를 모은다.
+         '공정'을 누르면 알약이 늘어나며 01~04 공정이 펼쳐지고, 고르면 다시 접힌다. 라이트·다크 모두 검정(밝은 3D 위에서도 또렷하게) -->
+    <div data-sa-pill data-sa-cap style="position:relative;pointer-events:auto;display:flex;align-items:center;gap:2px;height:46px;padding:5px;border-radius:999px;background:#000;box-shadow:0 10px 28px rgba(0,0,0,.28);font-family:'IBM Plex Sans KR',sans-serif;font-size:13px;font-weight:600;letter-spacing:-0.01em;color:#f2f2f2;white-space:nowrap;">
+      <button onClick="{{ goSite }}" title="전체 공정" aria-label="전체 공정" style="pointer-events:{{ cpOverlayLockPointer }};opacity:{{ cpOverlayLockOpacity }};height:36px;display:flex;align-items:center;gap:9px;padding:0 14px 0 4px;border:none;border-radius:999px;background:{{ pill.homeBg }};color:#f2f2f2;font:inherit;cursor:pointer;" style-hover="background:rgba(255,255,255,.12);"><span style="width:28px;height:28px;border-radius:50%;background:#f2f2f2;display:flex;align-items:center;justify-content:center;"><img src="{{ pill.homeIcon }}" width="15" height="15" alt=""></span><span style="display:{{ L.topLbl }};">전체 공정</span></button>
+      <sc-if value="{{ pill.closed }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ pill.open }}" title="공정 고르기" style="pointer-events:{{ cpOverlayLockPointer }};opacity:{{ cpOverlayLockOpacity }};height:36px;display:flex;align-items:center;gap:8px;padding:0 12px 0 14px;border:none;border-radius:999px;background:{{ pill.curBg }};color:#f2f2f2;font:inherit;cursor:pointer;" style-hover="background:rgba(255,255,255,.12);">공정<span style="color:#9a9aa0;font-weight:500;">{{ pill.curLabel }}</span><img src="{{ pill.chev }}" width="12" height="12" alt=""></button>
+      </sc-if>
+      <sc-if value="{{ pill.isOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="pointer-events:{{ cpOverlayLockPointer }};opacity:{{ cpOverlayLockOpacity }};display:flex;align-items:center;gap:2px;padding:2px;border-radius:999px;background:#1c1c1f;transform-origin:left center;animation:pillIn .22s cubic-bezier(.2,.8,.2,1);">
+          <sc-for list="{{ pill.items }}" as="p" hint-placeholder-count="4">
+            <button onClick="{{ p.onClick }}" title="{{ p.tip }}" style="height:32px;display:flex;align-items:center;gap:6px;padding:0 12px;border:none;border-radius:999px;background:{{ p.bg }};color:{{ p.fg }};font:inherit;cursor:{{ p.cursor }};opacity:{{ p.op }};" style-hover="{{ p.hover }}"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;opacity:.5;">{{ p.num }}</span>{{ p.name }}</button>
+          </sc-for>
+        </div>
+        <button onClick="{{ pill.close }}" title="닫기" aria-label="공정 목록 닫기" style="width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;cursor:pointer;position:relative;background:#1c1c1f;" style-hover="background:#2c2c30;"><img src="{{ pill.closeIcon }}" width="14" height="14" alt=""></button>
+      </sc-if>
+      <sc-if value="{{ inProcess }}" hint-placeholder-val="{{ false }}">
+        <div style="pointer-events:{{ cpOverlayLockPointer }};opacity:{{ cpOverlayLockOpacity }};display:flex;align-items:center;gap:2px;margin-left:4px;padding:2px;border-radius:999px;background:#1c1c1f;">
+          <sc-for list="{{ pill.views }}" as="v" hint-placeholder-count="2">
+            <button onClick="{{ v.onClick }}" title="{{ v.tip }}" style="height:32px;padding:0 13px;border:none;border-radius:999px;background:{{ v.bg }};color:{{ v.fg }};font:inherit;cursor:pointer;" style-hover="{{ v.hover }}">{{ v.label }}</button>
+          </sc-for>
+        </div>
+      </sc-if>
+      <span style="width:1px;height:20px;background:rgba(255,255,255,.18);margin:0 6px;"></span>
+      <sc-if value="{{ inProcess }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ fitView }}" title="지금 공정 한눈에 보기" aria-label="전체 보기" style="width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;cursor:pointer;position:relative;background:#1c1c1f;" style-hover="background:#2c2c30;"><img src="{{ ic.frame }}" width="17" height="17" alt=""></button>
+      </sc-if>
+      <button onClick="{{ toggleTutor }}" title="AI 튜터" aria-label="AI 튜터" style="width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;cursor:pointer;position:relative;background:{{ pill.tutorBg }};box-shadow:{{ pill.tutorRing }};" style-hover="background:#2c2c30;"><img src="{{ ic.bot }}" width="18" height="18" alt=""><sc-if value="{{ aiDown }}" hint-placeholder-val="{{ false }}"><span title="AI 튜터 연결 안 됨" style="position:absolute;right:4px;top:4px;width:7px;height:7px;border-radius:4px;background:#e5484d;box-shadow:0 0 0 2px #000;"></span></sc-if><sc-if value="{{ aiUp }}" hint-placeholder-val="{{ true }}"><span title="AI 튜터 연결됨" style="position:absolute;right:4px;top:4px;width:7px;height:7px;border-radius:4px;background:#30c46b;box-shadow:0 0 0 2px #000;"></span></sc-if></button>
+      <button onClick="{{ toggleTheme }}" title="{{ dn.tip }}" aria-label="{{ dn.tip }}" style="width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;cursor:pointer;position:relative;background:#1c1c1f;" style-hover="background:#2c2c30;"><img src="{{ dn.icon }}" width="17" height="17" alt=""></button>
+      <button onClick="{{ toggleSettings }}" title="마이페이지" aria-label="마이페이지" style="width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;cursor:pointer;position:relative;background:{{ pill.setBg }};box-shadow:{{ pill.setRing }};" style-hover="background:#2c2c30;"><img src="{{ ic.user }}" width="17" height="17" alt=""></button>
       <sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
-        <div style="position:absolute;right:0;top:50px;width:240px;padding:8px;border-radius:12px;background:var(--chrome2);border:1px solid var(--line2);box-shadow:0 16px 36px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:2px;animation:fadeIn .15s ease-out;">
+        <div data-sa-cap style="position:absolute;right:0;top:54px;width:240px;padding:8px;border-radius:14px;font-family:'IBM Plex Sans KR',sans-serif;letter-spacing:0;white-space:normal;background:var(--chrome2);border:1px solid var(--line2);box-shadow:0 16px 36px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:2px;animation:fadeIn .15s ease-out;">
           <div style="display:flex;align-items:center;gap:8px;padding:8px 10px 10px;">
             <span style="font-size:14px;font-weight:700;color:var(--text);">{{ userName }}</span>
             <span style="font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',ui-monospace,monospace;">{{ userId }}</span>
@@ -236,9 +301,19 @@
     </div>
   </header>
 
+  <!-- [세련안] 이어 풀기 안내: 풀던 이해도 확인이 있으면 상단 알약 아래 가운데에 띄운다(어느 공정에 있든).
+       레퍼런스: Colonia Zacamil 첫 화면의 짧은 안내 문장 + 알약 버튼(글자 + 점 찍힌 동그라미). 값은 renderVals의 resume -->
+  <sc-if value="{{ resume.on }}" hint-placeholder-val="{{ false }}">
+    <div data-sa-cap style="position:absolute;left:50%;top:66px;transform:translateX(-50%);z-index:9;display:flex;align-items:center;gap:14px;padding:6px 6px 6px 20px;border-radius:999px;background:rgba(0,0,0,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 10px 28px rgba(0,0,0,.28);color:#f2f2f2;white-space:nowrap;font-family:'IBM Plex Sans KR',sans-serif;animation:saToast 3.4s ease forwards;">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;color:#9a9aa0;">[ CHECKPOINT · {{ resume.num }} ]</span>
+      <span style="font-size:13px;font-weight:600;">{{ resume.text }}</span>
+      <button onClick="{{ resume.go }}" disabled="{{ !resume.canStart }}" style="height:36px;display:flex;align-items:center;gap:10px;padding:0 4px 0 16px;border:none;border-radius:999px;background:#f2f2f2;color:#111;font:inherit;font-size:13px;font-weight:700;cursor:{{ resume.cursor }};opacity:{{ resume.op }};" style-hover="background:#fff;">이어 풀기<span style="width:28px;height:28px;flex:none;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;"><span style="width:8px;height:8px;border-radius:50%;background:#f2f2f2;"></span></span></button>
+    </div>
+  </sc-if>
+
   <!-- 좌측 공정 메뉴 -->
   <sc-if value="{{ L.navShown }}" hint-placeholder-val="{{ true }}">
-  <aside style="position:absolute;left:16px;top:80px;max-height:calc(100% - 64px - {{ L.bottomH }} - 32px);width:{{ L.navWpx }};background:color-mix(in srgb, var(--chrome2) 82%, transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line2);border-radius:18px;overflow-y:auto;overflow-x:hidden;z-index:8;box-shadow:0 12px 36px rgba(0,0,0,.35);transition:width .2s ease;">
+  <aside data-sa-nav data-sa-cap style="position:absolute;left:16px;top:9px;max-height:calc(100% - 9px - {{ L.bottomH }} - 24px);width:{{ L.navWpx }};background:rgba(0,0,0,.8);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.08);border-radius:24px;overflow-y:auto;overflow-x:hidden;z-index:8;box-shadow:0 12px 36px rgba(0,0,0,.35);transition:width .2s ease;">
     <sc-if value="{{ cpShowOverlay }}" hint-placeholder-val="{{ false }}"><div style="padding:10px 14px;font-size:12px;line-height:1.5;color:#ffd8a8;background:rgba(232,89,12,.14);border-bottom:1px solid var(--line);">{{ cpOverlayLockNotice }}</div></sc-if>
     <sc-if value="{{ L.rail }}" hint-placeholder-val="{{ false }}">
       <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;pointer-events:{{ cpOverlayLockPointer }};opacity:{{ cpOverlayLockOpacity }};filter:{{ cpOverlayLockFilter }};transition:opacity .15s;">
@@ -257,18 +332,18 @@
     <sc-if value="{{ L.navFull }}" hint-placeholder-val="{{ true }}">
     <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
       <div style="border-bottom:1px solid var(--line);">
-        <div style="display:flex;align-items:stretch;height:86px;background:{{ s.bg }};pointer-events:{{ cpOverlayLockPointer }};opacity:{{ cpOverlayLockOpacity }};filter:{{ cpOverlayLockFilter }};transition:opacity .15s;">
-          <button onClick="{{ s.onClick }}" title="{{ s.io }}" style="flex:1;min-width:0;display:flex;align-items:center;gap:14px;padding:0 6px 0 22px;border:none;background:transparent;color:var(--text);cursor:pointer;text-align:left;" style-hover="background:var(--chrome3);">
-            <img src="{{ s.icon }}" width="34" height="34" alt="" style="flex:none;">
-            <span style="flex:1;display:flex;flex-direction:column;gap:3px;min-width:0;"><span style="font-size:19px;font-weight:700;letter-spacing:-0.01em;">{{ s.name }}</span><span style="font-size:11px;color:var(--muted);letter-spacing:.04em;">{{ s.en }}</span></span>
-            <sc-if value="{{ s.cpHasBadge }}" hint-placeholder-val="{{ false }}"><span style="flex:none;padding:3px 8px;border-radius:999px;border:1px solid {{ s.cpBadgeColor }};color:{{ s.cpBadgeColor }};font-size:11px;font-weight:600;white-space:nowrap;">{{ s.cpBadge }}</span></sc-if>
+        <div style="display:flex;align-items:stretch;height:46px;background:{{ s.bg }};pointer-events:{{ cpOverlayLockPointer }};opacity:{{ cpOverlayLockOpacity }};filter:{{ cpOverlayLockFilter }};transition:opacity .15s;">
+          <button onClick="{{ s.onClick }}" title="{{ s.toggleTip }}" style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:0 4px 0 16px;border:none;background:transparent;color:var(--text);cursor:pointer;text-align:left;" style-hover="background:var(--chrome3);">
+            <img src="{{ s.icon }}" width="22" height="22" alt="" style="flex:none;">
+            <span style="flex:1;display:flex;align-items:baseline;gap:7px;min-width:0;white-space:nowrap;overflow:hidden;"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#9a9aa0;letter-spacing:.1em;">[{{ s.num }}]</span><span style="font-size:14px;font-weight:700;letter-spacing:-0.01em;">{{ s.name }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#6b6b70;letter-spacing:.04em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;">{{ s.en }}</span></span>
+            <sc-if value="{{ s.cpHasBadge }}" hint-placeholder-val="{{ false }}"><span style="flex:none;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.08);color:{{ s.cpBadgeColor }};font-size:11px;font-weight:600;white-space:nowrap;">{{ s.cpBadge }}</span></sc-if>
           </button>
-          <button onClick="{{ s.onToggle }}" title="{{ s.toggleTip }}" style="width:52px;flex:none;display:flex;align-items:center;justify-content:center;border:none;background:transparent;cursor:pointer;" style-hover="background:var(--chrome3);"><img src="{{ s.chev }}" width="18" height="18" alt="" style="opacity:.85;"></button>
+          <button onClick="{{ s.onToggle }}" title="{{ s.toggleTip }}" style="width:40px;flex:none;display:flex;align-items:center;justify-content:center;border:none;background:transparent;cursor:pointer;" style-hover="background:var(--chrome3);"><img src="{{ s.chev }}" width="15" height="15" alt="" style="opacity:.85;"></button>
         </div>
         <sc-if value="{{ s.open }}" hint-placeholder-val="{{ false }}">
           <div style="display:flex;flex-direction:column;gap:0;padding:4px 10px 14px;animation:fadeIn .18s ease-out;pointer-events:{{ cpOverlayLockPointer }};opacity:{{ cpOverlayLockOpacity }};filter:{{ cpOverlayLockFilter }};transition:opacity .15s;">
             <sc-for list="{{ s.eqs }}" as="e" hint-placeholder-count="6">
-              <button onClick="{{ e.onClick }}" title="{{ e.role }}" style="position:relative;display:flex;align-items:center;gap:12px;height:48px;padding:0 12px 0 44px;border:none;border-radius:8px;background:{{ e.bg }};color:{{ e.color }};cursor:pointer;text-align:left;box-shadow:{{ e.shadow }};" style-hover="{{ e.hover }}">
+              <button onClick="{{ e.onClick }}" title="{{ e.role }}" style="position:relative;display:flex;align-items:center;gap:12px;height:44px;margin:2px 0;padding:0 12px 0 44px;border:none;border-radius:999px;background:{{ e.bg }};color:{{ e.color }};cursor:pointer;text-align:left;box-shadow:{{ e.shadow }};" style-hover="{{ e.hover }}">
                 <span style="position:absolute;left:21px;top:0;height:50%;width:3px;margin-left:-1.5px;background:{{ e.topBg }};background-size:3px 12px;animation:{{ e.topAnim }};display:{{ e.topDisp }};"></span>
                 <span style="position:absolute;left:21px;top:50%;bottom:0;width:3px;margin-left:-1.5px;background:{{ e.botBg }};display:{{ e.botDisp }};"></span>
                 <span style="position:absolute;left:21px;top:50%;width:{{ e.dotSz }};height:{{ e.dotSz }};transform:translate(-50%,-50%);z-index:1;border-radius:50%;box-sizing:border-box;background:{{ e.dotBg }};border:2.5px solid {{ e.dotBorder }};animation:{{ e.dotAnim }};"></span>
@@ -280,11 +355,11 @@
           </div>
         </sc-if>
         <!-- 이해도 확인(담금질): 상태 문구와 [담금질 시작하기]·[이어 풀기]·[재도전]. 값은 checkpoint-chat.js sectionBadge의 cpSection* -->
-        <sc-if value="{{ s.cpHasBadge }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ s.cpShow }}" hint-placeholder-val="{{ false }}">
           <div style="display:flex;flex-direction:column;gap:8px;padding:0 16px 14px 22px;pointer-events:{{ cpOverlayLockPointer }};opacity:{{ cpOverlayLockOpacity }};filter:{{ cpOverlayLockFilter }};transition:opacity .15s;">
-            <span style="font-size:12px;color:{{ s.cpSectionStatusColor }};">{{ s.cpSectionStatus }}</span>
-            <sc-if value="{{ s.cpSectionHasResume }}" hint-placeholder-val="{{ false }}"><span style="padding:8px 10px;border-radius:8px;background:rgba(34,199,240,.1);border:1px solid rgba(34,199,240,.35);font-size:12px;line-height:1.5;">{{ s.cpSectionResumeText }}</span></sc-if>
-            <sc-if value="{{ s.cpSectionShowStart }}" hint-placeholder-val="{{ false }}"><button onClick="{{ s.onCpSectionStart }}" disabled="{{ !s.cpSectionCanStart }}" style="height:40px;border:none;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;cursor:{{ s.cpSectionCursor }};opacity:{{ s.cpSectionStartOpacity }};" style-hover="filter:brightness(1.1);">{{ s.cpSectionStartLabel }}</button></sc-if>
+            <span style="display:flex;align-items:center;gap:8px;font-size:12px;color:{{ s.cpSectionStatusColor }};"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;color:#6b6b70;">[ CHECKPOINT ]</span>{{ s.cpSectionStatus }}</span>
+            <sc-if value="{{ s.cpSectionHasResume }}" hint-placeholder-val="{{ false }}"><span style="padding:10px 14px;border-radius:16px;background:rgba(255,255,255,.06);font-size:12px;line-height:1.5;">{{ s.cpSectionResumeText }}</span></sc-if>
+            <sc-if value="{{ s.cpSectionShowStart }}" hint-placeholder-val="{{ false }}"><button onClick="{{ s.onCpSectionStart }}" disabled="{{ !s.cpSectionCanStart }}" style="height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 18px;border:none;border-radius:999px;background:#f2f2f2;color:#111;font-size:13px;font-weight:700;cursor:{{ s.cpSectionCursor }};opacity:{{ s.cpSectionStartOpacity }};" style-hover="background:#fff;">{{ s.cpSectionStartLabel }}<span style="width:28px;height:28px;flex:none;border-radius:50%;background:#111;display:flex;align-items:center;justify-content:center;"><span style="width:8px;height:8px;border-radius:50%;background:#f2f2f2;"></span></span></button></sc-if>
           </div>
         </sc-if>
       </div>
@@ -304,7 +379,7 @@
     <button onClick="{{ togglePanel }}" title="정보 패널 접기" style="position:absolute;z-index:11;right:{{ L.panelToggleX }};bottom:104px;width:26px;height:26px;border-radius:13px;border:1px solid var(--line2);background:var(--chrome3);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35);" style-hover="border-color:var(--accent);"><img src="{{ ic.chevR2 }}" width="14" height="14" alt=""></button>
   </sc-if>
   <sc-if value="{{ hasRight }}" hint-placeholder-val="{{ false }}">
-  <aside style="position:absolute;right:0;top:64px;bottom:0;width:{{ L.rightW }};display:flex;flex-direction:column;background:var(--chrome2);border-left:1px solid var(--line);z-index:7;box-shadow:{{ L.rightShadow }};animation:{{ L.rightAnim }};">
+  <aside data-sa-panel data-sa-cap style="position:absolute;right:12px;top:72px;bottom:{{ L.panelBottom }};max-height:calc(100% - 84px);width:{{ L.rightW }};display:flex;flex-direction:column;background:rgba(0,0,0,.86);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08);border-radius:24px;overflow:hidden;--chrome:#0e0e10;--chrome3:#1c1c1f;--chrome4:#2c2c30;z-index:7;box-shadow:{{ L.rightShadow }};animation:{{ L.rightAnim }};">
 
     <!-- 처음이라면 (전체 공정) -->
     <sc-if value="{{ panel.intro }}" hint-placeholder-val="{{ false }}">
@@ -317,7 +392,7 @@
             <span style="display:flex;flex-direction:column;gap:6px;"><b style="font-size:17px;">{{ it.title }}</b><span style="font-size:14px;line-height:1.6;color:#c3ccd7;">{{ it.text }}</span></span>
           </div>
         </sc-for>
-        <button onClick="{{ startFromFirst }}" style="margin-top:28px;height:56px;border-radius:10px;border:none;background:var(--accent);color:var(--accent-ink);font-size:17px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;" style-hover="filter:brightness(1.08);">제선부터 살펴보기 <span style="font-size:20px;">›</span></button>
+        <button onClick="{{ startFromFirst }}" style="margin-top:28px;height:56px;border-radius:999px;border:none;background:var(--accent);color:var(--accent-ink);font-size:17px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;" style-hover="filter:brightness(1.08);">제선부터 살펴보기 <span style="font-size:20px;">›</span></button>
       </div>
     </sc-if>
 
@@ -326,10 +401,10 @@
       <div style="flex:1;min-height:0;overflow-y:auto;padding:26px 26px 22px;display:flex;flex-direction:column;">
         <div style="display:flex;align-items:flex-start;gap:10px;">
           <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
-            <span style="font-size:14px;color:var(--muted);">{{ process.name }} · {{ eqNum }}</span>
+            <span style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;color:#9a9aa0;">[ {{ eqNum }} ]</span>{{ process.name }}</span>
             <h2 style="margin:0;font-family:'Noto Sans KR',sans-serif;font-size:32px;font-weight:900;letter-spacing:-0.02em;line-height:1.15;">{{ eq.name }}</h2>
           </div>
-          <button onClick="{{ clearSelection }}" title="선택 해제" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;border-radius:8px;background:transparent;cursor:pointer;flex:none;" style-hover="background:var(--chrome3);"><img src="{{ ic.close }}" width="18" height="18" alt=""></button>
+          <button onClick="{{ clearSelection }}" title="선택 해제" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;background:transparent;cursor:pointer;flex:none;" style-hover="background:var(--chrome3);"><img src="{{ ic.close }}" width="18" height="18" alt=""></button>
         </div>
         <div style="height:1px;background:var(--line2);margin:18px 0;"></div>
         <div style="display:flex;flex-direction:column;gap:7px;"><span style="font-size:15px;font-weight:700;">역할</span><span style="font-size:15px;line-height:1.65;color:#d6dde6;text-wrap:pretty;">{{ eq.role }}</span></div>
@@ -342,10 +417,10 @@
         <div style="height:1px;background:var(--line2);margin:20px 0 16px;"></div>
         <span style="font-size:17px;font-weight:700;color:var(--accent);">현재 선택 · {{ eqStepTitle }}</span>
         <div style="height:1px;background:var(--line2);margin:16px 0 4px;"></div>
-        <button onClick="{{ walkEq }}" style="display:flex;align-items:center;gap:12px;margin:14px 0 6px;padding:12px 14px;border-radius:10px;border:1px solid rgba(34,199,240,.45);background:rgba(34,199,240,.08);color:var(--text);cursor:pointer;text-align:left;" style-hover="background:rgba(34,199,240,.16);"><span style="width:34px;height:34px;border-radius:17px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--accent);"><img src="{{ ic.playInk }}" width="16" height="16" alt=""></span><span style="display:flex;flex-direction:column;gap:2px;"><b style="font-size:14px;">설비 작동 보기</b><span style="font-size:12px;color:#c3ccd7;">전체 모습을 먼저 보고, 단계마다 확대해 들어가요</span></span></button>
+        <button onClick="{{ walkEq }}" style="display:flex;align-items:center;gap:12px;margin:14px 0 6px;padding:12px 14px;border-radius:10px;border:1px solid rgba(242,242,242,.45);background:rgba(242,242,242,.08);color:var(--text);cursor:pointer;text-align:left;" style-hover="background:rgba(242,242,242,.16);"><span style="width:34px;height:34px;border-radius:17px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--accent);"><img src="{{ ic.playInk }}" width="16" height="16" alt=""></span><span style="display:flex;flex-direction:column;gap:2px;"><b style="font-size:14px;">설비 작동 보기</b><span style="font-size:12px;color:#c3ccd7;">전체 모습을 먼저 보고, 단계마다 확대해 들어가요</span></span></button>
         <sc-for list="{{ eqSteps }}" as="st" hint-placeholder-count="3">
           <button onClick="{{ st.onClick }}" style="display:grid;grid-template-columns:52px minmax(0,1fr);gap:14px;padding:14px 4px;border:none;border-bottom:1px solid var(--line);background:transparent;color:var(--text);text-align:left;cursor:{{ st.cursor }};" style-hover="background:rgba(255,255,255,.03);">
-            <span style="position:relative;width:50px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:{{ st.tileBg }};border:1.5px solid {{ st.ring }};"><img src="{{ st.icon }}" width="30" height="30" alt=""><span style="position:absolute;right:-7px;top:-7px;width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:{{ st.ring }};color:#04202b;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;">{{ st.n }}</span></span>
+            <span style="position:relative;width:50px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:{{ st.tileBg }};border:1.5px solid {{ st.ring }};"><img src="{{ st.icon }}" width="30" height="30" alt=""><span style="position:absolute;right:-7px;top:-7px;width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:{{ st.ring }};color:#111111;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;">{{ st.n }}</span></span>
             <span style="display:flex;flex-direction:column;gap:4px;min-width:0;">
               <span style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;"><span style="font-size:15px;font-weight:700;">{{ st.zone }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--hot);white-space:nowrap;">{{ st.temp }}</span></span>
               <span style="font-size:13px;line-height:1.6;color:#c3ccd7;text-wrap:pretty;">{{ st.text }}</span>
@@ -357,25 +432,28 @@
         </sc-for>
       </div>
       <div style="display:flex;gap:8px;padding:14px 26px 18px;border-top:1px solid var(--line);">
-        <button onClick="{{ askTutorAboutEq }}" style="flex:1;height:42px;border-radius:9px;border:1px solid var(--line2);background:var(--chrome3);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;" style-hover="border-color:var(--accent);"><img src="{{ ic.bot }}" width="18" height="18" alt="">튜터에게 묻기</button>
+        <button onClick="{{ askTutorAboutEq }}" style="flex:1;height:42px;border-radius:999px;border:1px solid var(--line2);background:var(--chrome3);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;" style-hover="border-color:var(--accent);"><img src="{{ ic.bot }}" width="18" height="18" alt="">튜터에게 묻기</button>
         <sc-if value="{{ eqHasSection }}" hint-placeholder-val="{{ false }}">
-          <button onClick="{{ openSection }}" style="flex:1;height:42px;border-radius:9px;border:none;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;cursor:pointer;" style-hover="filter:brightness(1.1);">단면 보기</button>
+          <button onClick="{{ openSection }}" style="flex:1;height:42px;border-radius:999px;border:none;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;cursor:pointer;" style-hover="filter:brightness(1.1);">단면 보기</button>
         </sc-if>
       </div>
     </sc-if>
 
     <!-- 단면 보기 -->
     <sc-if value="{{ panel.section }}" hint-placeholder-val="{{ false }}">
-      <div style="flex:1;min-height:0;overflow-y:auto;padding:26px 24px 22px;display:flex;flex-direction:column;">
-        <div style="display:flex;align-items:center;gap:14px;">
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:{{ sec.pad }};display:flex;flex-direction:column;">
+        <!-- [세련안] 시연 중: 설비 머리는 시작(설비가 바뀔 때)에 1초만 보이고 사라진다. 그 뒤로는 지금 단계 하나만 -->
+        <sc-if value="{{ sec.showHead }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:14px;animation:fadeIn .25s ease-out;">
           <img src="{{ eqIcon }}" width="46" height="46" alt="" style="flex:none;">
           <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;"><span style="font-family:'Noto Sans KR',sans-serif;font-size:28px;font-weight:900;letter-spacing:-0.02em;">{{ eq.name }}</span><span style="font-size:15px;color:#c3ccd7;">현재 선택 · {{ sec.current }}</span></div>
-          <button onClick="{{ backToExterior }}" title="외관으로" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;border-radius:8px;background:transparent;cursor:pointer;flex:none;" style-hover="background:var(--chrome3);"><img src="{{ ic.close }}" width="18" height="18" alt=""></button>
+          <button onClick="{{ backToExterior }}" title="외관으로" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;background:transparent;cursor:pointer;flex:none;" style-hover="background:var(--chrome3);"><img src="{{ ic.close }}" width="18" height="18" alt=""></button>
         </div>
         <div style="height:1px;background:var(--line2);margin:20px 0 14px;"></div>
+        </sc-if>
         <div style="display:flex;flex-direction:column;gap:4px;">
           <sc-for list="{{ sec.layers }}" as="ly" hint-placeholder-count="5">
-            <button onClick="{{ ly.onClick }}" style="display:flex;align-items:center;gap:12px;height:44px;padding:0 12px;border:{{ ly.border }};border-radius:8px;background:{{ ly.bg }};color:{{ ly.color }};cursor:pointer;text-align:left;animation:{{ ly.anim }};box-shadow:{{ ly.shadow }};" style-hover="background:{{ ly.hoverBg }};">
+            <button onClick="{{ ly.onClick }}" style="display:{{ ly.disp }};align-items:center;gap:12px;height:44px;padding:0 12px;border:{{ ly.border }};border-radius:999px;background:{{ ly.bg }};color:{{ ly.color }};cursor:pointer;text-align:left;animation:{{ ly.anim }};box-shadow:{{ ly.shadow }};" style-hover="background:{{ ly.hoverBg }};">
               <span style="width:28px;height:28px;border-radius:14px;flex:none;display:flex;align-items:center;justify-content:center;border:2px solid {{ ly.ring }};background:{{ ly.numBg }};color:{{ ly.numColor }};font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;">{{ ly.n }}</span>
               <span style="flex:1;font-size:14px;font-weight:{{ ly.weight }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ ly.zone }}</span>
               <span style="width:10px;height:10px;border-radius:3px;background:{{ ly.swatch }};flex:none;"></span>
@@ -452,7 +530,7 @@
         <div style="padding:12px 14px;border-radius:10px;background:var(--chrome3);font-size:13px;line-height:1.6;"><span style="color:var(--muted);">흐름 · </span>{{ process.io }}</div>
         <div style="height:1px;background:var(--line2);"></div>
         <span style="font-size:14px;color:#c3ccd7;line-height:1.6;">왼쪽 목록이나 3D 화면에서 설비를 고르면 역할과 내부 단계를 볼 수 있어요.</span>
-        <button onClick="{{ togglePlay }}" style="height:46px;border-radius:10px;border:none;background:var(--accent);color:var(--accent-ink);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;" style-hover="filter:brightness(1.1);"><img src="{{ ic.playInk }}" width="18" height="18" alt="">공정 자동 시연</button>
+        <button onClick="{{ togglePlay }}" style="height:46px;border-radius:999px;border:none;background:var(--accent);color:var(--accent-ink);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;" style-hover="filter:brightness(1.1);"><img src="{{ ic.playInk }}" width="18" height="18" alt="">공정 자동 시연</button>
       </div>
     </sc-if>
 
@@ -460,16 +538,16 @@
     <sc-if value="{{ panel.tutor }}" hint-placeholder-val="{{ false }}">
       <div style="display:flex;align-items:flex-start;gap:10px;padding:24px 22px 14px;">
         <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><span style="font-family:'Noto Sans KR',sans-serif;font-size:26px;font-weight:900;">AI 튜터</span><span style="font-size:15px;color:#c3ccd7;">{{ cpHeaderMode }} · {{ ctxLabel }}</span></div>
-        <button onClick="{{ toggleTutor }}" title="닫기" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;border-radius:8px;background:transparent;cursor:pointer;" style-hover="background:var(--chrome3);"><img src="{{ ic.close }}" width="18" height="18" alt=""></button>
+        <button onClick="{{ toggleTutor }}" title="닫기" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;background:transparent;cursor:pointer;" style-hover="background:var(--chrome3);"><img src="{{ ic.close }}" width="18" height="18" alt=""></button>
       </div>
       <sc-if value="{{ cpShowTabs }}" hint-placeholder-val="{{ false }}"><!-- 모드 탭은 숨김: 이해도 확인은 3D 화면 위 오버레이에서 한다 -->
       <div style="display:flex;gap:4px;margin:0 22px 12px;padding:4px;border-radius:10px;background:var(--chrome);border:1px solid var(--line2);">
-        <sc-for list="{{ cpTabs }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.onClick }}" style="flex:1;height:36px;border:none;border-radius:7px;background:{{ t.bg }};color:{{ t.color }};font-size:14px;font-weight:{{ t.weight }};cursor:pointer;" style-hover="color:var(--text);">{{ t.label }}</button></sc-for>
+        <sc-for list="{{ cpTabs }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.onClick }}" style="flex:1;height:36px;border:none;border-radius:999px;background:{{ t.bg }};color:{{ t.color }};font-size:14px;font-weight:{{ t.weight }};cursor:pointer;" style-hover="color:var(--text);">{{ t.label }}</button></sc-for>
       </div>
       </sc-if>
       <sc-if value="{{ cpIsLearningTab }}" hint-placeholder-val="{{ true }}">
       <!-- 풀던 이해도 확인 안내(멈춤·답하는 중). 값은 checkpoint-chat.js의 vals() -->
-      <sc-if value="{{ cpShowResumeBanner }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:12px;margin:0 22px 12px;padding:12px 14px;border-radius:10px;background:rgba(34,199,240,.1);border:1px solid rgba(34,199,240,.45);"><span style="flex:1;min-width:0;font-size:13px;line-height:1.5;">{{ cpResumeBannerText }}</span><button onClick="{{ onCpResume }}" style="height:32px;padding:0 14px;border:none;border-radius:7px;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700;cursor:pointer;flex:none;" style-hover="filter:brightness(1.1);">{{ cpResumeBannerLabel }}</button></div></sc-if>
+      <sc-if value="{{ cpShowResumeBanner }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:12px;margin:0 22px 12px;padding:12px 14px;border-radius:10px;background:rgba(242,242,242,.1);border:1px solid rgba(242,242,242,.45);"><span style="flex:1;min-width:0;font-size:13px;line-height:1.5;">{{ cpResumeBannerText }}</span><button onClick="{{ onCpResume }}" style="height:32px;padding:0 14px;border:none;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700;cursor:pointer;flex:none;" style-hover="filter:brightness(1.1);">{{ cpResumeBannerLabel }}</button></div></sc-if>
       <div ref="{{ chatRef }}" style="flex:1;min-height:0;overflow-y:auto;padding:4px 22px 14px;display:flex;flex-direction:column;gap:12px;">
         <sc-if value="{{ aiDown }}" hint-placeholder-val="{{ false }}">
           <div style="display:flex;gap:14px;align-items:center;padding:16px 18px;border-radius:10px;background:rgba(245,177,61,.1);border:1px solid rgba(245,177,61,.55);">
@@ -491,7 +569,7 @@
                 <span style="font-size:11px;color:var(--muted);padding-left:4px;">근거 · {{ c.title }}</span>
               </sc-for>
               <sc-if value="{{ m.hasFollowUp }}" hint-placeholder-val="{{ false }}">
-                <button onClick="{{ m.askFollowUp }}" style="text-align:left;display:flex;flex-direction:column;gap:2px;background:transparent;border:1px dashed var(--accent);border-radius:8px;padding:8px 12px;color:var(--text);cursor:pointer;" style-hover="background:rgba(34,199,240,.1);border-style:solid;"><span style="font-size:11px;color:var(--accent);font-weight:600;">생각해 보기</span><span style="font-size:13px;line-height:1.5;">{{ m.followUp }}</span></button>
+                <button onClick="{{ m.askFollowUp }}" style="text-align:left;display:flex;flex-direction:column;gap:2px;background:transparent;border:1px dashed var(--accent);border-radius:8px;padding:8px 12px;color:var(--text);cursor:pointer;" style-hover="background:rgba(242,242,242,.1);border-style:solid;"><span style="font-size:11px;color:var(--accent);font-weight:600;">생각해 보기</span><span style="font-size:13px;line-height:1.5;">{{ m.followUp }}</span></button>
               </sc-if>
             </div>
           </sc-if>
@@ -499,7 +577,7 @@
             <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;border:1px solid var(--line2);background:var(--chrome3);">
               <img src="{{ ic.alert }}" width="24" height="24" alt="" style="flex:none;">
               <span title="{{ m.text }}" style="flex:1;font-size:14px;font-weight:600;">답변을 받지 못했어요</span>
-              <button onClick="{{ m.retry }}" style="height:32px;padding:0 12px;display:flex;align-items:center;gap:6px;border-radius:7px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:13px;cursor:pointer;flex:none;" style-hover="border-color:var(--accent);"><img src="{{ ic.refreshSm }}" width="14" height="14" alt="">다시 시도</button>
+              <button onClick="{{ m.retry }}" style="height:32px;padding:0 12px;display:flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:13px;cursor:pointer;flex:none;" style-hover="border-color:var(--accent);"><img src="{{ ic.refreshSm }}" width="14" height="14" alt="">다시 시도</button>
             </div>
           </sc-if>
         </sc-for>
@@ -508,20 +586,20 @@
             <span style="width:6px;height:6px;border-radius:3px;background:var(--muted);animation:blink 1s infinite;"></span><span style="width:6px;height:6px;border-radius:3px;background:var(--muted);animation:blink 1s .2s infinite;"></span><span style="width:6px;height:6px;border-radius:3px;background:var(--muted);animation:blink 1s .4s infinite;"></span>
           </div>
         </sc-if>
-        <button onClick="{{ showExplain }}" style="display:flex;align-items:center;gap:12px;height:52px;padding:0 16px;border-radius:10px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:16px;font-weight:700;cursor:pointer;text-align:left;flex:none;" style-hover="border-color:var(--accent);"><img src="{{ ic.book }}" width="24" height="24" alt=""><span style="flex:1;">공정 설명 보기</span><img src="{{ ic.chevR }}" width="16" height="16" alt=""></button>
+        <button onClick="{{ showExplain }}" style="display:flex;align-items:center;gap:12px;height:52px;padding:0 16px;border-radius:999px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:16px;font-weight:700;cursor:pointer;text-align:left;flex:none;" style-hover="border-color:var(--accent);"><img src="{{ ic.book }}" width="24" height="24" alt=""><span style="flex:1;">공정 설명 보기</span><img src="{{ ic.chevR }}" width="16" height="16" alt=""></button>
         <sc-if value="{{ !cpLearningLocked }}" hint-placeholder-val="{{ true }}">
         <div style="display:flex;align-items:center;gap:10px;margin-top:6px;"><span style="font-size:14px;color:#c3ccd7;white-space:nowrap;">추천 질문</span><span style="flex:1;height:1px;background:var(--line2);"></span></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
-            <button onClick="{{ c.onClick }}" style="display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:9px;border:1px solid var(--line2);background:var(--chrome3);color:var(--text);font-size:13px;cursor:pointer;opacity:{{ chipOpacity }};" style-hover="border-color:var(--accent);"><img src="{{ ic.help }}" width="16" height="16" alt="">{{ c.text }}</button>
+            <button onClick="{{ c.onClick }}" style="display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:999px;border:1px solid var(--line2);background:var(--chrome3);color:var(--text);font-size:13px;cursor:pointer;opacity:{{ chipOpacity }};" style-hover="border-color:var(--accent);"><img src="{{ ic.help }}" width="16" height="16" alt="">{{ c.text }}</button>
           </sc-for>
         </div>
         </sc-if>
       </div>
-      <sc-if value="{{ cpShowPauseOffer }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:12px;margin:0 22px;padding:12px 14px;border-radius:10px;background:rgba(34,199,240,.1);border:1px solid rgba(34,199,240,.45);"><span style="flex:1;min-width:0;font-size:13px;line-height:1.5;">{{ cpPauseOfferText }}</span><button onClick="{{ onCpPauseForLearning }}" style="height:32px;padding:0 14px;border:none;border-radius:7px;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700;cursor:pointer;flex:none;" style-hover="filter:brightness(1.1);">{{ cpPauseOfferLabel }}</button></div></sc-if>
+      <sc-if value="{{ cpShowPauseOffer }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:12px;margin:0 22px;padding:12px 14px;border-radius:10px;background:rgba(242,242,242,.1);border:1px solid rgba(242,242,242,.45);"><span style="flex:1;min-width:0;font-size:13px;line-height:1.5;">{{ cpPauseOfferText }}</span><button onClick="{{ onCpPauseForLearning }}" style="height:32px;padding:0 14px;border:none;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700;cursor:pointer;flex:none;" style-hover="filter:brightness(1.1);">{{ cpPauseOfferLabel }}</button></div></sc-if>
       <form onSubmit="{{ send }}" style="display:flex;gap:8px;padding:14px 22px 18px;border-top:1px solid var(--line);">
-        <input value="{{ input }}" onChange="{{ onInput }}" placeholder="{{ inputPh }}" style="flex:1;min-width:0;height:46px;background:var(--chrome);color:var(--text);border:1px solid var(--line2);border-radius:9px;padding:0 14px;font-size:14px;outline:none;" style-focus="border-color:var(--accent);box-shadow:0 0 0 3px rgba(34,199,240,.2);">
-        <button type="submit" style="height:46px;padding:0 18px;border-radius:9px;border:none;background:{{ sendBg }};color:{{ sendColor }};font-size:14px;font-weight:700;cursor:pointer;flex:none;" style-hover="filter:brightness(1.1);">전송</button>
+        <input value="{{ input }}" onChange="{{ onInput }}" placeholder="{{ inputPh }}" style="flex:1;min-width:0;height:46px;background:var(--chrome);color:var(--text);border:1px solid var(--line2);border-radius:999px;padding:0 14px;font-size:14px;outline:none;" style-focus="border-color:var(--accent);box-shadow:0 0 0 3px rgba(242,242,242,.2);">
+        <button type="submit" style="height:46px;padding:0 18px;border-radius:999px;border:none;background:{{ sendBg }};color:{{ sendColor }};font-size:14px;font-weight:700;cursor:pointer;flex:none;" style-hover="filter:brightness(1.1);">전송</button>
       </form>
       </sc-if>
       <!-- 이해도 확인(체크포인트). 값은 checkpoint-chat.js의 vals() -->
@@ -537,8 +615,8 @@
           <div style="display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:10px;border:1px solid var(--line2);background:var(--chrome3);">
             <span style="font-size:13px;color:#c3ccd7;">{{ cpTabCheckpointLabel }} · {{ cpEntrySectionName }}</span>
             <span style="font-size:16px;font-weight:700;line-height:1.5;">{{ cpEntryStatus }}</span>
-            <sc-if value="{{ cpNeedsLogin }}" hint-placeholder-val="{{ false }}"><a href="{{ cpLoginUrl }}" style="align-self:flex-start;height:40px;padding:0 18px;display:flex;align-items:center;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;text-decoration:none;">{{ cpLoginLabel }}</a></sc-if>
-            <sc-if value="{{ cpShowStartButton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpStart }}" disabled="{{ !cpCanStart }}" style="align-self:flex-start;height:40px;padding:0 22px;border:none;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;cursor:pointer;opacity:{{ cpStartOpacity }};" style-hover="filter:brightness(1.1);">{{ cpStartLabel }}</button></sc-if>
+            <sc-if value="{{ cpNeedsLogin }}" hint-placeholder-val="{{ false }}"><a href="{{ cpLoginUrl }}" style="align-self:flex-start;height:40px;padding:0 18px;display:flex;align-items:center;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;text-decoration:none;">{{ cpLoginLabel }}</a></sc-if>
+            <sc-if value="{{ cpShowStartButton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpStart }}" disabled="{{ !cpCanStart }}" style="align-self:flex-start;height:40px;padding:0 22px;border:none;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;cursor:pointer;opacity:{{ cpStartOpacity }};" style-hover="filter:brightness(1.1);">{{ cpStartLabel }}</button></sc-if>
           </div>
         </sc-if>
         <sc-for list="{{ cpMessages }}" as="m" hint-placeholder-count="0">
@@ -552,7 +630,7 @@
           <div style="display:flex;flex-direction:column;gap:14px;padding:16px;border-radius:10px;border:1px solid var(--line2);background:var(--chrome);">
             <div style="display:flex;align-items:baseline;justify-content:space-between;"><span style="font-size:14px;color:#c3ccd7;">{{ cpResult.understandingLabel }}</span><span style="font-size:26px;font-weight:800;">{{ cpResult.percent }}%</span></div>
             <div style="position:relative;height:10px;margin-bottom:16px;border-radius:5px;background:var(--chrome3);"><div style="height:100%;width:{{ cpResult.percent }}%;border-radius:5px;background:{{ cpResult.color }};"></div><div style="position:absolute;top:-4px;bottom:-4px;left:{{ cpResult.thresholdPercent }}%;width:2px;background:var(--text);"><span style="position:absolute;top:18px;left:-26px;width:54px;text-align:center;font-size:11px;color:#c3ccd7;">{{ cpResult.thresholdLabel }}</span></div></div>
-            <span style="padding:9px 12px;border-radius:9px;border:1px solid {{ cpResult.color }};color:{{ cpResult.color }};font-size:14px;font-weight:700;">{{ cpResult.passLabel }}</span>
+            <span style="padding:9px 14px;border-radius:999px;border:1px solid {{ cpResult.color }};color:{{ cpResult.color }};font-size:14px;font-weight:700;">{{ cpResult.passLabel }}</span>
             <sc-for list="{{ cpResult.bars }}" as="b" hint-placeholder-count="0">
               <div style="display:grid;grid-template-columns:minmax(0,1fr) 110px;align-items:center;gap:10px;"><div style="display:flex;flex-direction:column;min-width:0;"><span style="font-size:14px;font-weight:600;">{{ b.name }}</span><span style="font-size:12px;color:#c3ccd7;">{{ b.label }}</span></div><div style="height:8px;border-radius:4px;background:var(--chrome3);overflow:hidden;"><div style="height:100%;width:{{ b.widthPercent }}%;background:{{ b.color }};"></div></div></div>
             </sc-for>
@@ -562,23 +640,23 @@
       </div>
       <sc-if value="{{ cpShowRunning }}" hint-placeholder-val="{{ false }}">
         <div style="display:flex;flex-direction:column;gap:10px;padding:14px 22px 18px;border-top:1px solid var(--line);">
-          <sc-if value="{{ cpConfirmPause }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:10px;padding:12px 14px;border-radius:10px;background:var(--chrome3);border:1px solid var(--line2);"><span style="font-size:13px;line-height:1.55;">{{ cpConfirmPauseText }}</span><div style="display:flex;gap:8px;justify-content:flex-end;"><button onClick="{{ onCpCancelPause }}" style="height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;" style-hover="border-color:var(--accent);">{{ cpConfirmPauseNo }}</button><button onClick="{{ onCpConfirmPause }}" style="height:34px;padding:0 14px;border:none;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700;cursor:pointer;" style-hover="filter:brightness(1.1);">{{ cpConfirmPauseYes }}</button></div></div></sc-if>
-          <sc-if value="{{ cpShowResumeButton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpResume }}" style="height:46px;border:none;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;cursor:pointer;" style-hover="filter:brightness(1.1);">{{ cpResumeLabel }}</button></sc-if>
+          <sc-if value="{{ cpConfirmPause }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:10px;padding:12px 14px;border-radius:10px;background:var(--chrome3);border:1px solid var(--line2);"><span style="font-size:13px;line-height:1.55;">{{ cpConfirmPauseText }}</span><div style="display:flex;gap:8px;justify-content:flex-end;"><button onClick="{{ onCpCancelPause }}" style="height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;" style-hover="border-color:var(--accent);">{{ cpConfirmPauseNo }}</button><button onClick="{{ onCpConfirmPause }}" style="height:34px;padding:0 14px;border:none;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:700;cursor:pointer;" style-hover="filter:brightness(1.1);">{{ cpConfirmPauseYes }}</button></div></div></sc-if>
+          <sc-if value="{{ cpShowResumeButton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpResume }}" style="height:46px;border:none;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;cursor:pointer;" style-hover="filter:brightness(1.1);">{{ cpResumeLabel }}</button></sc-if>
           <div style="display:flex;gap:8px;">
-            <sc-if value="{{ cpShowReadyButton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpReady }}" style="height:36px;padding:0 16px;border-radius:9px;border:1px solid var(--accent);background:transparent;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;" style-hover="background:rgba(34,199,240,.12);">{{ cpReadyLabel }}</button></sc-if>
-            <sc-if value="{{ cpShowRetryButton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpRetry }}" style="height:36px;padding:0 16px;display:flex;align-items:center;gap:6px;border-radius:9px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;" style-hover="border-color:var(--accent);"><img src="{{ ic.refreshSm }}" width="14" height="14" alt="">{{ cpRetryLabel }}</button></sc-if>
-            <sc-if value="{{ cpShowPauseButton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpPause }}" style="margin-left:auto;height:36px;padding:0 14px;border-radius:9px;border:1px solid var(--line2);background:transparent;color:#c3ccd7;font-size:13px;font-weight:600;cursor:pointer;" style-hover="border-color:var(--accent);color:var(--text);">{{ cpPauseLabel }}</button></sc-if>
+            <sc-if value="{{ cpShowReadyButton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpReady }}" style="height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--accent);background:transparent;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;" style-hover="background:rgba(242,242,242,.12);">{{ cpReadyLabel }}</button></sc-if>
+            <sc-if value="{{ cpShowRetryButton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpRetry }}" style="height:36px;padding:0 16px;display:flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:13px;font-weight:700;cursor:pointer;" style-hover="border-color:var(--accent);"><img src="{{ ic.refreshSm }}" width="14" height="14" alt="">{{ cpRetryLabel }}</button></sc-if>
+            <sc-if value="{{ cpShowPauseButton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ onCpPause }}" style="margin-left:auto;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line2);background:transparent;color:#c3ccd7;font-size:13px;font-weight:600;cursor:pointer;" style-hover="border-color:var(--accent);color:var(--text);">{{ cpPauseLabel }}</button></sc-if>
           </div>
           <sc-if value="{{ cpShowComposer }}" hint-placeholder-val="{{ true }}">
           <form onSubmit="{{ onCpSend }}" style="display:flex;gap:8px;opacity:{{ cpInputOpacity }};">
-            <input value="{{ cpInput }}" onChange="{{ onCpInput }}" disabled="{{ cpInputDisabled }}" placeholder="{{ cpPlaceholder }}" style="flex:1;min-width:0;height:46px;background:var(--chrome);color:var(--text);border:1px solid var(--line2);border-radius:9px;padding:0 14px;font-size:14px;outline:none;" style-focus="border-color:var(--accent);box-shadow:0 0 0 3px rgba(34,199,240,.2);">
-            <button type="submit" disabled="{{ cpInputDisabled }}" style="height:46px;padding:0 18px;border-radius:9px;border:none;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;cursor:pointer;flex:none;" style-hover="filter:brightness(1.1);">{{ cpSendLabel }}</button>
+            <input value="{{ cpInput }}" onChange="{{ onCpInput }}" disabled="{{ cpInputDisabled }}" placeholder="{{ cpPlaceholder }}" style="flex:1;min-width:0;height:46px;background:var(--chrome);color:var(--text);border:1px solid var(--line2);border-radius:999px;padding:0 14px;font-size:14px;outline:none;" style-focus="border-color:var(--accent);box-shadow:0 0 0 3px rgba(242,242,242,.2);">
+            <button type="submit" disabled="{{ cpInputDisabled }}" style="height:46px;padding:0 18px;border-radius:999px;border:none;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:700;cursor:pointer;flex:none;" style-hover="filter:brightness(1.1);">{{ cpSendLabel }}</button>
           </form>
           </sc-if>
         </div>
       </sc-if>
       <sc-if value="{{ cpShowResult }}" hint-placeholder-val="{{ false }}">
-        <div style="display:flex;justify-content:flex-end;padding:14px 22px 18px;border-top:1px solid var(--line);"><button onClick="{{ onCpClose }}" style="height:40px;padding:0 18px;border-radius:9px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:14px;font-weight:700;cursor:pointer;" style-hover="border-color:var(--accent);">{{ cpCloseLabel }}</button></div>
+        <div style="display:flex;justify-content:flex-end;padding:14px 22px 18px;border-top:1px solid var(--line);"><button onClick="{{ onCpClose }}" style="height:40px;padding:0 18px;border-radius:999px;border:1px solid var(--line2);background:transparent;color:var(--text);font-size:14px;font-weight:700;cursor:pointer;" style-hover="border-color:var(--accent);">{{ cpCloseLabel }}</button></div>
       </sc-if>
       </sc-if>
     </sc-if>
@@ -587,7 +665,7 @@
     <sc-if value="{{ panel.dev }}" hint-placeholder-val="{{ false }}">
       <div style="display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line);">
         <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;flex:1;">개발자</span>
-        <button onClick="{{ toggleDev }}" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;border-radius:8px;background:transparent;cursor:pointer;" style-hover="background:var(--chrome3);"><img src="{{ ic.close }}" width="18" height="18" alt=""></button>
+        <button onClick="{{ toggleDev }}" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;border-radius:50%;background:transparent;cursor:pointer;" style-hover="background:var(--chrome3);"><img src="{{ ic.close }}" width="18" height="18" alt=""></button>
       </div>
       <div style="flex:1;min-height:0;overflow:auto;padding:14px 20px;display:flex;flex-direction:column;gap:14px;">
         <div style="display:flex;flex-direction:column;gap:6px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);">3D model</span><pre style="margin:0;padding:12px;background:var(--chrome);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.5;overflow:auto;white-space:pre-wrap;word-break:break-all;">{{ modelJson }}</pre></div>
@@ -601,17 +679,17 @@
 
   <!-- 하단 공정 애니메이션 바 -->
   <sc-if value="{{ bar.show }}" hint-placeholder-val="{{ false }}">
-  <footer style="position:absolute;left:{{ L.vpLeft }};margin-left:24px;bottom:16px;width:min(640px, calc(100% - {{ L.vpRight }} - 32px));height:64px;display:flex;align-items:center;gap:16px;padding:0 12px 0 12px;background:rgba(17,23,31,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line2);border-radius:26px;box-shadow:0 12px 36px rgba(0,0,0,.35);z-index:9;pointer-events:{{ cpOverlayLockPointer }};opacity:{{ cpOverlayLockOpacity }};filter:{{ cpOverlayLockFilter }};transition:opacity .15s;">
-    <button onClick="{{ togglePlay }}" title="{{ bar.playLabel }}" aria-label="{{ bar.playLabel }}" style="width:40px;height:40px;flex:none;border-radius:20px;border:2px solid var(--accent);background:{{ bar.playBg }};display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;" style-hover="filter:brightness(1.15);"><img src="{{ bar.playIcon }}" width="16" height="16" alt=""></button>
+  <footer data-sa-cap style="position:absolute;left:{{ L.vpLeft }};margin-left:24px;bottom:16px;width:min(640px, calc(100% - {{ L.vpRight }} - 32px));height:64px;display:flex;align-items:center;gap:16px;padding:0 12px 0 12px;background:rgba(0,0,0,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.08);border-radius:999px;box-shadow:0 12px 36px rgba(0,0,0,.35);z-index:9;pointer-events:{{ cpOverlayLockPointer }};opacity:{{ cpOverlayLockOpacity }};filter:{{ cpOverlayLockFilter }};transition:opacity .15s;">
+    <button onClick="{{ togglePlay }}" title="{{ bar.playLabel }}" aria-label="{{ bar.playLabel }}" style="width:42px;height:42px;flex:none;border-radius:50%;border:none;background:#f2f2f2;box-shadow:{{ bar.playRing }};display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;" style-hover="background:#fff;"><img src="{{ bar.playIcon }}" width="16" height="16" alt=""></button>
     <div style="flex:1;position:relative;height:44px;min-width:140px;">
-      <div style="position:absolute;left:7px;right:7px;top:11px;height:2px;border-radius:1px;background:var(--chrome4);"></div>
-      <div style="position:absolute;left:7px;top:11px;height:2px;border-radius:1px;background:var(--accent);width:{{ bar.fill2 }};transition:width .25s ease;"></div>
+      <div style="position:absolute;left:7px;right:7px;top:11px;height:2px;border-radius:1px;background:rgba(255,255,255,.16);"></div>
+      <div style="position:absolute;left:7px;top:11px;height:2px;border-radius:1px;background:#f2f2f2;width:{{ bar.fill2 }};transition:width .25s ease;"></div>
       <sc-for list="{{ bar.dots2 }}" as="d" hint-placeholder-count="6">
-        <button onClick="{{ d.onClick }}" title="{{ d.name }}" aria-label="{{ d.name }}" style="position:absolute;left:{{ d.left }};top:12px;width:{{ d.size }};height:{{ d.size }};transform:translate(-50%,-50%);border-radius:50%;border:none;background:{{ d.bg }};cursor:pointer;padding:0;box-shadow:{{ d.shadow }};transition:width .2s ease, height .2s ease;" style-hover="background:var(--accent);"></button>
+        <button onClick="{{ d.onClick }}" title="{{ d.name }}" aria-label="{{ d.name }}" style="position:absolute;left:{{ d.left }};top:12px;width:{{ d.size }};height:{{ d.size }};transform:translate(-50%,-50%);border-radius:50%;border:none;background:{{ d.bg }};cursor:pointer;padding:0;box-shadow:{{ d.shadow }};transition:width .2s ease, height .2s ease;" style-hover="background:#fff;"></button>
         <span onClick="{{ d.onClick }}" style="position:absolute;left:{{ d.left }};top:26px;transform:translateX({{ d.tx }});white-space:nowrap;font-size:12px;line-height:1;font-weight:{{ d.fw }};color:{{ d.lc }};cursor:pointer;">{{ d.short }}</span>
       </sc-for>
     </div>
-    <button onClick="{{ bar.toggleFast }}" title="{{ bar.fastTitle }}" aria-label="{{ bar.fastTitle }}" style="flex:none;height:30px;min-width:46px;padding:0 10px;border-radius:15px;border:1.5px solid {{ bar.fastBorder }};background:{{ bar.fastBg }};color:{{ bar.fastColor }};font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;cursor:pointer;" style-hover="filter:brightness(1.2);">2×</button>
+    <button onClick="{{ bar.toggleFast }}" title="{{ bar.fastTitle }}" aria-label="{{ bar.fastTitle }}" style="flex:none;height:32px;min-width:48px;padding:0 10px;border-radius:999px;border:1px solid {{ bar.fastBorder }};background:{{ bar.fastBg }};color:{{ bar.fastColor }};font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;cursor:pointer;" style-hover="filter:brightness(1.2);">2×</button>
   </footer>
   </sc-if>
 </div>
@@ -668,7 +746,7 @@ const ICON = {
 };
 const icon = (name, color = '#cfd7e1', sw = 1.6) => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${(ICON[name] || ICON.box).replace(/fill="C"/g, `fill="${color}"`)}</svg>`);
 const MAT_ICON = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 30"><g fill="#8a8f98"><circle cx="9" cy="24" r="4"/><circle cx="17" cy="22" r="5"/><circle cx="26" cy="23" r="4.5"/><circle cx="34" cy="24.5" r="3.6"/><circle cx="13" cy="17" r="3.6"/><circle cx="22" cy="15" r="4.2"/><circle cx="30" cy="17.5" r="3.4"/><circle cx="18" cy="9.5" r="3"/><circle cx="26" cy="10" r="2.6"/></g><g fill="#b8bdc4"><circle cx="16" cy="20" r="1.6"/><circle cx="24" cy="13" r="1.4"/><circle cx="29" cy="21" r="1.3"/></g></svg>');
-const AC = '#22c7f0', INK = '#04202b';
+const AC = '#f2f2f2', INK = '#111111'; // [세련안] 강조색은 흰색(원래 하늘색 #f2f2f2)
 // [UI 시안] 단계 이름 → 그림 아이콘
 const STEP_ICON = [[/냉각|소화|물|스프레이|수냉/, 'drop'], [/파쇄|절단/, 'cut'], [/점화|연소|아크|취련|가열|열풍|버너/, 'flame'], [/건조|예열|건류/, 'heat'], [/가스|집진|탈가스/, 'gas'], [/환원|반응|정련|탈황|탈인|교반|합금|성분/, 'react'], [/장입|투입|배합|원료/, 'hopper'], [/압연|롤|스탠드|교정|인발/, 'rollers'], [/배출|출선|출강|압출|이송|운반|이동|권취|주상/, 'conveyor'], [/용융|용선|쇳물|용강|주입|주조|응고|노상/, 'ladle']];
 const stepIcon = (z) => (STEP_ICON.find(([re]) => re.test(z || '')) || [0, 'react'])[1];
@@ -681,7 +759,7 @@ const reaction = (fml) => { if (!fml || !fml.includes('→')) return null; const
   out.push({ text: '→', op: true, d: d + 0.05 }); d += 0.35;
   r.forEach((t, i) => { if (i) out.push({ text: '+', op: true, d: d - 0.05 }); out.push({ text: t, side: 'R', d }); d += 0.18; });
   return out.map(x => x.op ? { text: x.text, pad: '0 2px', bg: 'transparent', border: 'none', color: '#c3ccd7', fs: '16px', shadow: 'none', anim: `opIn .3s ease-out ${x.d.toFixed(2)}s both` }
-    : x.side === 'L' ? { text: x.text, pad: '5px 10px', bg: 'rgba(34,199,240,.12)', border: '1px solid rgba(34,199,240,.6)', color: '#bfefff', fs: '13px', shadow: 'none', anim: `chipL .45s ease-out ${x.d.toFixed(2)}s both` }
+    : x.side === 'L' ? { text: x.text, pad: '5px 10px', bg: 'rgba(242,242,242,.12)', border: '1px solid rgba(242,242,242,.6)', color: '#bfefff', fs: '13px', shadow: 'none', anim: `chipL .45s ease-out ${x.d.toFixed(2)}s both` }
     : { text: x.text, pad: '5px 10px', bg: 'rgba(255,154,46,.2)', border: '1px solid #ff9a2e', color: '#ffd5a6', fs: '13px', shadow: '0 0 14px rgba(255,154,46,.45)', anim: `fuse .6s ease-out ${x.d.toFixed(2)}s both` }); };
 
 class Component extends DCLogic {
@@ -690,7 +768,7 @@ class Component extends DCLogic {
   // 로고 인트로는 브라우저 탭마다 처음 한 번만(sessionStorage). 저장소가 막히면 오류 없이 매번 보여 준다. ?intro=1이면 항상, ?intro=0이면 건너뛴다
   introSeen() { return true; /* [세련안] 로고 인트로 대신 sleek-overview.js 인트로 */ const q = this.qs('intro'); if (q === '1' || q === '0') return q === '0'; try { if (sessionStorage.getItem('st-rookie-intro-seen')) return true; sessionStorage.setItem('st-rookie-intro-seen', '1'); } catch (e) {} return false; }
   introEl(dark) {
-    const bg = dark ? '#0b1118' : '#fff', mist = dark ? 'rgba(14,20,28,.8)' : 'rgba(236,241,246,.8)', pc = dark ? ['rgba(40,52,66,.95)', 'rgba(24,33,44,.7)', 'rgba(24,33,44,0)'] : ['rgba(255,255,255,.95)', 'rgba(240,244,248,.7)', 'rgba(240,244,248,0)'];
+    const bg = dark ? '#0e0e10' : '#f3f3f4', mist = dark ? 'rgba(18,18,20,.8)' : 'rgba(238,238,240,.8)', pc = dark ? ['rgba(48,48,52,.95)', 'rgba(28,28,31,.7)', 'rgba(28,28,31,0)'] : ['rgba(255,255,255,.95)', 'rgba(242,242,244,.7)', 'rgba(242,242,244,0)'];
     if (this._introDone === undefined) this._introDone = this.introSeen();
     if (this._introDone) return null;
     if (!this._introTimer) { this._introTimer = setTimeout(() => { this._introDone = true; this.forceUpdate(); }, 6200); this._introT0 = Date.now();
@@ -723,7 +801,8 @@ class Component extends DCLogic {
     document.addEventListener('steel-goto', e => { const id = e.detail.process ?? e.detail.id; if (id) this.goProcess(id); });
     document.addEventListener('steel-overview', () => { if (this.state.selectedId || this.state.processId !== 'site') this.setState({ selectedId: null }); });
     document.addEventListener('steel-layer', e => this.setState({ layer: e.detail.layer }));
-    document.addEventListener('steel-progress', e => this.setState({ progress: e.detail.t, matLabel: e.detail.label, playing: e.detail.playing, touring: e.detail.touring, tourStep: e.detail.step }));
+    document.addEventListener('steel-progress', e => this.setState(s => ({ progress: e.detail.t, matLabel: e.detail.label, playing: e.detail.playing, touring: e.detail.touring, tourStep: e.detail.step,
+      ...(e.detail.touring && !s.touring ? { expanded: { ...s.expanded, [s.processId]: false } } : {}) }))); // [세련안] 시연을 시작하면 공정 메뉴를 접는다
     document.addEventListener('steel-layout', () => this.setState(s => ({ layoutTick: (s.layoutTick || 0) + 1 })));
     document.addEventListener('steel-tour-end', () => this.setState({ touring: false, tourStep: null }));
     document.addEventListener('keydown', e => { if (e.key === 'Escape') this.setState({ settingsOpen: false }); });
@@ -785,12 +864,12 @@ class Component extends DCLogic {
     for (let i = 0; i < N - 1; i++) { const a = R[i], b = R[i + 1], done = i < cur; let d;
       if (a.row === b.row) { const dir = b.col > a.col ? 1 : -1, sx = dir > 0 ? a.x + a.w : a.x, ex = dir > 0 ? b.x : b.x + b.w, y = a.y + a.h / 2; d = `M${sx + dir * 3} ${y} H${ex - dir * 4}`; }
       else { const x = a.x + a.w / 2; d = `M${x} ${a.y + a.h + 3} V${b.y - 4}`; }
-      seg.push(`<path d="${d}" fill="none" stroke="${done ? '#22c7f0' : '#7fb3d9'}" stroke-width="2.4" ${done ? '' : 'stroke-dasharray="6 5"'} marker-end="url(#${done ? 'ad' : 'a'})"/>`); }
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${cw} ${ch}"><defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7fb3d9"/></marker><marker id="ad" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#22c7f0"/></marker></defs>${seg.join('')}</svg>`;
+      seg.push(`<path d="${d}" fill="none" stroke="${done ? '#f2f2f2' : '#7fb3d9'}" stroke-width="2.4" ${done ? '' : 'stroke-dasharray="6 5"'} marker-end="url(#${done ? 'ad' : 'a'})"/>`); }
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${cw} ${ch}"><defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7fb3d9"/></marker><marker id="ad" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#f2f2f2"/></marker></defs>${seg.join('')}</svg>`;
     const cells = E.map((e, i) => { const r = R[i], sel = i === k, now = i === cur && (this.state.playing || this.state.touring), done = i < cur, iconSz = Math.round(Math.max(22, Math.min(54, r.h * 0.3, r.w * 0.3)));
-      return { n: i + 1, name: e.name, role: e.role, out: e.output, icon: icon(e.shape, sel ? '#22c7f0' : '#d7ecff', 1.4), iconSz, fs: r.w < 130 ? '12px' : '15px', gap: r.h < 130 ? '4px' : '8px', subDisp: r.h > 150 && r.w > 140 ? 'block' : 'none', now,
-        x: r.x + 'px', y: r.y + 'px', w: r.w + 'px', h: r.h + 'px', border: sel ? '2px solid #22c7f0' : '1.5px dashed rgba(127,200,240,.75)', bg: sel ? 'rgba(34,199,240,.16)' : 'rgba(15,44,76,.92)', shadow: sel ? '0 0 0 4px rgba(34,199,240,.18), 0 0 24px rgba(34,199,240,.25)' : 'none',
-        numBg: sel || done ? '#22c7f0' : 'transparent', numColor: sel || done ? '#04202b' : '#7fd3f7',
+      return { n: i + 1, name: e.name, role: e.role, out: e.output, icon: icon(e.shape, sel ? '#f2f2f2' : '#d7ecff', 1.4), iconSz, fs: r.w < 130 ? '12px' : '15px', gap: r.h < 130 ? '4px' : '8px', subDisp: r.h > 150 && r.w > 140 ? 'block' : 'none', now,
+        x: r.x + 'px', y: r.y + 'px', w: r.w + 'px', h: r.h + 'px', border: sel ? '2px solid #f2f2f2' : '1.5px dashed rgba(127,200,240,.75)', bg: sel ? 'rgba(242,242,242,.16)' : 'rgba(15,44,76,.92)', shadow: sel ? '0 0 0 4px rgba(242,242,242,.18), 0 0 24px rgba(242,242,242,.25)' : 'none',
+        numBg: sel || done ? '#f2f2f2' : 'transparent', numColor: sel || done ? '#111111' : '#7fd3f7',
         onClick: () => { this.setState({ selectedId: e.id, tutorOpen: false, panelHidden: false }); this.scene()?.focus(e.id); } }; });
     return { on: true, cells, arrows: 'data:image/svg+xml,' + encodeURIComponent(svg), caption: `${p.name} 공정 구역도 · 설비 ${N}개 · 번호와 화살표는 공정 순서`,
       x: Math.round(24 + (rw - cw) / 2) + 'px', y: '124px', w: cw + 'px', h: ch + 'px' };
@@ -813,28 +892,43 @@ class Component extends DCLogic {
     const tourLayer = touring && eq && eq.interior && S.layer != null; // 자동 시연 중 단면 층 설명은 우측 패널에
     const panelKind = S.devOpen ? 'dev' : S.tutorOpen ? 'tutor' : touring ? (tourLayer ? 'section' : null) : inSection ? 'section' : eq ? 'eq' : null; // 공정만 고른 상태에선 우측 패널 없음
     const rightPx = vw < 1100 ? Math.min(360, vw - 24) : vw < 1400 ? 340 : 380, panelOverlay = vw < 1100, panelHid = S.panelHidden ?? (panelOverlay && (panelKind === 'proc' || panelKind === 'intro')), panelShown = !!panelKind && !panelHid; // 좁은 화면에선 공정 요약을 기본으로 접어 둠
-    const vpLeftPx = 0, vpRightPx = panelShown && !panelOverlay && !touring ? rightPx : 0, // 시연 중엔 3D 화면 크기를 고정하고 패널은 위에 겹쳐 띄움(화면 리사이즈로 깜빡이지 않게)
-      vpW = vw - vpLeftPx - vpRightPx, vpH = vh - 64 - 88;
+    const vpLeftPx = 0, vpRightPx = 0, // [세련안] 오른쪽 패널은 3D 위에 떠 있는 카드라 3D 영역을 자르지 않는다(모델 위치는 sleek-overview.js의 setupFraming이 패널을 피해 맞춘다)
+      vpW = vw - vpLeftPx - (panelShown && !panelOverlay && !touring ? rightPx : 0), vpH = vh - 64 - 88;
     const L = { narrow, navShown, rail, navFull: !rail, navWpx: navW + 'px', vpLeft: vpLeftPx + 'px', vpRight: vpRightPx + 'px', rightW: rightPx + 'px', bottomH: '88px',
       navShadow: narrow ? '12px 0 30px rgba(0,0,0,.35)' : 'none', rightShadow: panelOverlay || touring ? '-12px 0 30px rgba(0,0,0,.35)' : 'none', rightAnim: touring ? 'panelSlide .38s cubic-bezier(.2,.8,.2,1)' : 'fadeIn .18s ease-out',
       navToggle: false, navToggleX: (16 + navW - 13) + 'px', ovL: (narrow ? 16 : navW + 32) + 'px', ovL2: (narrow ? 36 : navW + 52) + 'px', navToggleIc: icon(rail ? 'chevR' : 'chevL', '#dfe5ec', 2), navToggleTip: rail ? '메뉴 펼치기' : '메뉴 접기(아이콘만)',
-      panelToggle: panelShown, panelToggleX: (rightPx - 13) + 'px', panelHandle: !!panelKind && panelHid, handleText: eq ? eq.name + ' 정보' : panelKind === 'tutor' ? 'AI 튜터' : '정보 패널',
+      panelBottom: touring ? 'auto' : '12px', panelToggle: panelShown, panelToggleX: (rightPx - 1) + 'px', panelHandle: !!panelKind && panelHid, handleText: eq ? eq.name + ' 정보' : panelKind === 'tutor' ? 'AI 튜터' : '정보 패널',
       topLbl: vw < 1200 ? 'none' : 'inline', lbl: vpW < 820 ? 'none' : 'inline', hintDisp: vpW < 820 ? 'none' : 'flex', fitDisp: site ? 'none' : 'flex', tabPad: vpW < 760 ? '10px' : '14px', tabFs: vpW < 760 ? '13px' : '14px',
       tbDisp: vpW < 820 || vpH < 520 ? 'none' : 'grid', titleSz: vpW < 700 ? '24px' : '34px', modelsBtnDisp: S.introDone === false || touring ? 'none' : 'flex',
       fGap: vw < 1200 ? '12px' : '22px', fPad: vw < 1200 ? '14px' : '24px', fFilm: vw < 900 ? 'none' : 'flex', fLbl: vw < 1350 ? 'none' : 'inline', fBtnLbl: vw < 1000 ? 'none' : 'inline', fMat: vw < 1100 ? 'none' : 'flex', fSpdLbl: vw < 1200 ? 'none' : 'inline', spdW: vw < 1000 ? '44px' : '56px' };
     // 공정 메뉴
-    const steps = D.PROCESSES.filter(x => !touring || x.id === S.processId).map(x => { /* 작동 보기 중에는 지금 공정만 */ const on = x.id === S.processId, open = S.expanded[x.id] ?? (on && !Object.values(S.expanded).some(Boolean)); // 지금 공정은 기본으로 펼침, 누르면 접힘
-      return { ...x, ...this.checkpoint.sectionBadge(x.id), icon: icon(x.id, on ? '#ffffff' : '#c3ccd7', 1.5), chev: icon(open ? 'chevU' : 'chevD', '#93a0b0'), open, bg: on ? 'rgba(255,255,255,.04)' : 'transparent',
-        railBg: on ? 'rgba(34,199,240,.14)' : 'transparent', railEqs: false,
+    // [세련안] 이어 풀기 안내: 풀던 이해도 확인이 있는 공정(체크포인트 오버레이가 열려 있으면 checkpoint-chat.js가 false로 준다). 시연 중·2D 도면에선 숨김
+    const resumeAt = D.PROCESSES.map(x => [x, this.checkpoint.sectionBadge(x.id)]).find(([, b]) => b.cpSectionHasResume);
+    // 3D 인트로(검은 화면에서 조명이 켜짐)가 끝난 뒤에 띄운다. 인트로 중에 3초가 지나가 버리면 알림을 못 본다
+    if (!this._sceneLitHook) { this._sceneLitHook = true; const done = () => { if (!this._sceneLit) { this._sceneLit = true; this.setState({}); } };
+      document.addEventListener('sleek-intro-done', done, { once: true }); setTimeout(done, 16000);
+      // 예비: 검은 막이 걷힌(sleek-ready) 뒤 조명 인트로 길이(3.2초)만큼 지나면 띄운다(화면이 가려져 애니메이션이 멈춘 탭 등)
+      const lit = () => setTimeout(done, 3600); if (document.body.classList.contains('sleek-ready')) lit();
+      else { const mo = new MutationObserver(() => { if (document.body.classList.contains('sleek-ready')) { mo.disconnect(); lit(); } }); mo.observe(document.body, { attributes: true, attributeFilter: ['class'] }); } }
+    const resume = resumeAt && this._sceneLit && !touring && !S.resumeHidden && !(S.processId !== 'site' && S.view === '2d')
+      ? { on: true, id: resumeAt[0].id, num: resumeAt[0].num, name: resumeAt[0].name, text: resumeAt[1].cpSectionResumeText, go: resumeAt[1].onCpSectionStart, canStart: resumeAt[1].cpSectionCanStart,
+          cursor: resumeAt[1].cpSectionCursor, op: resumeAt[1].cpSectionStartOpacity, close: () => this.setState({ resumeHidden: true }) }
+      : { on: false };
+    if (resume.on && !this._resumeTimer) this._resumeTimer = setTimeout(() => this.setState({ resumeHidden: true }), 3400); // [세련안] 알림은 3초쯤 보이고 사라진다
+    // [세련안] 공정 안에서는 왼쪽 메뉴에 지금 공정만(다른 공정은 상단 알약에서 고른다)
+    const steps = D.PROCESSES.filter(x => S.processId === 'site' || x.id === S.processId).map(x => { const on = x.id === S.processId, open = S.expanded[x.id] ?? (on && !Object.values(S.expanded).some(Boolean)); // 지금 공정은 기본으로 펼침, 누르면 접힘
+      return { ...x, ...this.checkpoint.sectionBadge(x.id), ...(resume.on && resume.id === x.id ? { cpSectionHasResume: false, cpSectionShowStart: false } : {}), icon: icon(x.id, on ? '#ffffff' : '#c3ccd7', 1.5), chev: icon(open ? 'chevU' : 'chevD', '#93a0b0'), open, bg: on ? 'rgba(255,255,255,.04)' : 'transparent',
+        railBg: on ? 'rgba(242,242,242,.14)' : 'transparent', railEqs: false,
         onClick: () => { if (on) this.setState({ expanded: { [x.id]: !open } }); else this.goProcess(x.id); },
         onToggle: () => this.setState({ expanded: { [x.id]: !open } }), toggleTip: open ? '설비 목록 접기' : '설비 목록 펼치기',
+        get cpShow() { return this.open && this.cpHasBadge; },
         eqs: x.equipment.map((e, ei) => { const sel = on && e.id === S.selectedId, tk = touring && S.tourStep?.eq ? x.equipment.findIndex(q => q.id === S.tourStep.eq) : -1, ci = !on ? -1 : tk >= 0 ? tk : k >= 0 ? k : -1;
           const isCur = ei === ci, passed = ci >= 0 && ei < ci, last = ei === x.equipment.length - 1, GRAY = '#3a4655';
-          return { ...e, icon: icon(e.shape, isCur ? AC : '#c3ccd7', 1.5), chev: icon('chevR', '#5f6b7a'), chevOp: '0.7', bg: isCur ? 'rgba(34,199,240,.13)' : 'transparent', color: isCur ? '#ffffff' : passed ? '#c3ccd7' : '#dfe5ec', weight: isCur ? '700' : '500', shadow: 'none', hover: 'background:rgba(255,255,255,.05);',
-            // 노선: 지난 구간 청록 실선, 현재 역으로 들어오는 구간은 청록 점선이 아래로 흐름, 앞 구간은 회색
-            topDisp: ei === 0 ? 'none' : 'block', topBg: isCur ? 'repeating-linear-gradient(180deg, #22c7f0 0 6px, transparent 6px 12px)' : passed ? AC : GRAY, topAnim: isCur ? 'trainDown .55s linear infinite' : 'none',
-            botDisp: last ? 'none' : 'block', botBg: passed ? AC : GRAY,
-            dotSz: isCur ? '16px' : '11px', dotBg: isCur ? AC : passed ? AC : '#1d2631', dotBorder: isCur ? '#ffffff' : passed ? AC : '#6b7686', dotAnim: isCur ? 'stationPulse 1.6s ease-out infinite' : 'none',
+          return { ...e, icon: icon(e.shape, isCur ? '#111' : '#c3c3c7', 1.5), chev: icon('chevR', isCur ? '#111' : '#6b6b70'), chevOp: '0.7', bg: isCur ? '#f2f2f2' : 'transparent', color: isCur ? '#111' : passed ? '#b5b5b8' : '#e4e4e6', weight: isCur ? '700' : '500', shadow: 'none', hover: isCur ? '' : 'background:rgba(255,255,255,.08);',
+            // 노선(무채색): 지난 구간 흰 실선, 현재 역으로 들어오는 구간은 흰 점선이 아래로 흐름, 앞 구간은 옅은 회색. 현재 역은 흰 칩 위의 검은 점
+            topDisp: ei === 0 ? 'none' : 'block', topBg: isCur ? 'repeating-linear-gradient(180deg, #f2f2f2 0 6px, transparent 6px 12px)' : passed ? '#f2f2f2' : 'rgba(255,255,255,.18)', topAnim: isCur ? 'trainDown .55s linear infinite' : 'none',
+            botDisp: last ? 'none' : 'block', botBg: passed ? '#f2f2f2' : 'rgba(255,255,255,.18)',
+            dotSz: isCur ? '12px' : '9px', dotBg: isCur ? '#111' : passed ? '#f2f2f2' : '#000', dotBorder: isCur ? '#111' : passed ? '#f2f2f2' : '#6b6b70', dotAnim: 'none',
             onClick: () => { if (!on) { this.goProcess(x.id); setTimeout(() => { this.setState({ selectedId: e.id, tutorOpen: false }); this.scene()?.focus(e.id); }, 900); } else { this.setState(s => ({ selectedId: e.id, tutorOpen: false, view: s.view === 'section' && !e.interior ? 'exterior' : s.view })); this.scene()?.focus(e.id); } if (narrow) this.setState({ navOpen: false }); } }; }) }; });
     // 보기 탭
     const canSection = !!(eq && eq.interior);
@@ -846,19 +940,23 @@ class Component extends DCLogic {
     const dotsN = site ? 6 : n, sp = S.speed;
     const go = (i) => { if (site) return; i = Math.max(0, Math.min(i, n - 1)); if (touring) this.scene()?.jumpTo(i, sp); else this.select(i); };
     const bar = { opacity: site ? '0.45' : '1', hint: site, total: dotsN, cur: site ? 1 : cur + 1, fill: site || dotsN < 2 ? '0%' : `calc((100% - 22px) * ${Math.max(0, cur) / (dotsN - 1)})`,
-      playBg: S.playing || touring ? 'rgba(34,199,240,.18)' : 'transparent', playIcon: icon(S.playing || touring ? 'stop' : 'play', AC), playLabel: S.playing || touring ? '정지' : '재생',
+      playBg: 'transparent', playRing: S.playing || touring ? '0 0 0 4px rgba(255,255,255,.18)' : 'none', playIcon: icon(S.playing || touring ? 'stop' : 'play', '#111', 2), playLabel: S.playing || touring ? '정지' : '재생',
       prev: () => { if (!site) { if (touring) this.scene()?.jumpTo(Math.max(0, cur - 1), sp); else go(cur - 1); } }, next: () => { if (!site) { if (touring) this.scene()?.next(); else go(k < 0 ? 0 : cur + 1); } },
       dots: Array.from({ length: dotsN }, (_, i) => { const on = !site && i === cur, done = !site && i < cur, eqi = p.equipment[i];
-        const size = on ? 30 : 18; return { name: eqi?.name || '', left: dotsN < 2 ? '50%' : `calc(11px + (100% - 22px) * ${i / (dotsN - 1)})`, top: on ? '13px' : '19px', size: size + 'px', ml: -size / 2 + 'px', border: on ? `2.5px solid ${AC}` : done ? `2px solid ${AC}` : '2px solid #6b7686', bg: on ? '#11171f' : done ? AC : '#11171f', inner: on ? String(i + 1) : '', numColor: AC, shadow: on ? '0 0 0 4px rgba(34,199,240,.18)' : 'none', below: on ? '' : String(i + 1), labelColor: done ? '#c3ccd7' : '#6b7686', onClick: () => go(i) }; }) };
+        const size = on ? 30 : 18; return { name: eqi?.name || '', left: dotsN < 2 ? '50%' : `calc(11px + (100% - 22px) * ${i / (dotsN - 1)})`, top: on ? '13px' : '19px', size: size + 'px', ml: -size / 2 + 'px', border: on ? `2.5px solid ${AC}` : done ? `2px solid ${AC}` : '2px solid #6b7686', bg: on ? '#11171f' : done ? AC : '#11171f', inner: on ? String(i + 1) : '', numColor: AC, shadow: on ? '0 0 0 4px rgba(242,242,242,.18)' : 'none', below: on ? '' : String(i + 1), labelColor: done ? '#c3ccd7' : '#6b7686', onClick: () => go(i) }; }) };
     Object.assign(bar, { show: !site, fill2: dotsN < 2 ? '0%' : `calc((100% - 14px) * ${Math.max(0, cur) / (dotsN - 1)})`,
       dots2: bar.dots.map((d, i) => { const on = i === cur, done = i < cur; return { name: d.name, onClick: d.onClick, left: dotsN < 2 ? '50%' : `calc(7px + (100% - 14px) * ${i / (dotsN - 1)})`,
-        tx: i === 0 ? '-7px' : i === dotsN - 1 ? 'calc(-100% + 7px)' : '-50%', size: on ? '14px' : '8px', short: (d.name || '').split(/[·(]/)[0].trim(), fw: on ? '700' : '500', lc: on ? AC : done ? '#c3ccd7' : '#8a95a3', bg: on || done ? AC : 'var(--chrome4)', shadow: on ? '0 0 0 4px rgba(34,199,240,.22)' : 'none' }; }) });
-    const fast = sp >= 2; Object.assign(bar, { fastTitle: fast ? '기본 속도로' : '2배속 재생', fastBg: fast ? AC : 'transparent', fastBorder: fast ? AC : 'var(--line2)', fastColor: fast ? INK : '#c3ccd7',
+        tx: i === 0 ? '-7px' : i === dotsN - 1 ? 'calc(-100% + 7px)' : '-50%', size: on ? '14px' : '8px', short: (d.name || '').split(/[·(]/)[0].trim(), fw: on ? '700' : '500', lc: on ? '#ffffff' : done ? '#b5b5b8' : '#6b6b70', bg: on || done ? '#f2f2f2' : 'rgba(255,255,255,.22)', shadow: on ? '0 0 0 4px rgba(255,255,255,.16)' : 'none' }; }) });
+    const fast = sp >= 2; Object.assign(bar, { fastTitle: fast ? '기본 속도로' : '2배속 재생', fastBg: fast ? '#f2f2f2' : 'transparent', fastBorder: fast ? '#f2f2f2' : 'rgba(255,255,255,.18)', fastColor: fast ? '#111' : '#c3c3c7',
       toggleFast: () => { const v = fast ? 1 : 2; this.setState({ speed: v }); if (touring) this.scene()?.jumpTo(Math.max(0, cur), v); } }); // 현재 속도 ↔ 2배속, 시연 중이면 현재 단계부터 새 속도로
     const togglePlay = () => { if (site) return; const sc = this.scene(); if (S.playing || touring) { sc?.stop(); if (S.view === 'flow') this.setState({ view: 'exterior' }); } else sc?.tour(sp, Math.max(0, k)); };
     // 단면 패널
     const lys = (eq && eq.interior) || [], li = S.layer;
-    const sec = { layers: lys.map((ly, i) => { const on = i === li, st = eq.steps?.[i]; return { open: on, n: i + 1, zone: st?.zone || ly.label, swatch: ly.color, bg: on ? 'rgba(255,154,46,.16)' : 'transparent', border: 'none', anim: on ? 'popBg .45s ease-out' : 'none', shadow: on ? '0 6px 18px rgba(255,120,30,.18)' : 'none', hoverBg: on ? 'rgba(255,154,46,.16)' : 'rgba(255,255,255,.04)', color: on ? '#ffffff' : '#c3ccd7', weight: on ? '700' : '500', ring: on ? '#ff9a2e' : '#4a5566', numBg: on ? '#ff9a2e' : 'transparent', numColor: on ? '#1a1206' : '#93a0b0', onClick: () => this.scene()?.layer(i) }; }),
+    // [세련안] 시연 중 설비 머리: 시연이 시작되거나 설비가 바뀌면 1초만 보인다
+    const headKey = touring ? (eq?.id || '') : null;
+    if (headKey !== this._headKey) { this._headKey = headKey; this._headT0 = Date.now(); if (headKey !== null) setTimeout(() => this.setState({}), 1050); }
+    const showHead = !touring || Date.now() - this._headT0 < 1000;
+    const sec = { showHead, pad: touring && !showHead ? '16px 18px' : '26px 24px 22px', layers: lys.map((ly, i) => { const on = i === li, st = eq.steps?.[i]; return { disp: touring && !on ? 'none' : 'flex', open: on, n: i + 1, zone: st?.zone || ly.label, swatch: ly.color, bg: on ? 'rgba(255,154,46,.16)' : 'transparent', border: 'none', anim: on ? 'popBg .45s ease-out' : 'none', shadow: on ? '0 6px 18px rgba(255,120,30,.18)' : 'none', hoverBg: on ? 'rgba(255,154,46,.16)' : 'rgba(255,255,255,.04)', color: on ? '#ffffff' : '#c3ccd7', weight: on ? '700' : '500', ring: on ? '#ff9a2e' : '#4a5566', numBg: on ? '#ff9a2e' : 'transparent', numColor: on ? '#1a1206' : '#93a0b0', onClick: () => this.scene()?.layer(i) }; }),
       has: li != null && !!lys[li], none: li == null };
     if (sec.has) { const ly = lys[li], st = eq.steps?.[li], temp = ly.temp || st?.temp || '—', rng = parseTemp(temp), [hA, hB, hC] = heatOf(rng ? rng[1] : 0), rx = reaction(ly.formula);
       const key = eq.id + ':' + li; if (this._secKey !== key) { this._secKey = key; this._secFlip = !this._secFlip; } // 층이 바뀌면 카드를 새로 그려 애니메이션을 다시 재생
@@ -882,25 +980,40 @@ class Component extends DCLogic {
     const tb = { title: `${p.name} 공정 ${DM[dm][2]}`, no: `SA-${p.num || '00'}-${DM[dm][3]}${eq ? '-' + String(k + 1).padStart(2, '0') : ''}`, line: bpMode ? 'rgba(215,236,255,.75)' : 'rgba(255,255,255,.22)', bg: bpMode ? 'rgba(15,44,76,.75)' : 'rgba(18,24,32,.82)', color: bpMode ? '#d7ecff' : '#eef2f6' };
     return {
       ...base, ...chatV, messages, ...this.checkpoint.vals(), L, steps, zd,
-      toggleRail: () => this.setState({ navRail: !rail }), togglePanel: () => this.setState({ panelHidden: !panelHid }), viewTabs, bar, togglePlay, sec, aiDown, aiUp: !aiDown, is2d, drawTabs, tb, hintText: is2d ? '드래그 이동 · 휠 확대' : '드래그 회전 · 휠 확대',
+      resume, toggleRail: () => this.setState({ navRail: !rail }), togglePanel: () => this.setState({ panelHidden: !panelHid }), viewTabs, bar, togglePlay, sec, aiDown, aiUp: !aiDown, is2d, drawTabs, tb, hintText: is2d ? '드래그 이동 · 휠 확대' : '드래그 회전 · 휠 확대',
       timeOfDay: this.qs('tod') ?? this.props.timeOfDay ?? 'auto', // auto = 실제 시각으로 오전/오후/저녁
       processId: S.processId, selectedAttr: S.selectedId || '', view: S.view, process: p, eq: eq || {}, eqNum: String(k + 1).padStart(2, '0'), eqIcon: icon(eq?.shape || 'box', '#e6ebf1', 1.4),
-      isSite: site, inProcess: !site, titleColor: lightVp ? '#1b232d' : '#f1f4f8', subColor: lightVp ? '#4b5665' : '#c3ccd7',
-      glass: { bg: 'rgba(18,24,32,.82)', border: 'rgba(255,255,255,.14)', color: '#eef2f6', hint: lightVp && !bpMode ? '#4b5665' : '#c3ccd7' },
+      isSite: site, inProcess: !site, vpBg: dark ? '#0e0e10' : '#e8e9eb', // 3D 영역 바탕(장면이 그려지기 전·로딩 중에 비침)
+       titleColor: lightVp ? '#1b232d' : '#f1f4f8', subColor: lightVp ? '#4b5665' : '#c3ccd7',
+      glass: { bg: 'rgba(22,22,24,.82)', border: 'rgba(255,255,255,.14)', color: '#f2f2f2', hint: lightVp && !bpMode ? '#55575c' : '#b5b5b8' },
       crumbs: (() => { const list = site ? [{ label: '전체 공정', onClick: () => this.goSite() }] : [{ label: p.name, onClick: () => this.goProcess(p.id) }];
         if (eq) list.push({ label: eq.name, onClick: () => this.scene()?.focus(S.selectedId) });
         return list.map((c, i) => ({ ...c, sep: i > 0, color: i === list.length - 1 ? '#ffffff' : '#c3ccd7', weight: i === list.length - 1 ? 700 : 500 })); })(),
-      topBtn: { siteLabel: '전체 공정', site: { bg: site ? 'rgba(34,199,240,.12)' : 'var(--chrome3)', border: site ? 'rgba(34,199,240,.6)' : 'var(--line2)' }, tutor: { bg: S.tutorOpen ? 'rgba(34,199,240,.12)' : 'var(--chrome3)', border: S.tutorOpen ? AC : aiDown ? 'rgba(34,199,240,.45)' : 'var(--line2)' }, set: { bg: S.settingsOpen ? 'rgba(34,199,240,.12)' : 'var(--chrome3)', border: S.settingsOpen ? AC : 'var(--line2)' } },
+      topBtn: { siteLabel: '전체 공정', site: { bg: site ? 'rgba(255,255,255,.14)' : 'var(--chrome3)', border: site ? 'rgba(255,255,255,.6)' : 'var(--line2)' }, tutor: { bg: S.tutorOpen ? 'rgba(255,255,255,.14)' : 'var(--chrome3)', border: S.tutorOpen ? '#f2f2f2' : 'var(--line2)' }, set: { bg: S.settingsOpen ? 'rgba(255,255,255,.14)' : 'var(--chrome3)', border: S.settingsOpen ? '#f2f2f2' : 'var(--line2)' } },
       goSite: () => this.goSite(), toggleNav: () => this.setState({ navOpen: !S.navOpen }),
       toggleTheme: () => this.setState({ theme: dark ? 'light' : 'dark' }),
+      pill: (() => { const open = !!S.pillOpen, cur = !site && D.findProcess(S.processId), on = 'rgba(255,255,255,.12)', ring = 'none'; // 선택 테두리 링 없음(바탕색으로만 표시)
+        return { isOpen: open, closed: !open, homeBg: site ? on : 'transparent', curBg: cur ? on : 'transparent', curLabel: cur ? cur.name : '',
+          homeIcon: icon('home', '#111', 2), chev: icon('chevD', '#9a9aa0'), closeIcon: icon('close', '#f2f2f2', 2),
+          tutorBg: S.tutorOpen ? '#3a3a3f' : '#1c1c1f', tutorRing: S.tutorOpen ? ring : 'none', setBg: S.settingsOpen ? '#3a3a3f' : '#1c1c1f', setRing: S.settingsOpen ? ring : 'none',
+          open: () => this.setState({ pillOpen: true, settingsOpen: false }), close: () => this.setState({ pillOpen: false }),
+          // 보기: 외관 | 2D 뷰 (단면·흐름 탭은 뺐다. 기능은 남아 있어 주소 ?view=로는 열린다)
+          views: [['exterior', '외관', '설비 겉모습'], ['2d', '2D 뷰', '위에서 본 모습·평면도·정면도']].map(([v, label, tip]) => { const sel = v === '2d' ? S.view === '2d' : S.view !== '2d';
+            return { label, tip, bg: sel ? '#f2f2f2' : 'transparent', fg: sel ? '#111' : '#f2f2f2', hover: sel ? '' : 'background:rgba(255,255,255,.12);', onClick: () => { if (!sel) this.setView(v); } }; }),
+          items: D.PROCESSES.map(x => { const sel = x.id === S.processId, lock = !!this.checkpoint?.tabLocked(x.id);
+            return { num: x.num, name: x.name, tip: lock ? '앞 공정 이해도 확인을 통과하면 열립니다' : x.name + ' 공정으로',
+              bg: sel ? '#f2f2f2' : 'transparent', fg: sel ? '#111' : '#f2f2f2', hover: sel || lock ? '' : 'background:rgba(255,255,255,.12);', cursor: lock ? 'not-allowed' : 'pointer', op: lock ? 0.4 : 1,
+              onClick: () => { if (lock) return; this.setState({ pillOpen: false }); if (!sel) this.goProcess(x.id); } }; }) }; })(),
       show: (() => { const sp = site && !this.state.touring && S.showcaseId && D.findProcess(S.showcaseId); if (!sp) return { on: false };
         return { on: true, num: sp.num, en: sp.en.toUpperCase(), name: sp.name, sub: sp.sub, summary: sp.summary,
-          enter: () => this.goProcess(sp.id), next: () => document.dispatchEvent(new CustomEvent('sleek-showcase-next')) }; })(),
+          enter: () => this.goProcess(sp.id), next: () => document.dispatchEvent(new CustomEvent('sleek-showcase-next')),
+          ink: dark ? { title: '#f4f4f5', num: '#b5b5b8', sub: '#e2e2e4', body: '#b5b5b8', line: 'rgba(255,255,255,.22)', shadow: '0 2px 12px rgba(0,0,0,.75)', btnBg: '#f2f2f2', btnFg: '#111', btnHover: '#fff', next: '#b5b5b8', nextHover: '#fff' }
+            : { title: '#111113', num: '#55575c', sub: '#2b2c30', body: '#46484d', line: 'rgba(0,0,0,.16)', shadow: '0 1px 12px rgba(255,255,255,.8)', btnBg: '#111113', btnFg: '#f2f2f2', btnHover: '#000', next: '#46484d', nextHover: '#111' } }; })(),
       hero: { show: S.processId === 'site' && !this.state.touring, title: '#f4f6f9', sub: dark ? '#c3ccd7' : '#e8ecf1', shadow: dark ? '0 2px 14px rgba(0,0,0,.55)' : '0 1px 10px rgba(255,255,255,.7)' },
       dn: { icon: icon(dark ? 'sun' : 'moon', '#e6ebf1'), tip: dark ? '라이트 모드로' : '다크 모드로' },
       toggleSettings: () => this.setState({ settingsOpen: !S.settingsOpen }), settingsOpen: !!S.settingsOpen,
       toggleModels: () => { const v = !S.zoneLabelsHidden; this.setState({ zoneLabelsHidden: v }); this.scene()?.setZoneLabelsVisible?.(!v); },
-      modelsBtnLabel: S.zoneLabelsHidden ? '공정 이름표 표시' : '공정 이름표 숨김', modelsBtnTitle: S.zoneLabelsHidden ? '01 제선 · 02 제강 … 선택 이름표 다시 표시' : '01 제선 · 02 제강 … 선택 이름표 숨기기 (3D 모델은 유지)', modelsDot: S.zoneLabelsHidden ? '#93a0b0' : AC,
+      modelsBtnLabel: S.zoneLabelsHidden ? '공정 이름표 표시' : '공정 이름표 숨김', modelsBtnTitle: S.zoneLabelsHidden ? '01 제선 · 02 제강 … 선택 이름표 다시 표시' : '01 제선 · 02 제강 … 선택 이름표 숨기기 (3D 모델은 유지)', modelsDot: S.zoneLabelsHidden ? '#6b6b70' : '#f2f2f2',
       userName: S.me?.name || '임지호', userId: S.me?.id || 'trainee10', devMode: this.qs('dev') === '1', logout: () => this.logout(),
       settingsItems: [
         { label: '공정 3D 모델', value: S.modelsHidden ? '숨김' : '표시', valColor: S.modelsHidden ? '#93a0b0' : AC, onClick: () => { const v = !S.modelsHidden; this.setState({ modelsHidden: v }); this.scene()?.setModelsVisible?.(!v); } },
@@ -912,7 +1025,7 @@ class Component extends DCLogic {
       hasRight: panelShown, panel: { intro: panelKind === 'intro', eq: panelKind === 'eq', section: panelKind === 'section', proc: panelKind === 'proc', tutor: panelKind === 'tutor', dev: panelKind === 'dev' },
       eqObserve: eq ? (eq.steps ? `${eq.steps[0].zone}부터 ${eq.steps[eq.steps.length - 1].zone}까지 설비를 따라 살펴보세요.` : '들어오는 소재가 어떻게 바뀌어 나가는지 살펴보세요.') : '',
       eqStepTitle: eq ? (eq.steps ? eq.steps[0].zone : eq.output) : '', eqHasSection: canSection,
-      eqSteps: (eq?.steps || []).map((st, i) => ({ ...st, n: i + 1, ring: i === 0 ? AC : '#6b7686', icon: icon(stepIcon(st.zone), i === 0 ? AC : '#dfe5ec', 1.5), tileBg: i === 0 ? 'rgba(34,199,240,.1)' : 'var(--chrome3)', cursor: canSection ? 'pointer' : 'default', onClick: () => { if (!canSection) return; this.setView('section'); setTimeout(() => this.scene()?.layer(i), 900); } })),
+      eqSteps: (eq?.steps || []).map((st, i) => ({ ...st, n: i + 1, ring: i === 0 ? AC : '#6b7686', icon: icon(stepIcon(st.zone), i === 0 ? AC : '#dfe5ec', 1.5), tileBg: i === 0 ? 'rgba(242,242,242,.1)' : 'var(--chrome3)', cursor: canSection ? 'pointer' : 'default', onClick: () => { if (!canSection) return; this.setView('section'); setTimeout(() => this.scene()?.layer(i), 900); } })),
       eqNotes: (eq?.notes || []).map(t => ({ text: t })),
       clearSelection: () => this.setState({ selectedId: null, view: S.view === 'section' ? 'exterior' : S.view }), openSection: () => this.setView('section'), backToExterior: () => this.setView('exterior'),
       walkEq: () => { if (eq) this.scene()?.walk(eq.id, sp); },
