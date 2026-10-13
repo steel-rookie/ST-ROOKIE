@@ -5,7 +5,7 @@
 커밋 메시지 규칙은 [agent.md](agent.md)를 따른다.
 보고는 한국어로 한다.
 작업 시작 전과 커밋 전에 현재 브랜치를 확인한다(`git branch --show-current`). IDE 등에서 브랜치가 바뀌어 커밋이 엉뚱한 브랜치에 쌓인 적이 있다.
-시연 서버가 서빙하는 메인 폴더는 `dev`에 둔다. 작업은 별도 worktree에서 한다(예: `git worktree add -b <브랜치> ../ST-ROOKIE-<작업> origin/dev`). 서버는 실행 폴더의 `frontend/`를 그대로 서빙하므로, 메인 폴더에서 브랜치를 바꾸면 시연 화면도 바뀐다.
+시연 서버가 서빙하는 메인 폴더는 `dev`에 둔다. 작업은 별도 worktree에서 한다(예: `git worktree add -b <브랜치> ../ST-ROOKIE-<작업> origin/dev`). 서버는 실행 폴더의 `frontend/`를 그대로 서빙하므로, 메인 폴더에서 브랜치를 바꾸면 시연 화면도 바뀐다. 시연 서버는 `npm run demo`로 켠다(`scripts/demo-sync.mjs`: 1분마다 `origin/dev`를 받아, `frontend/` 밖이 바뀌면 빌드 후 서버를 다시 켠다). 팀원은 `git pull`·재시작 없이 최신 화면을 본다.
 
 ## 현재 상태와 목표
 
