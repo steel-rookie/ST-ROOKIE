@@ -185,6 +185,65 @@
       </div>
     </sc-if>
 
+    <!-- [데이터 비주얼] 공정 안 HUD: 입체 제목·KPI(왼쪽 위), 설비별 최고 온도 그래프(왼쪽 아래), 선택 설비 위 정보 카드, 줌(오른쪽 아래).
+         레퍼런스: Dribbble 'Finance Management App Data Viz Tool'. 값은 dataViz(), 카드 위치는 _dvTick() -->
+    <sc-if value="{{ dv.on }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:{{ dv.left }};top:84px;z-index:3;width:min(440px, calc(100% - 48px));display:flex;flex-direction:column;gap:10px;pointer-events:none;transition:left var(--t-base) var(--ease);animation:fadeIn var(--t-slow) var(--ease);">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.24em;color:{{ dv.ink.num }};">{{ dv.num }} · PROCESS</span>
+        <span style="font-family:'Montserrat','Pretendard',sans-serif;font-size:clamp(40px, 4.6vw, 62px);font-weight:800;line-height:.95;letter-spacing:.01em;color:{{ dv.ink.title }};text-shadow:{{ dv.ink.titleShadow }};transform:perspective(700px) rotateX(8deg) rotateY(-6deg);transform-origin:left bottom;">{{ dv.en }}.</span>
+        <span style="margin-top:8px;font-family:'Noto Sans KR',sans-serif;font-size:28px;font-weight:900;line-height:1.15;letter-spacing:-.02em;color:{{ dv.ink.name }};text-shadow:{{ dv.ink.nameShadow }};">{{ dv.name }}<span style="font-weight:500;font-size:17px;margin-left:10px;color:{{ dv.ink.sub }};">{{ dv.sub }}</span></span>
+        <span style="max-width:380px;font-size:15px;line-height:1.6;color:{{ dv.ink.body }};text-shadow:{{ dv.ink.bodyShadow }};">{{ dv.summary }}</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+          <sc-for list="{{ dv.kpis }}" as="k" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;gap:3px;padding:10px 14px;border-radius:12px;background:{{ dv.ink.tile }};border:1px solid {{ dv.ink.line }};backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.1em;color:{{ dv.ink.muted }};">{{ k.label }}</span>
+              <span style="font-family:'Montserrat','Pretendard',sans-serif;font-size:{{ k.size }};font-weight:800;line-height:1.2;color:{{ dv.ink.name }};">{{ k.value }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- 설비별 최고 온도: 빛나는 면 그래프. 아래 번호를 누르면 그 설비를 고른다 -->
+      <div style="position:absolute;left:{{ dv.left }};bottom:{{ dv.chartBottom }};z-index:3;width:{{ dv.chart.w }}px;display:flex;flex-direction:column;gap:6px;padding:12px 14px 10px;margin-left:-14px;border-radius:16px;background:{{ dv.ink.hud }};backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:none;transition:left var(--t-base) var(--ease);animation:fadeIn var(--t-slow) var(--ease);">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;">
+          <span style="display:flex;flex-direction:column;gap:2px;"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.1em;color:{{ dv.ink.muted }};">MAX TEMP · 설비별 최고 온도</span><span style="font-size:15px;font-weight:700;color:{{ dv.ink.name }};text-shadow:{{ dv.ink.bodyShadow }};">{{ dv.chart.curName }}</span></span>
+          <span style="display:flex;align-items:baseline;gap:6px;"><span style="font-family:'Montserrat','Pretendard',sans-serif;font-size:34px;font-weight:800;line-height:1;color:{{ dv.ink.title }};text-shadow:0 0 18px rgba(255,122,26,.55);">{{ dv.chart.curTemp }}</span><span style="font-size:15px;color:{{ dv.ink.muted }};">{{ dv.chart.curUnit }}</span></span>
+        </div>
+        <svg viewBox="0 0 {{ dv.chart.w }} {{ dv.chart.h }}" width="{{ dv.chart.w }}" height="{{ dv.chart.h }}" style="display:block;overflow:visible;">
+          <defs><linearGradient id="dvArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9a2e" stop-opacity=".55"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/></linearGradient></defs>
+          <sc-for list="{{ dv.chart.grid }}" as="g" hint-placeholder-count="3"><line x1="{{ dv.chart.padL }}" x2="{{ dv.chart.w }}" y1="{{ g.y }}" y2="{{ g.y }}" stroke="{{ dv.ink.grid }}" stroke-dasharray="3 5"/><text x="0" y="{{ g.ty }}" font-size="12" font-family="IBM Plex Mono, monospace" fill="{{ dv.ink.axis }}">{{ g.label }}</text></sc-for>
+          <path d="{{ dv.chart.area }}" fill="url(#dvArea)"/>
+          <path d="{{ dv.chart.line }}" fill="none" stroke="#ffb03a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" style="filter:drop-shadow(0 0 6px rgba(255,154,46,.9)) drop-shadow(0 0 14px rgba(255,122,26,.5));"/>
+          <line x1="{{ dv.chart.cx }}" x2="{{ dv.chart.cx }}" y1="{{ dv.chart.cy }}" y2="{{ dv.chart.base }}" stroke="#ffd08a" stroke-width="1.5" stroke-dasharray="4 4"/>
+          <circle cx="{{ dv.chart.cx }}" cy="{{ dv.chart.cy }}" r="9" fill="none" stroke="#ffb03a" stroke-width="2" style="filter:drop-shadow(0 0 8px rgba(255,154,46,.9));"/>
+          <circle cx="{{ dv.chart.cx }}" cy="{{ dv.chart.cy }}" r="4" fill="#fff6d5"/>
+        </svg>
+        <div style="display:flex;justify-content:space-between;padding-left:{{ dv.chart.padL }}px;pointer-events:auto;">
+          <sc-for list="{{ dv.chart.pts }}" as="q" hint-placeholder-count="6">
+            <button onClick="{{ q.onClick }}" title="{{ q.tip }}" style="width:30px;height:30px;border-radius:15px;border:1px solid {{ q.border }};background:{{ q.bg }};color:{{ q.color }};font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;cursor:pointer;" style-hover="border-color:#ffb03a;">{{ q.n }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- 선택한 설비 위 정보 카드(레퍼런스의 'New Mexico' 카드). _dvTick()이 매 프레임 설비 앵커를 화면 좌표로 바꿔 옮긴다 -->
+      <sc-if value="{{ dv.card.on }}" hint-placeholder-val="{{ false }}">
+        <div ref="{{ dvCardRef }}" data-dv-card style="position:absolute;left:0;top:0;z-index:4;width:300px;opacity:0;display:flex;flex-direction:column;gap:10px;padding:14px 16px 12px;border-radius:14px;background:{{ dv.ink.card }};border:1px solid {{ dv.ink.line }};box-shadow:0 18px 40px rgba(0,0,0,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:{{ dv.ink.cardText }};transition:opacity .2s;will-change:transform;">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;"><span style="font-size:15px;font-weight:700;">{{ dv.card.name }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:{{ dv.ink.cardMuted }};">{{ dv.card.num }}</span></div>
+          <div style="display:flex;align-items:center;gap:10px;"><span style="width:3px;height:28px;border-radius:2px;background:#ff7a1a;flex:none;"></span><span style="font-family:'Montserrat','Pretendard',sans-serif;font-size:26px;font-weight:800;line-height:1;white-space:nowrap;">{{ dv.card.big }}</span><span style="font-size:13px;line-height:1.35;color:{{ dv.ink.cardMuted }};">{{ dv.card.bigLabel }}</span></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <sc-for list="{{ dv.card.chips }}" as="c" hint-placeholder-count="2"><span style="display:flex;flex-direction:column;gap:1px;padding:6px 10px;border-radius:9px;background:{{ dv.ink.chip }};max-width:100%;"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:{{ dv.ink.cardMuted }};">{{ c.k }}</span><span style="font-size:15px;font-weight:600;">{{ c.v }}</span></span></sc-for>
+          </div>
+          <button onClick="{{ dv.card.open }}" style="display:flex;align-items:center;justify-content:space-between;height:40px;padding:0 14px;border-radius:9px;border:1px solid {{ dv.ink.line }};background:{{ dv.ink.btn }};color:{{ dv.ink.btnFg }};font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.14em;cursor:pointer;" style-hover="filter:brightness(1.1);">자세히 보기<span>→</span></button>
+        </div>
+      </sc-if>
+
+      <!-- 줌 -->
+      <div style="position:absolute;right:16px;bottom:72px;z-index:3;display:flex;flex-direction:column;border-radius:10px;overflow:hidden;border:1px solid {{ dv.ink.line }};background:{{ dv.ink.zoomBg }};backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+        <button onClick="{{ dv.zoomIn }}" title="확대" style="width:34px;height:34px;border:none;border-bottom:1px solid {{ dv.ink.line }};background:transparent;color:{{ dv.ink.zoomFg }};font-size:18px;cursor:pointer;">+</button>
+        <button onClick="{{ dv.zoomOut }}" title="축소" style="width:34px;height:34px;border:none;background:transparent;color:{{ dv.ink.zoomFg }};font-size:18px;cursor:pointer;">−</button>
+      </div>
+    </sc-if>
+
     <sc-if value="{{ is2d }}" hint-placeholder-val="{{ false }}">
       <div style="position:absolute;left:{{ L.ovL }};top:72px;display:flex;padding:3px;transition:left var(--t-base) var(--ease);gap:2px;border-radius:9px;background:rgba(18,24,32,.88);border:1px solid var(--line2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:fadeIn var(--t-fast) var(--ease);">
         <sc-for list="{{ drawTabs }}" as="t" hint-placeholder-count="3">
@@ -683,6 +742,7 @@ const reaction = (fml) => { if (!fml || !fml.includes('→')) return null; const
 class Component extends DCLogic {
   state = { ready: false, processId: 'site', selectedId: null, tutorOpen: false, devOpen: false, settingsOpen: false, theme: null, speed: 1, messages: [], input: '', pending: false, lastReq: null, lastRes: null, lastResults: [], progress: 0, matLabel: '', playing: false, view: 'exterior', drawMode: 'zone', layer: null, ai: 'unknown', expanded: {} };
   chatRef = React.createRef();
+  dvCardRef = React.createRef(); // [데이터 비주얼] 선택 설비 위 정보 카드
   // 로고 인트로는 브라우저 탭마다 처음 한 번만(sessionStorage). 저장소가 막히면 오류 없이 매번 보여 준다. ?intro=1이면 항상, ?intro=0이면 건너뛴다
   introSeen() { return true; /* [세련안] 로고 인트로 대신 sleek-overview.js 인트로 */ const q = this.qs('intro'); if (q === '1' || q === '0') return q === '0'; try { if (sessionStorage.getItem('st-rookie-intro-seen')) return true; sessionStorage.setItem('st-rookie-intro-seen', '1'); } catch (e) {} return false; }
   introEl(dark) {
@@ -720,6 +780,7 @@ class Component extends DCLogic {
     document.addEventListener('steel-model', e => { this.setState({ model: e.detail }); if (e.detail.status === 'glb' && this._deep) this._applyDeep(); });
     document.addEventListener('sleek-showcase', e => this.setState({ showcaseId: e.detail.id })); // 3D가 지금 소개 중인 공정
     document.addEventListener('steel-goto', e => { const id = e.detail.process ?? e.detail.id; if (id) this.goProcess(id); });
+    this._dvTick(); // [데이터 비주얼] 설비 정보 카드를 매 프레임 설비 위로
     document.addEventListener('steel-overview', () => { if (this.state.selectedId || this.state.processId !== 'site') this.setState({ selectedId: null }); });
     document.addEventListener('steel-layer', e => this.setState({ layer: e.detail.layer }));
     document.addEventListener('steel-progress', e => this.setState(s => ({ progress: e.detail.t, matLabel: e.detail.label, playing: e.detail.playing, touring: e.detail.touring, tourStep: e.detail.step,
@@ -794,6 +855,72 @@ class Component extends DCLogic {
         onClick: () => { this.setState({ selectedId: e.id, tutorOpen: false, panelHidden: false }); this.scene()?.focus(e.id); } }; });
     return { on: true, cells, arrows: 'data:image/svg+xml,' + encodeURIComponent(svg), caption: `${p.name} 공정 구역도 · 설비 ${N}개 · 번호와 화살표는 공정 순서`,
       x: Math.round(24 + (rw - cw) / 2) + 'px', y: '124px', w: cw + 'px', h: ch + 'px' };
+  }
+  // ---- [데이터 비주얼] 공정 안 HUD (레퍼런스: Dribbble 'Finance Management App Data Viz Tool') ----
+  // 설비 정보 카드를 선택한 설비의 3D 앵커 위에 띄운다. 장면(steel-scene)이 이름표에 쓰는 것과 같은 투영(eqs[].anchor → camera)을 쓴다.
+  _dvTick() {
+    const el = this.dvCardRef.current, sc = this.scene();
+    // 왼쪽 설비 메뉴의 실제 오른쪽 끝(패딩 포함)을 재서 HUD가 메뉴를 피하게 한다. 바뀔 때만 state에 쓴다
+    const nav = document.querySelector('[data-sa-nav]'), navRight = nav && nav.offsetParent ? Math.round(nav.getBoundingClientRect().right) : 0;
+    if (navRight !== this._navRight) { this._navRight = navRight; this.setState({ navRight }); }
+    if (el && sc && sc.eqs && sc.camera && !sc._2d) {
+      const e = sc.eqs.find(x => x.id === this.state.selectedId);
+      if (e?.anchor?.clone) {
+        const v = e.anchor.clone().project(sc.camera), w = sc.clientWidth || 1, h = sc.clientHeight || 1;
+        const px = (v.x + 1) / 2 * w, py = (1 - v.y) / 2 * h, cw = el.offsetWidth || 300, ch = el.offsetHeight || 170;
+        // 오른쪽 정보 패널이 열려 있으면 그 왼쪽까지만 쓴다
+        const panel = document.querySelector('[data-sa-panel]'), maxX = panel && panel.offsetParent ? Math.min(w, panel.getBoundingClientRect().left - 12) : w;
+        let left = px + 24, top = py - ch - 18; // 기본: 앵커 오른쪽 위
+        if (left + cw > maxX - 12) left = px - cw - 24; // 오른쪽이 모자라면 왼쪽
+        if (top < 76) top = py + 22; // 위가 모자라면 아래
+        left = Math.max(12, Math.min(maxX - cw - 12, left)); top = Math.max(76, Math.min(h - ch - 12, top));
+        el.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+        el.style.opacity = v.z < 1 && (!sc.zone || sc.zone.root.visible) ? '1' : '0';
+      } else el.style.opacity = '0';
+    }
+    this._dvRaf = requestAnimationFrame(() => this._dvTick());
+  }
+  // 줌 버튼: 장면의 휠 처리(거리 8~90, 전체 공정은 125~300)를 그대로 쓴다.
+  dvZoom(deltaY) { const sc = this.scene(); if (!sc) return; (sc.querySelector('canvas') || sc).dispatchEvent(new WheelEvent('wheel', { deltaY, bubbles: true, cancelable: true })); }
+  // HUD 값. 온도는 설비 steps[].temp에서 숫자 최댓값(상온 = 25℃). 공정만 고른 상태(설비 없음)에서는 첫 설비를 그래프 기준으로 둔다.
+  dataViz({ S, D, p, eq, lightVp, is2d, touring, inSection, navShown, navW }) {
+    const site = S.processId === 'site';
+    const on = !site && !is2d && !touring && !inSection;
+    const tempOf = e => { let m = null; for (const st of e.steps || []) { const t = String(st.temp || ''); if (/상온/.test(t)) m = Math.max(m ?? 0, 25); for (const n of t.replace(/,/g, '').match(/\d+(?:\.\d+)?/g) || []) m = Math.max(m ?? 0, +n); } return m; };
+    const eqs = p.equipment || [], temps = eqs.map(tempOf), known = temps.filter(t => t != null), maxT = Math.max(1, ...known);
+    const sel = Math.max(0, eqs.findIndex(e => e.id === S.selectedId)), selT = temps[sel];
+    const maxI = temps.indexOf(Math.max(...temps.map(t => t ?? -1)));
+    const fmt = t => t == null ? '—' : Math.round(t).toLocaleString('ko-KR');
+    // 그래프 좌표(SVG 380×150). 부드러운 선은 Catmull-Rom → 베지어
+    const w = 380, h = 150, padL = 40, padR = 14, top = 16, base = h - 8, n = eqs.length;
+    const X = i => n > 1 ? padL + i * (w - padL - padR) / (n - 1) : w / 2, Y = t => base - ((t ?? 0) / maxT) * (base - top);
+    const P = eqs.map((e, i) => [X(i), Y(temps[i])]);
+    let line = '';
+    P.forEach(([x, y], i) => {
+      if (i === 0) { line = `M${x.toFixed(1)},${y.toFixed(1)}`; return; }
+      const p0 = P[i - 2] || P[i - 1], p1 = P[i - 1], p2 = P[i], p3 = P[i + 1] || P[i];
+      const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+      line += ` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    const area = P.length ? `${line} L${P[P.length - 1][0].toFixed(1)},${base} L${P[0][0].toFixed(1)},${base} Z` : '';
+    const grid = [0, .5, 1].map(f => ({ y: (base - f * (base - top)).toFixed(1), ty: (base - f * (base - top) + 4).toFixed(1), label: f === 0 ? '0' : fmt(maxT * f) }));
+    // 색: 다크는 레퍼런스 그대로(어두운 바탕·주황 입체 글자), 라이트는 흰 바닥 위 진한 글자
+    const ext = (cols, step = 2) => cols.flatMap((c, i) => [`${i * step + 1}px ${i * step + 1}px 0 ${c}`, `${i * step + 2}px ${i * step + 2}px 0 ${c}`]).join(', ');
+    const ink = lightVp
+      ? { num: '#9a420f', title: '#ff7a1a', titleShadow: ext(['#e0671c', '#c9560f', '#b04c14', '#8f3d10']) + ', 10px 14px 22px rgba(0,0,0,.25)', name: '#1b232d', nameShadow: ext(['#cfd4db', '#b9c0c9', '#a3abb6'], 1) + ', 0 6px 14px rgba(0,0,0,.18)', sub: '#4b5665', body: '#4b5665', bodyShadow: 'none', muted: '#5d6878', axis: '#5d6878', grid: 'rgba(27,37,50,.14)', line: 'rgba(27,37,50,.16)', tile: 'rgba(255,255,255,.72)', card: 'rgba(255,255,255,.95)', cardText: '#1b232d', cardMuted: '#5d6878', chip: 'rgba(27,37,50,.07)', btn: '#1b232d', btnFg: '#ffffff', zoomBg: 'rgba(255,255,255,.9)', zoomFg: '#1b232d', hud: 'linear-gradient(180deg, rgba(255,255,255,.2), rgba(255,255,255,.62))' }
+      : { num: '#ffb866', title: '#ff7a1a', titleShadow: ext(['#d9641a', '#b84d0c', '#8f3d10', '#5e2708']) + ', 12px 16px 28px rgba(0,0,0,.55)', name: '#f4f6f9', nameShadow: ext(['#8e949c', '#5d636b', '#3a3f46'], 1) + ', 0 8px 18px rgba(0,0,0,.5)', sub: '#c3ccd7', body: '#c3ccd7', bodyShadow: '0 1px 8px rgba(0,0,0,.6)', muted: '#b5bcc6', axis: '#9aa3ae', grid: 'rgba(255,255,255,.12)', line: 'rgba(255,255,255,.16)', tile: 'rgba(20,20,22,.62)', card: 'rgba(20,20,22,.9)', cardText: '#f2f2f2', cardMuted: '#b5b5b8', chip: 'rgba(255,255,255,.08)', btn: '#f2f2f2', btnFg: '#111111', zoomBg: 'rgba(20,20,22,.85)', zoomFg: '#f2f2f2', hud: 'linear-gradient(180deg, rgba(10,10,12,.05), rgba(10,10,12,.5))' };
+    const facts = eq?.facts || [];
+    return {
+      on, left: navShown ? `${Math.max(28, (S.navRight || 16 + navW) + 24)}px` : '28px', chartBottom: '104px',
+      num: p.num, en: String(p.en || p.id).toUpperCase(), name: p.name, sub: p.sub || '', summary: p.summary || '', ink,
+      kpis: [{ label: 'EQUIPMENT', value: `${eqs.length}`, size: '20px' }, { label: 'MAX TEMP', value: known.length ? `${fmt(temps[maxI])}℃` : '—', size: '20px' }, { label: 'FLOW', value: p.io || '', size: '15px' }],
+      chart: { w, h, padL, line, area, grid, base, cx: (P[sel]?.[0] ?? 0).toFixed(1), cy: (P[sel]?.[1] ?? base).toFixed(1), curName: eqs[sel]?.name || '', curTemp: fmt(selT), curUnit: selT == null ? '' : '℃',
+        pts: eqs.map((e, i) => ({ n: String(i + 1).padStart(2, '0'), tip: `${e.name} · 최고 ${fmt(temps[i])}℃`, bg: i === sel ? '#ffb03a' : 'transparent', color: i === sel ? '#1a1200' : ink.axis, border: i === sel ? '#ffb03a' : ink.line, onClick: () => this.select(i) })) },
+      card: { on: !!eq, name: eq?.name || '', num: String(sel + 1).padStart(2, '0'), big: facts[0]?.v ?? (selT == null ? '—' : `${fmt(selT)}℃`), bigLabel: facts[0]?.k ?? '최고 온도',
+        chips: [{ k: 'IN', v: eq?.input || '—' }, { k: 'OUT', v: eq?.output || '—' }],
+        open: () => { this.setState({ panelHidden: false, tutorOpen: false, devOpen: false }); this.scene()?.focus(S.selectedId); } },
+      zoomIn: () => this.dvZoom(-260), zoomOut: () => this.dvZoom(260),
+    };
   }
   renderVals() {
     const S = this.state, theme = this.theme(), dark = theme === 'dark';
@@ -899,8 +1026,9 @@ class Component extends DCLogic {
     const drawTabs = Object.entries(DM).map(([m, [label, tip]]) => { const on = dm === m; return { label, tip, bg: on ? AC : 'transparent', color: on ? INK : '#dfe5ec', weight: on ? '700' : '500', onClick: () => this.setState({ drawMode: m }) }; });
     const zd = this.zoneDiagram(p, eq, k, cur, is2d && dm === 'zone', vpW, vpH, L.tbDisp !== 'none');
     const tb = { title: `${p.name} 공정 ${DM[dm][2]}`, no: `SA-${p.num || '00'}-${DM[dm][3]}${eq ? '-' + String(k + 1).padStart(2, '0') : ''}`, line: bpMode ? 'rgba(215,236,255,.75)' : 'rgba(255,255,255,.22)', bg: bpMode ? 'rgba(15,44,76,.75)' : 'rgba(18,24,32,.82)', color: bpMode ? '#d7ecff' : '#eef2f6' };
+    const dv = this.dataViz({ S, D, p, eq, lightVp, is2d, touring, inSection, navShown, navW }); // [데이터 비주얼] 공정 안 HUD
     return {
-      ...base, ...chatV, messages, ...this.checkpoint.vals(), L, steps, zd,
+      ...base, ...chatV, messages, ...this.checkpoint.vals(), L, steps, zd, dv, dvCardRef: this.dvCardRef,
       resume, toggleRail: () => this.setState({ navRail: !rail }), togglePanel: () => this.setState({ panelHidden: !panelHid }), viewTabs, bar, togglePlay, sec, aiDown, aiUp: !aiDown, is2d, drawTabs, tb, hintText: is2d ? '드래그 이동 · 휠 확대' : '드래그 회전 · 휠 확대',
       timeOfDay: this.qs('tod') ?? this.props.timeOfDay ?? 'auto', // auto = 실제 시각으로 오전/오후/저녁
       processId: S.processId, selectedAttr: S.selectedId || '', view: S.view, process: p, eq: eq || {}, eqNum: String(k + 1).padStart(2, '0'), eqIcon: icon(eq?.shape || 'box', '#e6ebf1', 1.4),
