@@ -7,7 +7,7 @@
 // 학습 현황(벽 대시보드, 왼쪽 위 패널은 없앴다): 지금 보는 것 · 이 세션에서 본 설비 수 · 이해도 확인 상태(GET /api/sections/:section/progress, 로그인 때만) · 다시 볼 설비(GET /api/me/misconceptions의
 //     미해결 체크포인트 오개념 → learn-hud-state.js의 개념→설비 표). 실제 값만 보여 주고, 로그인 전에는 안내 문구를 둔다.
 // 설비 보기: 하단 점·3D 클릭(설비를 짚으면 그 설비, 그 밖은 다음 설비)·← →. 설비 번호 핀·핫스팟은 UI 주황(--hot, 2026-10-14 요청. 바닥 물결만 시안). 선택한 설비는 바닥의 시안 링으로 감싸고 나머지 설비는 색을 낮춘다. 전체 보기(공정만)에서는 설비 UI를 띄우지 않는다.
-// 대시보드 보기: 뒷벽(공정 이름 + 대시보드 4장)이 화면에 꼭 차게 정면에서 보고, 앞에 선 공정 모델은 옅게(18%) 둬 벽이 읽히게 한다. 드래그·설비 선택·공정 바꾸기로 외관으로 돌아온다(평면 보기를 대신한다, 2026-10-14 요청).
+// 대시보드 보기: 공정과 옆에 떠 있는 대시보드가 화면에 꼭 차게 보고, 앞에 선 공정 모델은 옅게(18%) 둬 벽이 읽히게 한다. 드래그·설비 선택·공정 바꾸기로 외관으로 돌아온다(평면 보기를 대신한다, 2026-10-14 요청).
 // 튜터: learning-chat.js(createLearningChat)를 그대로 쓴다(POST /api/chat, 로그인 토큰). 페이지 컴포넌트 대신 작은 어댑터(state·setState·scene()·goProcess)를 넘긴다.
 // 수치는 data_v2.js와 서버 응답에서만 가져온다. 꾸며 낸 실시간 값은 쓰지 않는다. prefers-reduced-motion이면 솟아오르기·글자 연출·자전 없이 바로 놓는다.
 
@@ -372,10 +372,10 @@ function ghost(p, on) { // 공정 모델을 옅게 하거나(on) 되돌린다. �
 // 오른쪽 패널이 열려 있으면 남은 폭에 맞게 그만큼 더 물러난다(최대 1.6배)
 const panelZoom = () => (document.body.classList.contains('panel') ? Math.min(1.6, stage.clientWidth / Math.max(300, stage.clientWidth - (right.offsetWidth || 440))) : 1);
 const eqPose = (e, yaw) => { const c = e.box.getCenter(new THREE.Vector3()), s = e.box.getSize(new THREE.Vector3()); return { yaw, pitch: 0.34, dist: Math.max(14, Math.max(s.x, s.z, s.y) * 2.4) * panelZoom(), target: new THREE.Vector3(c.x - s.x * 0.15, c.y, c.z) }; };
-function boardPose() { // 뒷벽 전체(폭 W, 높이 Hw)가 화면에 꼭 차게 정면에서 조금 위에서. 벽 폭은 화면 폭의 90%, 높이는 세로의 75%쯤
+function boardPose() { // 무대 전체(공정 + 떠 있는 대시보드)가 화면에 꼭 차게 홈 방향에서 조금 낮게. 공정 모델은 옅게 둔다
   const b = stage3d.bounds(); if (!b) return home;
-  const W = b.max.x - b.min.x, Hw = b.max.y - b.min.y, half = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), a = Math.max(0.7, Math.min(2.2, camera.aspect));
-  return { yaw: 0, pitch: 0.16, dist: Math.max(16, W * 1.1 / (2 * half * a), Hw * 1.35 / (2 * half)), target: new THREE.Vector3((b.min.x + b.max.x) / 2, Hw * 0.5 + 0.5, b.min.z) };
+  const sz = b.getSize(new THREE.Vector3()), c = b.getCenter(new THREE.Vector3()), half = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), a = Math.max(0.7, Math.min(2.2, camera.aspect));
+  return { yaw: home.yaw, pitch: 0.22, dist: Math.max(16, sz.x * 1.15 / (2 * half * a), sz.y * 1.7 / (2 * half)), target: new THREE.Vector3(c.x, Math.max(2, sz.y * 0.45), c.z) };
 }
 function setView(v, fly = true) {
   if (view === v) return; view = v;

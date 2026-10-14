@@ -1,12 +1,11 @@
-// 공정 무대(steel-index.js가 쓴다). 공정을 고르면 바닥판이 앞으로 쭉 뻗고 뒷벽이 위로 솟아 ㄴ자 무대가 된다.
-// 벽 왼쪽 위에는 공정 이름(굵은 평면 글자, 글자마다 아래에서 위로 올라온다), 오른쪽에는 대시보드 4장이 차례로 켜진다.
+// 공정 무대(steel-index.js가 쓴다). 공정을 고르면 바닥판이 앞으로 쭉 뻗는다. 뒷벽은 쓰지 않는다(2026-10-14 요청: 대시보드를 벽이 아니라 공정 옆에 비스듬히 띄운다).
+// 공정 이름(굵은 평면 글자, 글자마다 아래에서 위로 올라온다)은 왼쪽 뒤 위에, 온도 그래프는 왼쪽 앞에 서서, 작은 판 3장(아래 2·위 1)은 오른쪽에 떠 있다. 모두 반투명 유리판이고 카메라 쪽을 보되 ±25°쯤 비스듬하며, 켜질 때 아래에서 떠오르고 켜진 뒤에는 살짝 흔들린다.
 //   - 공정 온도 흐름: 설비 단계별 대표 온도(data_v2.js의 steps[].temp)를 이은 주황 선 그래프. 고른 설비 구간을 밝게 표시
 //   - 가장 뜨거운 구간: 공정(또는 고른 설비)에서 온도가 가장 높은 단계
 //   - 소재 흐름: 들어오는 원료 → 나오는 소재(io), 설비·단계 수
 //   - 학습 현황: 지금 보는 것 · 본 설비 수 · 이해도 확인 상태(서버 응답, 로그인 때만) · 다시 볼 설비 수
 // 값은 data_v2.js와 서버 응답에서만 가져온다(꾸민 실시간 값 없음). 온도는 교육용 예시값이라 그래프에 그렇게 적는다.
 // 바닥판 윗면 = y 0(설비가 여기서 솟는다). 바닥판 두께만큼 아래(-STAGE_H)까지 그리므로 steel-index.js의 전역 클리핑 평면도 그 높이에 맞춘다.
-// 카메라가 벽 뒤로 돌아가면 벽과 대시보드를 옅게 해 공정을 가리지 않는다.
 
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/+esm';
 import { parseTemp } from './steel-index-ui.js';
@@ -33,10 +32,10 @@ export function createStage({ scene, slateMap, reduced = false }) {
   // 캔버스 한 장 = 판 하나(벽에 붙은 평면). draw(x, k)로 다시 그린다
   function plate(cw, ch, w, h) {
     const c = document.createElement('canvas'); c.width = cw; c.height = ch; const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false }));
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
     mesh.renderOrder = 3; mesh.raycast = () => {}; board.add(mesh); return { c, x: c.getContext('2d'), tex, mesh, w, h };
   }
-  const glass = (x, W, H) => { x.clearRect(0, 0, W, H); x.fillStyle = 'rgba(14,18,23,.86)'; x.strokeStyle = 'rgba(255,255,255,.16)'; x.lineWidth = 3; x.beginPath(); x.roundRect(3, 3, W - 6, H - 6, 26); x.fill(); x.stroke(); };
+  const glass = (x, W, H) => { x.clearRect(0, 0, W, H); x.fillStyle = 'rgba(10,14,20,.62)'; x.strokeStyle = 'rgba(255,255,255,.28)'; x.lineWidth = 3; x.beginPath(); x.roundRect(3, 3, W - 6, H - 6, 26); x.fill(); x.stroke(); };
   const head = (x, t, sub) => { x.fillStyle = '#9aa6b2'; x.font = `500 30px ${MONO}`; x.fillText(t, 40, 64); if (sub) { x.fillStyle = '#6f7b88'; x.font = `400 24px ${FONT}`; x.fillText(sub, 40, 102); } };
 
   let st = null, dark = true; // 지금 무대(공정 하나)
@@ -44,21 +43,23 @@ export function createStage({ scene, slateMap, reduced = false }) {
     const { w, d, cx, cz } = p.foot, size = p.bounds.getSize(new THREE.Vector3());
     const W = w + 12, D = d + 14, z0 = cz - d / 2 - 6, Hw = Math.max(18, size.y + 9), H = STAGE_H;
     floor.scale.set(W, H, D); floor.position.set(0, -H / 2, D / 2); floorPivot.position.set(cx, 0, z0);
-    wall.scale.set(W, Hw + H, 0.8); wall.position.set(0, (Hw + H) / 2, -0.4); wallPivot.position.set(cx, -H, z0);
-    board.position.set(cx, 0, z0 + 0.06);
+    wallPivot.visible = false; board.position.set(0, 0, 0); // 뒷벽 없음. 판은 월드 좌표로 바로 놓는다
     board.children.slice().forEach((m) => { board.remove(m); m.geometry.dispose(); m.material.map.dispose(); m.material.dispose(); });
-    // 배치(벽 기준 좌표): 왼쪽 위 글자, 오른쪽 위 큰 그래프, 그 아래 작은 판 3장
-    const tw = Math.min(22, Math.max(13, W * 0.3)), L = -W / 2 + 2.2, R = W / 2 - 2.2, gx = L + tw + 1.6, rw = R - gx, top = Hw - 1.8;
-    const title = plate(1024, 512, tw, tw / 2); title.mesh.position.set(L + tw / 2, top - tw / 4, 0.02);
-    const gh = Math.min(rw * 0.36, Hw * 0.42), graph = plate(1600, Math.round(1600 * gh / rw), rw, gh); graph.mesh.position.set(gx + rw / 2, top - gh / 2, 0.02);
-    // 작은 판은 캔버스 해상도를 낮춰(600) 같은 글자 크기가 더 크게 보이게 한다
-    const sw = (rw - 2 * 1.2) / 3, sh = Math.min(sw * 0.62, Hw * 0.3), sy = top - gh - 1.2 - sh / 2;
-    const small = [0, 1, 2].map((i) => { const pl = plate(600, Math.round(600 * sh / sw), sw, sh); pl.mesh.position.set(gx + sw / 2 + i * (sw + 1.2), sy, 0.02); return pl; });
+    // 배치: 카메라는 앞 왼쪽(yaw -0.3)에서 본다. 판은 그쪽을 보되 그래프는 +0.5, 작은 판은 -0.45만큼 비스듬히, 모두 뒤로 0.16 기울인다
+    const yawCam = -0.3, lean = -0.16, put = (pl, x, y, z, yaw) => { pl.mesh.position.set(x, y, z); pl.mesh.rotation.set(lean, yaw, 0); pl.y0 = y; };
+    const tw = Math.min(24, Math.max(14, w * 0.34)), title = plate(1024, 512, tw, tw / 2);
+    put(title, cx - w * 0.18, Math.max(size.y, 8) + tw * 0.28, z0 + 4, yawCam + 0.1);
+    const rw = Math.min(36, Math.max(18, w * 0.55)), gh = rw * 0.5, graph = plate(1600, 800, rw, gh);
+    put(graph, cx - w / 2 - rw * 0.28, gh / 2 + 1.6, cz + d * 0.45, yawCam + 0.45);
+    // 작은 판: 오른쪽에 아래 2장·위 1장. 판들이 놓인 면을 yawCam - 0.45로 돌린다
+    const sw = Math.min(18, Math.max(11, w * 0.28)), sh = sw * 0.62, sx = cx + w / 2 + sw * 0.55, sz = cz + d * 0.25, th = yawCam - 0.4;
+    const small = [0, 1, 2].map((i) => { const pl = plate(600, Math.round(600 * sh / sw), sw, sh), lx = (i < 2 ? i - 0.5 : 0) * (sw + 1), row = i < 2 ? 0 : 1;
+      put(pl, sx + lx * Math.cos(th), 1.2 + sh / 2 + row * (sh + 0.8), sz - lx * Math.sin(th), th); return pl; });
     // 데이터: 설비 단계별 온도(상한), 설비 구간
     const pts = [], bands = [];
     p.eqs.forEach((e) => { const i0 = pts.length; (e.data.steps || []).forEach((s) => { const r = parseTemp(s.temp); if (r) pts.push({ v: r[1], zone: s.zone, temp: s.temp, eq: e }); }); if (pts.length > i0) bands.push({ eq: e, i0, i1: pts.length - 1 }); });
     st = { p, W, D, Hw, z0, title, graph, small, pts, bands, t0: 0, sink: null, k: { floor: 0, wall: 0, title: 0, graph: 0 }, learn: null, eq: null, fade: 1 };
-    floorPivot.scale.set(1, 1, 0.0001); wallPivot.scale.set(1, 0.0001, 1); floorPivot.visible = wallPivot.visible = board.visible = true;
+    floorPivot.scale.set(1, 1, 0.0001); floorPivot.visible = board.visible = true;
     drawAll(true);
   }
 
@@ -147,24 +148,22 @@ export function createStage({ scene, slateMap, reduced = false }) {
       const s = now - st.sink.t0, kp = ease(s / (T.sink * 0.35)), kw = ease((s - T.sink * 0.25) / T.sink), kf = ease((s - T.sink * 0.55) / T.sink);
       board.children.forEach((m) => { m.material.opacity = Math.min(m.material.opacity, 1 - kp); }); // 글자·대시보드가 먼저 꺼진다
       wallPivot.scale.y = Math.max(0.0001, st.sink.from.wall * (1 - kw)); floorPivot.scale.z = Math.max(0.0001, st.sink.from.floor * (1 - kf));
-      if (now - st.sink.t0 > T.sink * 1.6) { floorPivot.visible = wallPivot.visible = board.visible = false; st = null; }
+      if (now - st.sink.t0 > T.sink * 1.6) { floorPivot.visible = board.visible = false; st = null; }
       return;
     }
     const t = now - st.t0, K = st.k;
     K.floor = ease(t / T.floor); K.wall = ease((t - T.wallAt) / T.wall);
     floorPivot.scale.z = Math.max(0.0001, K.floor); wallPivot.scale.y = Math.max(0.0001, K.wall);
     const kt = Math.min(1, Math.max(0, (t - T.titleAt) / T.title)); if (kt !== K.title) { K.title = kt; drawTitle(kt); }
-    camera.getWorldPosition(_cam); const behind = _cam.z < st.z0 - 0.5; st.fade += ((behind ? 0.12 : 1) - st.fade) * 0.12; // 벽 뒤에서 보면 옅게
-    wallMat.opacity = st.fade; lineMat.opacity = st.fade; wallMat.depthWrite = st.fade > 0.9;
     const kg = Math.min(1, Math.max(0, (t - T.panelAt) / (T.panel * 2.2))); // 그래프 선은 판이 켜진 뒤 왼쪽부터 그어진다
     if (kg > 0 && K.graph !== kg) { K.graph = kg; drawGraph(kg); }
     [st.title, st.graph, ...st.small].forEach((pl, i) => {
       const k = i === 0 ? Math.min(1, kt * 3) : ease((t - T.panelAt - (i - 1) * T.panelGap) / T.panel);
-      pl.mesh.material.opacity = k * st.fade;
-      if (i > 0) pl.mesh.position.z = 0.02 + (1 - k) * 0.6; // 벽에서 살짝 앞에서 붙는다
+      pl.mesh.material.opacity = Math.min(0.94, k) * st.fade;
+      pl.mesh.position.y = pl.y0 + (1 - k) * 2.5 + (reduced ? 0 : Math.sin(now / 1400 + i * 1.3) * 0.12); // 아래에서 떠오르고, 켜진 뒤 살짝 흔들린다
     });
   }
-  // 카메라가 무대 전체(바닥판 + 벽)를 담는 데 쓰는 상자
-  function bounds() { if (!st) return null; const { cx } = st.p.foot; return new THREE.Box3(new THREE.Vector3(cx - st.W / 2, 0, st.z0), new THREE.Vector3(cx + st.W / 2, st.Hw, st.z0 + st.D)); }
+  // 카메라가 무대 전체(바닥판 + 떠 있는 판들)를 담는 데 쓰는 상자
+  function bounds() { if (!st) return null; const { cx } = st.p.foot, b = new THREE.Box3(new THREE.Vector3(cx - st.W / 2, 0, st.z0), new THREE.Vector3(cx + st.W / 2, 0.1, st.z0 + st.D)); [st.title, st.graph, ...st.small].forEach((pl) => { pl.mesh.updateMatrixWorld(true); b.expandByObject(pl.mesh); }); return b; }
   return { build, play, sink, tick, setTheme, setEquipment, setLearning, bounds };
 }
