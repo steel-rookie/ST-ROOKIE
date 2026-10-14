@@ -15,6 +15,7 @@
 //   선로는 땅에 깔린 띠(자갈 + 침목 + 레일 무늬). 트럭·열차는 제선 구역이 솟은 뒤부터 다닌다.
 // - 공정 사이 연결: 구역 아래 둥근 주황 테두리와 같은 주황 선(가운데 선 + 번짐), 모서리는 둥글게. 제선에서 열연까지 다 이어지면 위에서 전체를 보여 주며
 //   선이 세 번 깜빡이고, 그 뒤 밝기를 42%로 낮춘다.
+// - 여는 장면 카메라: 멀리 반대편(1,100 뒤)에서 점 구름 위를 낮게(높이 약 60) 가로질러 전체 보기 자리로 날아든다(flyCam, 3차 베지에, 2026-10-14 요청. 전에는 멀리서 가만히 보다가 당겨 왔다).
 // - 카메라: 네 구역 전체가 화면에 꼭 차는 거리(overviewPose)보다 멀리 빠지지 않는다. 지도 버튼은 그 시점으로 간다. 앞 구역 오른쪽 변에서 나와 돌아 내려가 다음 구역 왼쪽 변으로 들어간다(구역 경계로 경로를 만든다).
 // - 공정 구역: 제선 → 제강 → 연주 → 열연이 1·2·3·4 순서로 땅에서 솟는다(받침 없음, 지역 클리핑으로 땅 위만 그림). 구역 둘레 주황 발광 테두리, 지금 구역은 15% 물결.
 // - 칩(번호·이름·[들어가기])과 흐름 라벨은 한꺼번에 띄우지 않는다: 구역이 솟을 때 3초만 보이고, 그 구역(또는 칩)에 마우스를 올리면 다시 보인다.
@@ -418,13 +419,26 @@ function animateTo(to, dur = 1600) { anim = { t0: performance.now(), dur: REDUCE
 
 // ---- 여는 장면 ----------------------------------------------------------------------------------------------------
 let started = false;
-const intro = { t0: 0, done: false, dawnStarted: false, gathered: false };
-const INTRO = { gather: 2000, hold: 900, dusk: 2400 };
-const POSE_NIGHT = { yaw: 0.05, pitch: 0.26, dist: 330, target: new THREE.Vector3(-12, -34, 6) }; // 목표를 땅 아래에 둬 점 구름이 화면 위쪽에 오게(홈처럼 글자는 아래 빈 곳에)
+const intro = { t0: 0, done: false, dawnStarted: false, gathered: false, fly: false, path: null };
+const INTRO = { gather: 2000, hold: 400, dusk: 2900 }; // 새벽(노출 0 → 1)은 카메라가 구역 위를 지나기 조금 전에 시작해, 지나간 뒤 앞이 캄캄하지 않게
+// 여는 장면 카메라 경로: 전체 보기(POSE.all) 자리 p2로 끝나는 3차 베지에. 시작점 p0는 그 반대편 멀리(수평 -800, 높이 60), 조종점은 구역 가운데 근처 낮게(높이 28·30)라
+// 가운데를 지날 때(u ≈ 0.55) 점 구름 위를 높이 약 60으로, 옆으로 50 비켜서 스쳐 지나간다(옆 비킴은 sin(πt)라 양 끝은 0). 바라보는 점은 앞쪽 300에서 구역 가운데로 빨리(1.5t) 옮겨 가
+// 지나간 뒤에도 구역이 화면에 남고, 옆으로 비켜 있어 바로 아래를 보는 순간(특이점)이 없다. 속도는 2차 ease-in-out(처음 머무는 시간이 짧게)
+function flyPath() {
+  const end = clampPose(POSE.all), T = end.target, h = new THREE.Vector3(Math.sin(end.yaw), 0, Math.cos(end.yaw)).normalize(), P = (k, y) => T.clone().addScaledVector(h, k).setY(y);
+  const p2 = new THREE.Vector3(T.x + end.dist * Math.sin(end.yaw) * Math.cos(end.pitch), T.y + end.dist * Math.sin(end.pitch), T.z + end.dist * Math.cos(end.yaw) * Math.cos(end.pitch));
+  return { p0: P(-800, 60), c1: P(-60, 28), c2: P(80, 30), p2, lookFar: P(300, 0), side: new THREE.Vector3(h.z, 0, -h.x), end };
+}
+const _fly = new THREE.Vector3();
+function flyCam(now) {
+  const F = intro.path || (intro.path = flyPath()), u = Math.min(1, (now - intro.t0) / (INTRO.gather + INTRO.hold + INTRO.dusk)), t = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2, s = 1 - t;
+  camera.position.set(0, 0, 0).addScaledVector(F.p0, s * s * s).addScaledVector(F.c1, 3 * s * s * t).addScaledVector(F.c2, 3 * s * t * t).addScaledVector(F.p2, t * t * t).addScaledVector(F.side, 50 * Math.sin(Math.PI * t));
+  camera.lookAt(_fly.copy(F.lookFar).lerp(F.end.target, Math.min(1, 1.5 * t)));
+}
 function startIntro() {
   if (REDUCED) { finishIntro(true); return; }
   procs.forEach((p) => { if (p.cloudTargets) p.cloud = makeCloud(p.cloudTargets); }); // 공정 4개 모양만(지도 윤곽·도로 점은 없다)
-  Object.assign(orbit, { yaw: POSE_NIGHT.yaw - 0.15, pitch: POSE_NIGHT.pitch, dist: POSE_NIGHT.dist + 40, target: POSE_NIGHT.target.clone() }); animateTo(POSE_NIGHT, INTRO.gather + INTRO.hold);
+  intro.fly = true; anim = null; // 카메라는 flyCam이 맡는다(끝나면 전체 보기 자리)
   renderer.toneMappingExposure = 0; intro.t0 = performance.now();
   const steps = [...document.querySelectorAll('#ovSteps span')]; steps.forEach((s, i) => setTimeout(() => steps.forEach((q, k) => q.classList.toggle('on', k === i)), 300 + i * 550));
 }
@@ -433,7 +447,7 @@ function introTick(now) {
   const t = now - intro.t0, kg = Math.min(1, t / INTRO.gather);
   if (!intro.gathered) { procs.forEach((p) => p.cloud && gather(p.cloud, kg)); if (kg >= 1) intro.gathered = true; }
   const td = t - INTRO.gather - INTRO.hold;
-  if (td > 0 && !intro.dawnStarted) { intro.dawnStarted = true; animateTo(clampPose(POSE.all), INTRO.dusk + 200); $('ov').classList.add('out'); }
+  if (td > 0 && !intro.dawnStarted) { intro.dawnStarted = true; $('ov').classList.add('out'); }
   const kd = Math.min(1, Math.max(0, td / INTRO.dusk)), e = easeInOut(kd);
   renderer.toneMappingExposure = e; if (ambientLights) ambientLights.material.uniforms.uOn.value = e; // 밤의 지도가 드러나고 불빛이 켜진다
   procs.forEach((p) => { if (p.cloud) p.cloud.mat.uniforms.uOpacity.value = 1 - e; });
@@ -445,7 +459,8 @@ function finishIntro(instant = false) {
   procs.forEach((p) => { if (p.cloud) p.cloud.pts.visible = false; });
   setTimeout(() => $('ttl').classList.add('out'), instant ? 4000 : TITLE_MS); // 제목 카드는 잠깐만
   $('ov').classList.add('out'); document.body.classList.remove('intro');
-  if (!intro.dawnStarted) animateTo(clampPose(POSE.all), instant ? 1 : 900);
+  if (intro.fly) { const T = POSE.all.target, d = camera.position.clone().sub(T), L = d.length() || 1; Object.assign(orbit, { dist: L, pitch: Math.asin(Math.max(-1, Math.min(1, d.y / L))), yaw: Math.atan2(d.x, d.z) }); orbit.target.copy(T); intro.fly = false; } // 날던 자리에서 이어서
+  animateTo(clampPose(POSE.all), instant ? 1 : 900);
   setTimeout(() => { if (!started) { started = true; goTo(0); } }, instant ? 0 : 500);
 }
 $('ovSkip').onclick = () => finishIntro();
@@ -645,8 +660,9 @@ function frame(now) {
   if (playing && cur >= 0 && procs[cur].up && now - procs[cur].upAt > HOLD_MS) { if (cur < procs.length - 1) goTo(cur + 1); else finish(); }
   if (anim) { const k = Math.min(1, (now - anim.t0) / anim.dur), s = easeInOut(k); orbit.yaw = anim.from.yaw + (anim.to.yaw - anim.from.yaw) * s; orbit.pitch = anim.from.pitch + (anim.to.pitch - anim.from.pitch) * s; orbit.dist = anim.from.dist + (anim.to.dist - anim.from.dist) * s; orbit.target.lerpVectors(anim.from.target, anim.to.target, s); if (k >= 1) anim = null; }
   else if (!drag && !REDUCED && finished && view === '3d') orbit.yaw += 0.0003;
-  const o = orbit; camera.position.set(o.target.x + o.dist * Math.sin(o.yaw) * Math.cos(o.pitch), o.target.y + o.dist * Math.sin(o.pitch), o.target.z + o.dist * Math.cos(o.yaw) * Math.cos(o.pitch)); camera.lookAt(o.target);
-  bokeh.uniforms.focus.value = camera.position.distanceTo(o.target); // 초점은 지금 보는 곳. 지도 보기에서는 흐림 없음
+  if (intro.fly && !intro.done) flyCam(now);
+  else { const o = orbit; camera.position.set(o.target.x + o.dist * Math.sin(o.yaw) * Math.cos(o.pitch), o.target.y + o.dist * Math.sin(o.pitch), o.target.z + o.dist * Math.cos(o.yaw) * Math.cos(o.pitch)); camera.lookAt(o.target); }
+  bokeh.uniforms.focus.value = intro.fly && !intro.done ? camera.position.distanceTo(POSE.all.target) : camera.position.distanceTo(orbit.target); // 초점은 지금 보는 곳. 지도 보기에서는 흐림 없음
   bokeh.uniforms.aperture.value = view === 'map' ? 0 : finished || cur < 0 ? 0.00004 : 0.0001;
   composer.render();
   if (pointScene.children.some((x) => x.visible)) { renderer.autoClear = false; renderer.render(pointScene, camera); renderer.autoClear = true; } // 점은 톤매핑·흐림 없이 위에 겹친다
