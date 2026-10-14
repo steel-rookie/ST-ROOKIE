@@ -1530,22 +1530,24 @@ class SteelScene extends HTMLElement {
     this._2dCenter.x -= dx * k; if (this._drawMode === 'front') this._2dCenter.y += dy * k; else this._2dCenter.z -= dy * k; this._place2d(); this._dirty = true; }
   _focus2d(e) { const c = this._ortho; if (!c) return; this._2dCenter = e.focus.clone(); const span = Math.max(8, (e.dist || 20) * 0.9); c.zoom = Math.min(10, Math.max(1, (c.right - c.left) / span)); c.updateProjectionMatrix(); this._place2d(); this._dirty = true; }
   // 선화(도면) 스타일: 모델 면은 도면 배경색으로 채워 뒤쪽 선을 가리고, 모서리 선만 밝게 그린다
+  // 도면 색: 기본은 남색 청사진. paper="white" 속성이면 흰 종이에 짙은 선(마이페이지 설계도·필기 페이지 blueprint.html이 쓴다, 2026-10-14 요청). 속성은 페이지가 열릴 때 정해져 있어야 한다(도면·격자 재질은 처음 만들 때 색을 정한다)
+  _paper() { return this.getAttribute('paper') === 'white' ? { bg: 0xffffff, fill: 0xf4f6f9, line: 0x27313d, grid1: 0xe4e8ee, grid2: 0xcdd4dc } : { bg: 0x0f2c4c, fill: 0x14365c, line: 0xd7ecff, grid1: 0x24507e, grid2: 0x3d6c9c }; }
   _2dStyle() {
-    const bp = this._2d && this._drawMode !== 'top', z = this._2dZone || this.zone, m = this._zoneModel(z);
+    const bp = this._2d && this._drawMode !== 'top', z = this._2dZone || this.zone, m = this._zoneModel(z), P = this._paper();
     (this._bpZones || []).forEach(q => { if (q.bp) q.bp.visible = false; if (q.model) q.model.visible = true; });
     if (bp && m) {
       if (z.bp && z.model !== m) { this.scene.remove(z.bp); z.bp = null; } // 모델(GLB)이 늦게 로드되면 도면을 다시 만든다
-      if (!z.bp && m !== z.root) { m.updateMatrixWorld(true); const g = new THREE.Group(); g.name = 'BLUEPRINT'; const fill = new THREE.MeshBasicMaterial({ color: 0x14365c, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1, fog: false }), line = new THREE.LineBasicMaterial({ color: 0xd7ecff, fog: false, transparent: true, opacity: 0.9 });
+      if (!z.bp && m !== z.root) { m.updateMatrixWorld(true); const g = new THREE.Group(); g.name = 'BLUEPRINT'; const fill = new THREE.MeshBasicMaterial({ color: P.fill, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1, fog: false }), line = new THREE.LineBasicMaterial({ color: P.line, fog: false, transparent: true, opacity: 0.9 });
         m.traverse(o => { if (!o.isMesh) return; const f = new THREE.Mesh(o.geometry, fill); f.matrixAutoUpdate = false; f.matrix.copy(o.matrixWorld); g.add(f);
           const l = new THREE.LineSegments(new THREE.EdgesGeometry(o.geometry, 28), line); l.matrixAutoUpdate = false; l.matrix.copy(o.matrixWorld); g.add(l); });
         z.bp = g; z.model = m; this.scene.add(g); (this._bpZones = this._bpZones || []).push(z); }
       if (z.bp) { z.bp.visible = true; m.visible = false; }
     }
-    if (!this._bpGrid) { const gr = new THREE.Group(); [[400, 200, 0x24507e, 0.55], [400, 40, 0x3d6c9c, 0.9]].forEach(([size, div, col, op]) => { const h = new THREE.GridHelper(size, div, col, col); h.material.transparent = true; h.material.opacity = op; h.material.fog = false; gr.add(h); }); this._bpGrid = gr; this.scene.add(gr); }
+    if (!this._bpGrid) { const gr = new THREE.Group(); [[400, 200, P.grid1, 0.55], [400, 40, P.grid2, 0.9]].forEach(([size, div, col, op]) => { const h = new THREE.GridHelper(size, div, col, col); h.material.transparent = true; h.material.opacity = op; h.material.fog = false; gr.add(h); }); this._bpGrid = gr; this.scene.add(gr); }
     this._bpGrid.visible = bp; if (bp) { const p = this._2dCenter || new THREE.Vector3(z?.ox || 0, 0, z?.oz || 0); if (this._drawMode === 'front') { this._bpGrid.rotation.set(Math.PI / 2, 0, 0); this._bpGrid.position.set(p.x, 0, new THREE.Box3().setFromObject(m).min.z - 2); } else { this._bpGrid.rotation.set(0, 0, 0); this._bpGrid.position.set(p.x, -0.05, 0); } }
     [this.backdrop, this.ground, this._links?.g, this._waves?.g].forEach(o => { if (o) o.visible = !bp; }); if (this.nightSky) this.nightSky.visible = !bp && !!this.dark; if (this.zl) this.zl.g.visible = !bp && !!this.dark && !this._isOverview;
     if (this.material) this.material.visible = !bp && !!this.zone?.root.visible;
-    if (bp) { this.scene.background = new THREE.Color(0x0f2c4c); this.scene.fog = null; this.ring.visible = false; }
+    if (bp) { this.scene.background = new THREE.Color(P.bg); this.scene.fog = null; this.ring.visible = false; }
     this._dirty = true;
   }
   _ext() { return this.hasAttribute('external-cards') || this.hasAttribute('externalcards'); }
